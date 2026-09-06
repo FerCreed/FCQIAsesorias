@@ -1,0 +1,6 @@
+@FCQI.Api_HostAddress = http://localhost:5016
+
+GET {{FCQI.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

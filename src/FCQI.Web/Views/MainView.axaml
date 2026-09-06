@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:models="using:FCQI.Web.Models"
+             x:Class="FCQI.Web.Views.MainView"
+             x:DataType="vm:MainViewModel">
+    <Border Padding="24" Background="#F4F7FB">
+        <StackPanel Spacing="16">
+            <TextBlock Text="Sistema de Asesorías FCQI"
+                       FontSize="26"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="Sprint 1 — catálogo de materias (Avalonia WASM → API .NET)"
+                       Opacity="0.7" />
+
+            <Button Content="Cargar materias"
+                    Command="{Binding LoadSubjectsCommand}"
+                    HorizontalAlignment="Left"
+                    Padding="16,8" />
+
+            <TextBlock Text="{Binding Status}"
+                       TextWrapping="Wrap" />
+
+            <ListBox ItemsSource="{Binding Subjects}"
+                     MinHeight="220"
+                     Background="White">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:SubjectItem">
+                        <TextBlock Text="{Binding Display}"
+                                   Margin="8,6" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+    </Border>
+</UserControl>
