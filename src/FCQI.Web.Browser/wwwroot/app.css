@@ -2,11 +2,13 @@ html, body {
     margin: 0;
     height: 100%;
     overflow: hidden;
-    font-family: Inter, Segoe UI, sans-serif;
+    font-family: "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+    background: #024731;
 }
 
 #out {
     height: 100%;
+    width: 100%;
 }
 
 .avalonia-splash {
@@ -14,5 +16,7 @@ html, body {
     height: 100%;
     align-items: center;
     justify-content: center;
-    color: #1f3a5f;
+    color: #FEBE10;
+    background: #024731;
+    letter-spacing: 0.08em;
 }

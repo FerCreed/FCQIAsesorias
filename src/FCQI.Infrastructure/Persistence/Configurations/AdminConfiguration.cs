@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FCQI.Infrastructure.Persistence.Configurations;
 
-public class AdvisorConfiguration : IEntityTypeConfiguration<Advisor>
+public class AdminConfiguration : IEntityTypeConfiguration<Admin>
 {
-    public void Configure(EntityTypeBuilder<Advisor> builder)
+    public void Configure(EntityTypeBuilder<Admin> builder)
     {
-        builder.ToTable("advisors");
+        builder.ToTable("admins");
 
         builder.HasKey(a => a.Id);
 
@@ -20,12 +20,8 @@ public class AdvisorConfiguration : IEntityTypeConfiguration<Advisor>
             .HasMaxLength(150)
             .IsRequired();
 
-        builder.Property(a => a.Area)
-            .HasMaxLength(120)
-            .IsRequired();
-
-        builder.Property(a => a.DefaultModality)
-            .HasMaxLength(50)
+        builder.Property(a => a.Title)
+            .HasMaxLength(200)
             .IsRequired();
 
         builder.HasIndex(a => a.Email)

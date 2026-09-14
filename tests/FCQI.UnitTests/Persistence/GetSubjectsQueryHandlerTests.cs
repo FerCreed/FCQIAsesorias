@@ -11,12 +11,13 @@ public class GetSubjectsQueryHandlerTests
     {
         await using var context = CreateContext();
         await context.Database.EnsureCreatedAsync();
+        await Catalog20262Seeder.SeedAsync(context);
 
         var handler = new GetSubjectsQueryHandler(context);
         var result = await handler.HandleAsync();
 
         Assert.True(result.Count >= 5);
-        Assert.Contains(result, s => s.Code == "MAT101" && s.Name == "Matemáticas I" && s.Program == "Tronco Común");
+        Assert.Contains(result, s => s.Name == "Cálculo Diferencial");
         Assert.Equal(result.Select(s => s.Code), result.Select(s => s.Code).OrderBy(c => c));
     }
 
