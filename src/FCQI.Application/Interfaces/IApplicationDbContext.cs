@@ -10,6 +10,8 @@ public interface IApplicationDbContext
     DbSet<Student> Students { get; }
     DbSet<Availability> Availabilities { get; }
     DbSet<AdvisorySession> AdvisorySessions { get; }
+    DbSet<AdvisorSubject> AdvisorSubjects { get; }
+    DbSet<FCQI.Domain.Entities.Admin> Admins { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

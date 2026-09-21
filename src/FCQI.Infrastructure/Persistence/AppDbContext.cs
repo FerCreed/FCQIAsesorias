@@ -15,6 +15,8 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Availability> Availabilities => Set<Availability>();
     public DbSet<AdvisorySession> AdvisorySessions => Set<AdvisorySession>();
+    public DbSet<AdvisorSubject> AdvisorSubjects => Set<AdvisorSubject>();
+    public DbSet<Admin> Admins => Set<Admin>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

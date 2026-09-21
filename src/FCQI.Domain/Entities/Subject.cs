@@ -8,4 +8,5 @@ public class Subject
     public string Program { get; set; } = string.Empty;
 
     public ICollection<AdvisorySession> AdvisorySessions { get; set; } = new List<AdvisorySession>();
+    public ICollection<AdvisorSubject> AdvisorSubjects { get; set; } = new List<AdvisorSubject>();
 }

@@ -4,32 +4,182 @@
              xmlns:models="using:FCQI.Web.Models"
              x:Class="FCQI.Web.Views.MainView"
              x:DataType="vm:MainViewModel">
-    <Border Padding="24" Background="#F4F7FB">
-        <StackPanel Spacing="16">
-            <TextBlock Text="Sistema de Asesorías FCQI"
-                       FontSize="26"
-                       FontWeight="SemiBold" />
-            <TextBlock Text="Sprint 1 — catálogo de materias (Avalonia WASM → API .NET)"
-                       Opacity="0.7" />
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header blanco tipo artes.tij.uabc.mx -->
+        <Border Grid.Row="0" Background="White" BoxShadow="0 1 8 0 #22000000" ZIndex="2">
+            <Grid ColumnDefinitions="*,Auto" MinHeight="78" Margin="28,10">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="UNIVERSIDAD AUTÓNOMA DE BAJA CALIFORNIA"
+                               FontSize="11" LetterSpacing="1.4" Foreground="#024731" />
+                    <TextBlock Text="Facultad de Ciencias Químicas e Ingeniería"
+                               FontSize="18" FontWeight="SemiBold" Foreground="#00723F" />
+                    <TextBlock Text="Sistema de Asesorías Académicas"
+                               FontSize="13" Foreground="#DD971A" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="nav" Content="Inicio" Command="{Binding GoCommand}" CommandParameter="home"
+                            IsVisible="{Binding IsLoggedIn}" />
+                    <Button Classes="nav" Content="Buscar" Command="{Binding GoCommand}" CommandParameter="search"
+                            IsVisible="{Binding IsStudent}" />
+                    <Button Classes="nav" Content="Mis asesorías" Command="{Binding GoCommand}" CommandParameter="sessions"
+                            IsVisible="{Binding IsStudent}" />
+                    <Button Classes="nav" Content="Solicitudes" Command="{Binding GoCommand}" CommandParameter="sessions"
+                            IsVisible="{Binding IsAdvisor}" />
+                    <Button Classes="nav" Content="Dirección" Command="{Binding GoCommand}" CommandParameter="admin"
+                            IsVisible="{Binding IsAdmin}" />
+                    <Button Classes="ghost" Content="Salir" Command="{Binding LogoutCommand}"
+                            IsVisible="{Binding IsLoggedIn}" Margin="12,0,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
 
-            <Button Content="Cargar materias"
-                    Command="{Binding LoadSubjectsCommand}"
-                    HorizontalAlignment="Left"
-                    Padding="16,8" />
+        <ScrollViewer Grid.Row="1"
+                      Background="#F7F4EE"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Hero -->
+                <Border Background="#024731" Padding="40,48">
+                    <StackPanel MaxWidth="960" HorizontalAlignment="Center" Spacing="10">
+                        <TextBlock Text="{Binding Welcome}"
+                                   FontSize="32" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
+                        <TextBlock Text="Celebramos que las asesorías se gestionen en línea: busca materia, elige tutor y confirma tu cita — periodo 2026-2."
+                                   Foreground="#E7F3EA" FontSize="16" TextWrapping="Wrap"
+                                   IsVisible="{Binding ShowLogin}" />
+                        <TextBlock Text="{Binding Status}" Foreground="#FEBE10" TextWrapping="Wrap" FontSize="14" />
+                    </StackPanel>
+                </Border>
 
-            <TextBlock Text="{Binding Status}"
-                       TextWrapping="Wrap" />
+                <StackPanel MaxWidth="980" HorizontalAlignment="Center" Margin="24,28,24,48" Spacing="22">
 
-            <ListBox ItemsSource="{Binding Subjects}"
-                     MinHeight="220"
-                     Background="White">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:SubjectItem">
-                        <TextBlock Text="{Binding Display}"
-                                   Margin="8,6" />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </StackPanel>
-    </Border>
+                    <!-- Login -->
+                    <Border IsVisible="{Binding ShowLogin}" Background="White" Padding="28" CornerRadius="4"
+                            BoxShadow="0 8 24 0 #14000000">
+                        <StackPanel Spacing="14">
+                            <TextBlock Text="NOTICIAS Y ACCESO" Foreground="#DD971A" FontWeight="Bold" FontSize="13" LetterSpacing="1.2" />
+                            <TextBlock Text="Acceso institucional" FontSize="26" FontWeight="SemiBold" Foreground="#024731" />
+                            <TextBlock TextWrapping="Wrap" Foreground="#444" LineHeight="22"
+                                       Text="Entra con un perfil dummy @uabc.edu.mx. El API ya valida Google OAuth y solo admite correos institucionales; el botón de Google se activa al configurar el ClientId." />
+                            <ComboBox ItemsSource="{Binding Profiles}"
+                                      SelectedItem="{Binding SelectedProfile}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:DemoProfileItem">
+                                        <TextBlock Text="{Binding Display}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Button Classes="cta" Content="Entrar" Command="{Binding LoginCommand}" HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Home -->
+                    <StackPanel IsVisible="{Binding ShowHome}" Spacing="16">
+                        <TextBlock Text="OFERTA DEL PROGRAMA" Foreground="#DD971A" FontWeight="Bold" LetterSpacing="1.2" />
+                        <TextBlock Text="Asesorías 2026-2" FontSize="26" FontWeight="SemiBold" Foreground="#024731" />
+                        <TextBlock TextWrapping="Wrap" Foreground="#444"
+                                   Text="Catálogo tomado de los horarios oficiales FCQI. El alumno reserva; el tutor atiende solicitudes; dirección asigna qué materias cubre cada tutor." />
+                        <WrapPanel>
+                            <Border Width="280" Margin="0,0,16,16" Background="White" Padding="18" CornerRadius="4">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Alumnos" FontWeight="Bold" Foreground="#00723F" />
+                                    <TextBlock TextWrapping="Wrap" Text="Busca materia, ve tutores autorizados y solicita un bloque de horario." />
+                                </StackPanel>
+                            </Border>
+                            <Border Width="280" Margin="0,0,16,16" Background="White" Padding="18" CornerRadius="4">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Tutores" FontWeight="Bold" Foreground="#00723F" />
+                                    <TextBlock TextWrapping="Wrap" Text="Consulta solicitudes pendientes y confirma o rechaza en un clic." />
+                                </StackPanel>
+                            </Border>
+                            <Border Width="280" Margin="0,0,16,16" Background="White" Padding="18" CornerRadius="4">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Dirección" FontWeight="Bold" Foreground="#00723F" />
+                                    <TextBlock TextWrapping="Wrap" Text="Define qué tutores están disponibles para cada materia del programa." />
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <!-- Student search -->
+                    <StackPanel IsVisible="{Binding ShowSearch}" Spacing="14">
+                        <TextBlock Text="BUSCAR ASESORÍA" Foreground="#DD971A" FontWeight="Bold" LetterSpacing="1.2" />
+                        <TextBlock Text="1. Elige materia" FontSize="20" FontWeight="SemiBold" Foreground="#024731" />
+                        <ListBox ItemsSource="{Binding Subjects}" SelectedItem="{Binding SelectedSubject}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:SubjectItem">
+                                    <TextBlock Text="{Binding Display}" Margin="10,8" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="2. Tutor asignado por dirección" FontSize="20" FontWeight="SemiBold" Foreground="#024731" />
+                        <ListBox ItemsSource="{Binding Advisors}" SelectedItem="{Binding SelectedAdvisor}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:AdvisorItem">
+                                    <TextBlock Text="{Binding Display}" Margin="10,8" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="3. Horario" FontSize="20" FontWeight="SemiBold" Foreground="#024731" />
+                        <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:AvailabilityItem">
+                                    <TextBlock Text="{Binding Display}" Margin="10,8" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBox Watermark="Tema o duda a tratar" Text="{Binding Topic}" />
+                        <Button Classes="cta" Content="Solicitar asesoría" Command="{Binding RequestSessionCommand}" HorizontalAlignment="Left" />
+                    </StackPanel>
+
+                    <!-- Sessions -->
+                    <StackPanel IsVisible="{Binding ShowSessions}" Spacing="14">
+                        <TextBlock Text="CONVOCATORIAS / CITAS" Foreground="#DD971A" FontWeight="Bold" LetterSpacing="1.2" />
+                        <TextBlock Text="Solicitudes del periodo" FontSize="24" FontWeight="SemiBold" Foreground="#024731" />
+                        <ListBox ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:SessionItem">
+                                    <Border Padding="8">
+                                        <TextBlock Text="{Binding Display}" TextWrapping="Wrap" />
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsAdvisor}">
+                            <Button Classes="cta" Content="Confirmar" Command="{Binding ConfirmSessionCommand}" />
+                            <Button Classes="ghost" Content="Rechazar" Command="{Binding RejectSessionCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Admin -->
+                    <StackPanel IsVisible="{Binding ShowAdmin}" Spacing="14">
+                        <TextBlock Text="DIRECCIÓN DEL PROGRAMA" Foreground="#DD971A" FontWeight="Bold" LetterSpacing="1.2" />
+                        <TextBlock Text="Asigna tutores a materias" FontSize="24" FontWeight="SemiBold" Foreground="#024731" />
+                        <TextBlock TextWrapping="Wrap" Foreground="#444"
+                                   Text="Solo las materias marcadas aparecen al alumno cuando busca asesoría." />
+                        <ListBox ItemsSource="{Binding AdminAdvisors}" SelectedItem="{Binding SelectedAdminAdvisor}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:AdvisorItem">
+                                    <TextBlock Text="{Binding Display}" Margin="10,8" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <ItemsControl ItemsSource="{Binding AdminSubjects}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AssignableSubject">
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsAssigned}" Margin="6,4" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Classes="cta" Content="Guardar asignación" Command="{Binding SaveAssignmentsCommand}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Background="#024731" Padding="20,14">
+            <TextBlock Text="Contacto del programa · progasesorias.fcqi@uabc.edu.mx · FCQI · Campus Tijuana"
+                       Foreground="#E7F3EA" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        </Border>
+    </Grid>
 </UserControl>

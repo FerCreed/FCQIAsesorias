@@ -1,4 +1,6 @@
+using FCQI.Application.Auth;
 using FCQI.Application.Interfaces;
+using FCQI.Infrastructure.Auth;
 using FCQI.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +19,8 @@ public static class DependencyInjection
             options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+        services.AddSingleton<JwtTokenFactory>();
 
         return services;
     }

@@ -17,7 +17,7 @@ public class SubjectConfigurationTests
 
         var code = entity.FindProperty(nameof(Domain.Entities.Subject.Code));
         Assert.NotNull(code);
-        Assert.Equal(20, code.GetMaxLength());
+        Assert.Equal(120, code.GetMaxLength());
         Assert.False(code.IsNullable);
 
         var name = entity.FindProperty(nameof(Domain.Entities.Subject.Name));
@@ -30,11 +30,11 @@ public class SubjectConfigurationTests
     {
         await using var context = CreateContext();
         await context.Database.EnsureCreatedAsync();
+        await Catalog20262Seeder.SeedAsync(context);
         var subjects = await context.Subjects.OrderBy(s => s.Code).ToListAsync();
 
         Assert.True(subjects.Count >= 5);
-        Assert.Contains(subjects, s => s.Code == "MAT101");
-        Assert.Contains(subjects, s => s.Name == "Matemáticas I");
+        Assert.Contains(subjects, s => s.Name == "Cálculo Diferencial");
     }
 
     private static AppDbContext CreateContext()
