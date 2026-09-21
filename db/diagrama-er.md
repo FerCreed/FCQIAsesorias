@@ -4,7 +4,7 @@ Generado por introspección de `information_schema` sobre la base `fcqi_asesoria
 
 **15 tablas · 4 vistas · 23 llaves foráneas · 6 restricciones CHECK · 4 triggers**
 
-<sub>Regenerar: `python3 tools/generar-er.py > db/diagrama-er.md` · última generación 2026-09-21</sub>
+<sub>Regenerar: `python3 tools/generar-er.py` · última generación 2026-09-21</sub>
 
 ```mermaid
 erDiagram
@@ -159,16 +159,16 @@ erDiagram
 | `admin_profiles` | 1 |
 | `advisor_profiles` | 14 |
 | `advisor_subjects` | 92 |
-| `advisory_sessions` | 5 |
+| `advisory_sessions` | 6 |
 | `availabilities` | 104 |
 | `locations` | 2 |
 | `modalities` | 2 |
 | `people` | 21 |
 | `program_subjects` | 57 |
 | `programs` | 5 |
-| `session_status_history` | 8 |
+| `session_status_history` | 6 |
 | `session_statuses` | 4 |
-| `student_profiles` | 6 |
+| `student_profiles` | 8 |
 | `subjects` | 44 |
 
 ## Reglas que impone la base

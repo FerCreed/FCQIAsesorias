@@ -4,6 +4,27 @@ using System.Text.Json.Serialization;
 
 namespace FCQI.Web.Models;
 
+/// <summary>
+/// Nombres de rol tal y como los manda la API en <c>roles</c>. Este proyecto
+/// no referencia FCQI.Domain —es el cliente— así que se repiten aquí, en un
+/// solo sitio, en vez de quedar sueltos como literales por la pantalla.
+/// </summary>
+public static class UserRoles
+{
+    public const string Student = "Alumno";
+    public const string Advisor = "Asesor";
+    public const string Admin = "Directivo";
+}
+
+/// <summary>Estados de una asesoría, como los nombra la API.</summary>
+public static class SessionStatuses
+{
+    public const string Pending = "Pendiente";
+    public const string Confirmed = "Confirmada";
+    public const string Cancelled = "Cancelada";
+    public const string Rejected = "Rechazada";
+}
+
 public class SubjectItem
 {
     public int Id { get; set; }

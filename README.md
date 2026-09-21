@@ -14,8 +14,10 @@ Catálogo dummy 2026-2 tomado de los horarios oficiales (14 tutores, materias y 
 | `src/FCQI.Api` | REST + Swagger |
 | `src/FCQI.Web` | Pantallas Avalonia |
 | `src/FCQI.Web.Browser` | Host en el navegador (WASM) |
-| `tests/FCQI.UnitTests` | Pruebas de mapeo, identidad y horario |
+| `tests/FCQI.UnitTests` | Pruebas de mapeo, identidad, horario y reglas de negocio |
 | `db/` | **Definición de la base: estructura y datos** |
+| `tools/` | Utilidades: diagrama ER y pruebas de la API en ejecución |
+| `docs/` | [Checklist de validación](docs/checklist-validacion.md) |
 
 GitFlow: `main` (estable), `develop` (integración), `feature/*`.
 
@@ -42,7 +44,7 @@ ni siembra nada: no hay migraciones de EF Core ni seeder en C#.
 | Script | Contenido |
 |--------|-----------|
 | `db/01-schema.sql` | Estructura: tablas, llaves, índices, triggers y vistas |
-| `db/02-seed.sql` | Datos de prueba (21 personas, 44 materias, 104 bloques) |
+| `db/02-seed.sql` | Datos de prueba (21 personas, 44 materias, 104 bloques, 6 citas) |
 
 ```bash
 mysql -u root -p < db/01-schema.sql
@@ -74,7 +76,10 @@ verano, no con un desplazamiento fijo. La API recibe y devuelve hora local;
 4. Tablas principales:
    - `people` — identidad única por correo institucional
    - `student_profiles` / `advisor_profiles` / `admin_profiles` — roles; una
-     persona puede tener varios (los asesores pares son alumnos que asesoran)
+     persona puede tener varios. En los datos de prueba, Vladimir Ramírez
+     (`v1299027`) y Jimena Beltrán (`j2207105`) son **asesores pares**: tienen
+     perfil de asesor y de alumno a la vez. Son el caso que el modelo anterior
+     no podía representar, y con ellos se prueba el selector de rol
    - `subjects` — materias
    - `programs` — carreras · `academic_terms` — ciclos escolares
    - `advisor_subjects` — qué materias asignó dirección a cada tutor, por ciclo
@@ -146,10 +151,10 @@ al iniciar sesión y el cliente lo manda en `Authorization: Bearer`.
 | `/api/subjects`, `/api/advisors` | Cualquier usuario autenticado |
 | `GET /api/sessions` | Alumno ve las suyas, asesor las que le tocan, dirección todas |
 | `POST /api/sessions` | Alumno (o dirección, en ventanilla) |
-| `PATCH /api/sessions/{id}/status` | El asesor dueño confirma o rechaza; el alumno dueño solo cancela; dirección todo |
+| `PATCH /api/sessions/{id}/status` | El asesor dueño confirma o rechaza; el alumno dueño solo cancela; dirección todo. Cancelada y Rechazada son estados finales |
 | `/api/admin/*` | Solo rol Directivo |
 
-Dos reglas que conviene tener claras:
+Cuatro reglas que conviene tener claras:
 
 **La identidad sale del token, nunca del cuerpo.** `studentId` en el cuerpo de
 `POST /api/sessions` se ignora salvo que quien llame sea dirección. Antes se
@@ -157,6 +162,18 @@ usaba tal cual, lo que permitía agendar a nombre de otra persona.
 
 **El token lleva todos los roles.** Un asesor par viaja con `Asesor` y
 `Alumno`, y puede actuar como cualquiera de los dos sin volver a autenticarse.
+La interfaz lo aprovecha con un **selector «Entrar como»** en el encabezado,
+que solo aparece si la persona tiene más de un rol: cambiarlo cambia el menú,
+las pantallas y la lista de asesorías, sin pedir el token otra vez. Quien tiene
+un solo rol no ve el selector.
+
+**Cancelada y Rechazada son estados finales.** Confirmar una asesoría cancelada
+la devolvía a la vida y volvía a ocupar el lugar; si otro alumno ya lo había
+tomado, la API respondía 500. Ahora se rechaza con un mensaje: si hace falta la
+cita, se solicita de nuevo.
+
+**Nadie se asesora a sí mismo.** Un asesor par aparece en su propia lista de
+tutores; agendarse consigo mismo se rechaza.
 
 El **login de demostración** (`/api/auth/demo*`) expone el directorio de
 personas del programa, así que solo existe mientras `Authentication:Google:ClientId`
@@ -178,8 +195,22 @@ Terminal 2 — UI (http://localhost:5235):
 dotnet run --project src/FCQI.Web.Browser
 ```
 
-```powershell
-dotnet test tests/FCQI.UnitTests
+## Comprobar que funciona
+
+El recorrido completo, paso a paso, está en
+**[docs/checklist-validacion.md](docs/checklist-validacion.md)**. En resumen:
+
+```bash
+dotnet test tests/FCQI.UnitTests          # 56 pruebas de las reglas, sin base ni red
+python3 tools/probar-api.py               # 58 pruebas contra la API en :5080
 ```
 
-Prueba rápida: entra como alumno Yesua → Buscar → Cálculo Diferencial → solicita → Salir → entra como Felipe Márquez → Solicitudes.
+`tools/probar-api.py` ejerce la API completa —autenticación, autorización,
+catálogo, cupo, cambios de estado y panel de dirección— contra la base sembrada,
+y cancela al terminar todo lo que creó. Con la API nativa en el puerto 5016:
+`API=http://localhost:5016 python3 tools/probar-api.py`.
+
+Prueba rápida a mano: entra como **Alumno: Yesua** → Buscar → Cálculo
+Diferencial → solicita → Salir. Luego entra como **Alumno: Jimena Beltrán**
+(`j2207105`), que es asesora par: cambia el selector «Entrar como» del
+encabezado a **Asesor** y verás su bandeja de solicitudes sin haber salido.

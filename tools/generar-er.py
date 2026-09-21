@@ -67,7 +67,10 @@ out.append("")
 out.append(f"**{len(tables)} tablas · {len(views)} vistas · {len(fks)} llaves foráneas · "
            f"{len(checks)} restricciones CHECK · {len(trgs)} triggers**")
 out.append("")
-out.append(f"<sub>Regenerar: `python3 tools/generar-er.py > db/diagrama-er.md` · "
+# Sin redirección: el script escribe db/diagrama-er.md por su cuenta y el
+# resumen sale por stdout. Redirigir stdout a ese mismo archivo lo trunca antes
+# y luego le pisa las primeras líneas con el resumen.
+out.append(f"<sub>Regenerar: `python3 tools/generar-er.py` · "
            f"última generación {datetime.date.today().isoformat()}</sub>")
 out.append("")
 out.append("```mermaid")

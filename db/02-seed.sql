@@ -109,9 +109,17 @@ INSERT INTO `advisor_profiles` (`PersonId`, `ProgramId`, `DefaultModalityId`) VA
     (13, 4, 1),
     (14, 4, 1);
 
--- 6 alumnos. ProgramId va NULL: el modelo anterior no registraba
--- la carrera del alumno y no se inventa el dato.
+-- 8 perfiles de alumno, de los cuales DOS son asesores pares: Vladimir
+-- (v1299027) y Jimena (j2207105) ya tienen perfil de asesor arriba, y su
+-- matricula viene en el propio correo institucional. Son el caso que el
+-- modelo anterior no podia representar y la razon de ser de este rediseno:
+-- sin estas dos filas, ninguna persona de la base tiene mas de un rol y
+-- todo el mecanismo de roles multiples queda sin datos que lo ejerciten.
+-- ProgramId va NULL en los demas: el modelo anterior no registraba la
+-- carrera del alumno y no se inventa el dato.
 INSERT INTO `student_profiles` (`PersonId`, `StudentNumber`, `ProgramId`) VALUES
+    (10, '1299027', 5),     -- asesor par: Quimico Industrial
+    (12, '2207105', 4),     -- asesora par: Quimica Farmaceutica Biologica
     (15, '2208134', NULL),
     (16, '2208686', NULL),
     (17, '2209578', NULL),
@@ -463,7 +471,14 @@ INSERT INTO `advisory_sessions` (`Id`, `TermId`, `AvailabilityId`, `AdvisorId`, 
     (1, 1, 1, 1, 15, 2, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((1 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '12:00:00') + INTERVAL @utc_offset HOUR, 1, 1, 'Límites y continuidad — dudas del parcial 1'),
     (2, 1, 1, 1, 17, 2, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((1 - DAYOFWEEK(CURDATE()) + 7) % 7) + 8 DAY), '12:00:00') + INTERVAL @utc_offset HOUR, 1, 1, 'Derivadas de funciones trigonométricas'),
     (3, 1, 21, 4, 15, 10, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((3 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '17:00:00') + INTERVAL @utc_offset HOUR, 1, 2, 'Presente perfecto'),
-    (4, 1, 21, 4, 17, 10, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((4 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '18:00:00') + INTERVAL @utc_offset HOUR, 1, 3, 'Ensayo cancelado');
+    (4, 1, 21, 4, 17, 10, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((4 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '18:00:00') + INTERVAL @utc_offset HOUR, 1, 3, 'Ensayo cancelado'),
+    -- Jimena (12) es asesora, y aquí aparece como ALUMNA pidiendo asesoría a
+    -- otro tutor. Es la fila que demuestra que los dos roles conviven.
+    (5, 1, 2, 1, 12, 2, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((3 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '12:00:00') + INTERVAL @utc_offset HOUR, 1, 1, 'Regla de la cadena — voy como alumna'),
+    -- Y aquí la MISMA Jimena del otro lado del mostrador: alguien le pide
+    -- asesoría a ella. Con las dos filas, al cambiar de rol en la interfaz
+    -- las dos bandejas tienen contenido y el cambio se ve de inmediato.
+    (6, 1, 85, 12, 16, 30, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((4 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '14:00:00') + INTERVAL @utc_offset HOUR, 1, 1, 'Mitosis y meiosis — le toca atender');
 
 COMMIT;
 

@@ -64,6 +64,27 @@ public class ReplaceAdvisorSubjectsCommandHandler
 
         var wanted = subjectIds.Distinct().ToHashSet();
 
+        // Las materias tienen que existir y estar vigentes. Sin esta
+        // comprobación, un id inventado llegaba hasta el INSERT y la llave
+        // foránea lo rechazaba con un 500 y un volcado de excepción; y una
+        // materia dada de baja podía asignarse aunque el alumno no la vea
+        // nunca en el catálogo.
+        if (wanted.Count > 0)
+        {
+            var valid = await _context.Subjects
+                .Where(s => wanted.Contains(s.Id) && s.IsActive)
+                .Select(s => s.Id)
+                .ToListAsync(cancellationToken);
+
+            var unknown = wanted.Except(valid).ToList();
+            if (unknown.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Hay materias que no existen o están dadas de baja: "
+                    + string.Join(", ", unknown.OrderBy(id => id)) + ".");
+            }
+        }
+
         var current = await _context.AdvisorSubjects
             .Where(x => x.TermId == termId && x.AdvisorId == advisorId)
             .ToListAsync(cancellationToken);

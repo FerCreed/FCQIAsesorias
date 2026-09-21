@@ -52,6 +52,15 @@ public class CreateSessionCommandHandler
             throw new InvalidOperationException("El alumno no está dado de alta en el programa.");
         }
 
+        // Los asesores pares son alumnos que asesoran, así que una misma
+        // persona puede aparecer en los dos extremos de la petición. Nada en
+        // la base lo impide —son dos columnas distintas— y sin esta regla un
+        // asesor par podía ocupar su propio bloque de horario como alumno.
+        if (studentId == request.AdvisorId)
+        {
+            throw new InvalidOperationException("No puedes agendar una asesoría contigo mismo.");
+        }
+
         var slot = await _context.Availabilities
                        .AsNoTracking()
                        .SingleOrDefaultAsync(a => a.Id == request.AvailabilityId, cancellationToken)
