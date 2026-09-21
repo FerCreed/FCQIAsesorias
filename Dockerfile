@@ -532,9 +532,82 @@ SQL
 ROOT_PW="$ROOT_PASS"
 
 # ---------------------------------------------------------------------------
-# 3) Arrancar la API.
-#    El propio Program.cs aplica las migraciones de EF Core y siembra el
-#    catálogo 2026-2 en cuanto arranca, así que aquí no se toca el esquema.
+# 3) Tablas de zona horaria de MySQL.
+#    Sin ellas CONVERT_TZ() devuelve NULL en silencio. La API convierte entre
+#    UTC y America/Tijuana por su cuenta, pero cargarlas deja la base en
+#    condiciones de hacer las mismas cuentas desde SQL, en informes o consultas
+#    manuales. Es idempotente: solo se cargan la primera vez.
+# ---------------------------------------------------------------------------
+TZ_COUNT="$(myroot -N -B -e 'SELECT COUNT(*) FROM mysql.time_zone_name' 2>/dev/null || echo 0)"
+if [ "${TZ_COUNT:-0}" -lt 100 ]; then
+    log "Cargando tablas de zona horaria de MySQL ..."
+    if mysql_tzinfo_to_sql /usr/share/zoneinfo 2>/dev/null | myroot mysql 2>/dev/null; then
+        log "Zonas horarias cargadas: $(myroot -N -B -e 'SELECT COUNT(*) FROM mysql.time_zone_name')"
+    else
+        log "AVISO: no se pudieron cargar las zonas horarias; CONVERT_TZ() no funcionará."
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 4) Esquema y datos de prueba.
+#
+#    La aplicación ya NO crea la base: lo hacen db/01-schema.sql (estructura) y
+#    db/02-seed.sql (datos), que se copian a /srv/fcqi/db en la imagen. Así la
+#    definición de la base es reproducible en cualquier máquina sin recompilar,
+#    y un DBA puede editarla sin tocar C#.
+#
+#    Solo se ejecutan si la base está vacía. Para rehacerla desde cero:
+#        docker compose run -e FCQI_DB_RESET=1 ...
+#    o simplemente destruir el volumen.
+# ---------------------------------------------------------------------------
+#    En la etapa `debug` el código fuente se monta desde el host, así que si
+#    /src/db existe se usa ese: editar un .sql en el editor y reiniciar el
+#    contenedor basta, sin reconstruir la imagen.
+DB_DIR=/srv/fcqi/db
+if [ -f /src/db/01-schema.sql ] && [ -f /src/db/02-seed.sql ]; then
+    DB_DIR=/src/db
+fi
+SCHEMA_SQL="$DB_DIR/01-schema.sql"
+SEED_SQL="$DB_DIR/02-seed.sql"
+
+db_is_ready() {
+    myroot -N -B -e \
+        "SELECT COUNT(*) FROM information_schema.tables
+          WHERE table_schema='${DB}' AND table_name='academic_terms'" 2>/dev/null \
+        | grep -q '^1$'
+}
+
+if [ "${FCQI_DB_RESET:-0}" = "1" ]; then
+    log "FCQI_DB_RESET=1: se reinstalarán el esquema y los datos de prueba."
+    NEED_INIT=1
+elif db_is_ready; then
+    NEED_INIT=0
+else
+    NEED_INIT=1
+fi
+
+if [ "$NEED_INIT" = "1" ]; then
+    if [ ! -f "$SCHEMA_SQL" ] || [ ! -f "$SEED_SQL" ]; then
+        log "ERROR: faltan $SCHEMA_SQL o $SEED_SQL en la imagen."
+        exit 1
+    fi
+
+    log "Instalando el esquema desde ${DB_DIR} ..."
+    myroot < "$SCHEMA_SQL"
+
+    log "Cargando los datos de prueba (02-seed.sql) ..."
+    myroot < "$SEED_SQL"
+
+    log "Base lista: $(myroot -N -B -e "SELECT CONCAT(
+            (SELECT COUNT(*) FROM \`${DB}\`.people),        ' personas, ',
+            (SELECT COUNT(*) FROM \`${DB}\`.subjects),      ' materias, ',
+            (SELECT COUNT(*) FROM \`${DB}\`.availabilities),' bloques')")"
+else
+    log "La base ya está inicializada; no se toca."
+fi
+
+# ---------------------------------------------------------------------------
+# 5) Arrancar la API.
 # ---------------------------------------------------------------------------
 export ConnectionStrings__DefaultConnection="Server=127.0.0.1;Port=3306;Database=${DB};User ID=${DB_USER};Password=${DB_PASS};AllowPublicKeyRetrieval=True;"
 export ASPNETCORE_URLS="${ASPNETCORE_URLS:-http://0.0.0.0:5016}"
@@ -679,12 +752,10 @@ RUN set -eux; \
     test -z "$UNREADABLE"; \
     ls -la /out/web
 
-# NOTA sobre migraciones: no se genera ningún script SQL aquí.
-# src/FCQI.Api/Program.cs ya ejecuta al arrancar:
-#     await db.Database.MigrateAsync();
-#     await Catalog20262Seeder.SeedAsync(db);
-# de modo que la aplicación crea su propio esquema y su catálogo 2026-2.
-# El contenedor solo se encarga de que la base y el usuario existan antes.
+# NOTA sobre el esquema: lo definen db/01-schema.sql y db/02-seed.sql, que se
+# copian a /srv/fcqi/db en las etapas debug y runtime. start-api.sh los ejecuta
+# contra MySQL antes de arrancar la API. La aplicación ya no crea ni siembra
+# nada: no hay migraciones de EF Core ni seeder en C#.
 
 
 # =============================================================================
@@ -745,6 +816,11 @@ RUN dotnet restore src/FCQI.Api/FCQI.Api.csproj
 # Frontend ya compilado en la etapa build (recompílalo con fcqi-rebuild-web.sh).
 COPY --from=build /out/web /srv/fcqi/web
 
+# Definición de la base: estructura y datos de prueba. start-api.sh los ejecuta
+# contra MySQL antes de arrancar la API. Sustituyen al seeder que antes vivía
+# compilado dentro de FCQI.Infrastructure.
+COPY db/01-schema.sql db/02-seed.sql /srv/fcqi/db/
+
 EXPOSE 80 5016 3306
 VOLUME ["/var/lib/mysql"]
 ENTRYPOINT ["/usr/local/bin/fcqi-entrypoint.sh"]
@@ -804,6 +880,11 @@ COPY --from=assets --chmod=0755 /assets/fatal-watcher.sh /usr/local/bin/fcqi-fat
 COPY --from=build /out/api              /srv/fcqi/api
 COPY --from=build /out/web              /srv/fcqi/web
 COPY --from=build /out/dependencies.txt /srv/fcqi/dependencies.txt
+
+# Definición de la base: estructura y datos de prueba. start-api.sh los ejecuta
+# contra MySQL antes de arrancar la API. Sustituyen al seeder que antes vivía
+# compilado dentro de FCQI.Infrastructure.
+COPY db/01-schema.sql db/02-seed.sql    /srv/fcqi/db/
 
 # 80   → nginx (frontend + /api + /swagger)
 # 5016 → Kestrel directo (opcional, para diagnóstico)

@@ -92,7 +92,15 @@ public class DemoProfileItem
 public class AuthResultItem
 {
     public string Token { get; set; } = string.Empty;
+
+    /// <summary>Rol predeterminado: el de mayor alcance.</summary>
     public string Role { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Todos los roles de la persona. Un asesor par trae Asesor y Alumno.
+    /// </summary>
+    public List<string> Roles { get; set; } = [];
+
     public int ProfileId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

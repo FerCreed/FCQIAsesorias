@@ -83,6 +83,10 @@ public partial class MainViewModel : ObservableObject
         try
         {
             Session = await _api.DemoLoginAsync(SelectedProfile.Email);
+
+            // A partir de aquí la API exige el token en cada petición.
+            _api.UseToken(Session.Token);
+
             Welcome = $"¡Bienvenido! {Session.FullName}";
             Page = "home";
             NotifyNav();
@@ -98,6 +102,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Logout()
     {
+        _api.UseToken(null);
         Session = null;
         Page = "login";
         Welcome = "Sistema de Asesorías FCQI";
