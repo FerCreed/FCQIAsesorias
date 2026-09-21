@@ -1,0 +1,58 @@
+### Sistema de Asesorías FCQI — API dentro del contenedor Docker
+#
+# Elige el entorno en la esquina superior derecha del editor de Rider:
+#   docker-dev   → http://localhost:5080   (docker-compose.dev.yml)
+#   docker-prod  → http://localhost:8080   (docker-compose.yml)
+#
+# Pulsa el ▶ verde a la izquierda de cada petición para ejecutarla.
+
+### Sonda de salud (la responde nginx, sin tocar la API)
+GET {{host}}/healthz
+
+### Catálogo de materias 2026-2
+GET {{host}}/api/subjects
+Accept: application/json
+
+### Configuración de autenticación (indica si Google OAuth está activo)
+GET {{host}}/api/auth/config
+Accept: application/json
+
+### Perfiles de demostración disponibles
+GET {{host}}/api/auth/demo-profiles
+Accept: application/json
+
+### Login de demostración — guarda el token para las peticiones siguientes
+# @name login
+POST {{host}}/api/auth/demo
+Content-Type: application/json
+
+{
+  "email": "{{demoEmail}}"
+}
+
+> {%
+    client.global.set("authToken", response.body.token);
+    client.log("Rol: " + response.body.role);
+%}
+
+### Tutores (todos)
+GET {{host}}/api/advisors
+Accept: application/json
+
+### Tutores de una materia concreta
+GET {{host}}/api/advisors?subjectId=19
+Accept: application/json
+
+### Horarios disponibles de un tutor
+GET {{host}}/api/advisors/13/availabilities
+Accept: application/json
+
+### Asesorías registradas
+GET {{host}}/api/sessions
+Accept: application/json
+Authorization: Bearer {{authToken}}
+
+### Panel de dirección — tutores y sus materias asignadas
+GET {{host}}/api/admin/advisors
+Accept: application/json
+Authorization: Bearer {{authToken}}

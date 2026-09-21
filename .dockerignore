@@ -1,0 +1,40 @@
+# Artefactos de compilación locales (se recompila todo dentro del contenedor)
+**/bin/
+**/obj/
+**/out/
+**/AppBundle/
+**/publish/
+
+# Control de versiones y metadatos
+.git/
+.gitignore
+.github/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# Sistema operativo del desarrollador
+.DS_Store
+Thumbs.db
+
+# Secretos y entornos locales — nunca deben entrar a la imagen
+*.env
+.env*
+**/appsettings.Local.json
+**/*.pfx
+**/*.key
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Configuraciones de ejecución del IDE
+.run/
+
+# Recursos del cliente HTTP del IDE
+*.http
+http-client.env.json

@@ -1,0 +1,68 @@
+# =============================================================================
+#  Sistema de Asesorías FCQI — PRODUCCIÓN
+#
+#  Un solo contenedor con todo dentro: Ubuntu 24.04, .NET 8, MySQL, nginx.
+#  Funciona igual en Apple Silicon (arm64) y en Windows / servidor Ubuntu (amd64).
+#
+#      docker compose up -d --build       →  http://localhost:8080
+#      docker compose logs -f
+#      docker compose down                (los datos sobreviven en el volumen)
+#
+#  En Rider: pulsa el ▶ verde del margen izquierdo, junto a "services:".
+# =============================================================================
+services:
+  fcqi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        # La URL de la API se compila DENTRO del .wasm, así que debe coincidir
+        # con la dirección por la que abres la aplicación en el navegador.
+        # Para publicar en el servidor académico, cámbiala por su dirección real
+        # (p. ej. http://asesorias.fcqi.uabc.mx).
+        API_BASE_URL: http://localhost:8080
+        RUN_TESTS: "true"
+    image: fcqi-asesorias:prod
+    container_name: fcqi-prod
+    ports:
+      - "8080:80"                 # aplicación web (frontend + /api)
+      # MySQL para MySQL Workbench / DataGrip. Se publica SOLO en la loopback
+      # del equipo anfitrión: accesible desde esta máquina, no desde la red.
+      # En el servidor académico, conéctate por un túnel SSH.
+      #
+      # Se usa 3308 y no 3306 a propósito: así nunca choca con un MySQL
+      # instalado en el equipo del desarrollador. Cámbialo con MYSQL_HOST_PORT.
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3308}:3306"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      MYSQL_DATABASE: fcqi_asesorias
+      MYSQL_USER: fcqi_app
+      # Sin estas dos, el contenedor genera contraseñas aleatorias y las guarda
+      # en el volumen. Para el servidor, defínelas aquí o en un archivo .env.
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-FcqiRoot2026}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-FcqiApp2026}
+      # 0.0.0.0 dentro del contenedor; quien limita el alcance es el
+      # mapeo "127.0.0.1:3306:3306" de arriba.
+      MYSQL_BIND_ADDRESS: 0.0.0.0
+      # --- Autenticación -----------------------------------------------------
+      # Sin ClientId de Google, la app usa el login de demostración por perfil.
+      # Para OAuth real (solo correos @uabc.edu.mx), pon aquí el ClientId.
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      # Si la dejas vacía, el contenedor genera una clave aleatoria y la guarda
+      # en el volumen. NO uses la de appsettings.json: está en el repositorio.
+      Authentication__Jwt__Key: ${JWT_KEY:-}
+      Authentication__Jwt__Issuer: FCQI.Api
+      Authentication__Jwt__Audience: FCQI.Web
+    volumes:
+      - fcqi-mysql-prod:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/healthz && curl -fsS http://127.0.0.1/api/subjects"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+
+volumes:
+  fcqi-mysql-prod:

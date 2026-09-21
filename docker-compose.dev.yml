@@ -1,0 +1,78 @@
+# =============================================================================
+#  Sistema de Asesorías FCQI — DESARROLLO
+#
+#  Igual que producción pero con el SDK de .NET dentro del contenedor:
+#    · la API corre con `dotnet watch` (recarga en caliente al guardar)
+#    · Swagger habilitado
+#    · ./src montado desde el host: editas en Rider y el contenedor recompila
+#    · vsdbg instalado para adjuntar el depurador de Rider
+#
+#      docker compose -f docker-compose.dev.yml up --build   →  http://localhost:5080
+#
+#  En Rider: pulsa el ▶ verde del margen izquierdo, junto a "services:".
+# =============================================================================
+services:
+  fcqi-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: debug
+      args:
+        # Debe coincidir con el puerto publicado más abajo.
+        API_BASE_URL: http://localhost:5080
+        RUN_TESTS: "false"
+        INSTALL_VSDBG: "true"
+        # Ponlo en "true" si además quieres recompilar el frontend Avalonia
+        # dentro del contenedor con `fcqi-rebuild-web.sh` (imagen más pesada).
+        DEBUG_WASM_TOOLS: "false"
+    image: fcqi-asesorias:dev
+    container_name: fcqi-dev
+    ports:
+      - "5080:80"                 # aplicación web (frontend + /api + /swagger)
+      # MySQL para MySQL Workbench / DataGrip / Rider, solo desde esta máquina.
+      # Es también la base que usa appsettings.Development.json cuando ejecutas
+      # la API desde Rider: así NO necesitas MySQL instalado en tu equipo.
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3307}:3306"
+      # El puerto 5016 se deja LIBRE a propósito: es el que usa el perfil
+      # "FCQI.Api: http" de Rider si prefieres ejecutar la API de forma nativa
+      # contra la base de datos de este contenedor.
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      MYSQL_DATABASE: fcqi_asesorias
+      MYSQL_USER: fcqi_app
+      MYSQL_ROOT_PASSWORD: dev_root
+      MYSQL_PASSWORD: dev_app
+      # 0.0.0.0 expone MySQL al host a través del puerto 3307 de arriba.
+      MYSQL_BIND_ADDRESS: 0.0.0.0
+      # Clave fija en desarrollo: así las sesiones siguen valiendo entre reinicios.
+      Authentication__Jwt__Key: fcqi-desarrollo-clave-local-de-al-menos-32-caracteres
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+    volumes:
+      # Código fuente en vivo: al guardar en Rider, `dotnet watch` recompila.
+      - ./src:/src/src
+      - ./tests:/src/tests
+      # IMPORTANTE: obj/ y bin/ se quedan DENTRO del contenedor (volúmenes
+      # anónimos que tapan los del host). Sin esto, el contenedor reescribe
+      # project.assets.json con rutas de Linux (/root/.nuget) y rompe la
+      # compilación local en Rider — y al revés, las rutas de macOS/Windows
+      # no existen dentro del contenedor.
+      - /src/src/FCQI.Domain/obj
+      - /src/src/FCQI.Domain/bin
+      - /src/src/FCQI.Application/obj
+      - /src/src/FCQI.Application/bin
+      - /src/src/FCQI.Infrastructure/obj
+      - /src/src/FCQI.Infrastructure/bin
+      - /src/src/FCQI.Api/obj
+      - /src/src/FCQI.Api/bin
+      - /src/src/FCQI.Web/obj
+      - /src/src/FCQI.Web/bin
+      - /src/src/FCQI.Web.Browser/obj
+      - /src/src/FCQI.Web.Browser/bin
+      - /src/tests/FCQI.UnitTests/obj
+      - /src/tests/FCQI.UnitTests/bin
+      - fcqi-mysql-dev:/var/lib/mysql
+    stdin_open: true
+    tty: true
+
+volumes:
+  fcqi-mysql-dev:
