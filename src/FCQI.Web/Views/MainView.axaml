@@ -25,8 +25,23 @@
                             IsVisible="{Binding IsStudent}" />
                     <Button Classes="nav" Content="Solicitudes" Command="{Binding GoCommand}" CommandParameter="sessions"
                             IsVisible="{Binding IsAdvisor}" />
+                    <Button Classes="nav" Content="Citas" Command="{Binding GoCommand}" CommandParameter="sessions"
+                            IsVisible="{Binding IsAdmin}" />
                     <Button Classes="nav" Content="Dirección" Command="{Binding GoCommand}" CommandParameter="admin"
                             IsVisible="{Binding IsAdmin}" />
+
+                    <!-- Selector de rol: solo aparece si la persona tiene más
+                         de uno. El token ya los trae todos, así que cambiar de
+                         rol no exige volver a entrar. -->
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+                                Margin="14,0,0,0" IsVisible="{Binding CanSwitchRole}">
+                        <TextBlock Text="Entrar como" VerticalAlignment="Center"
+                                   FontSize="12" Foreground="#024731" />
+                        <ComboBox ItemsSource="{Binding Roles}"
+                                  SelectedItem="{Binding ActiveRole}"
+                                  MinWidth="120" VerticalAlignment="Center" />
+                    </StackPanel>
+
                     <Button Classes="ghost" Content="Salir" Command="{Binding LogoutCommand}"
                             IsVisible="{Binding IsLoggedIn}" Margin="12,0,0,0" />
                 </StackPanel>
@@ -46,6 +61,14 @@
                         <TextBlock Text="Celebramos que las asesorías se gestionen en línea: busca materia, elige tutor y confirma tu cita — periodo 2026-2."
                                    Foreground="#E7F3EA" FontSize="16" TextWrapping="Wrap"
                                    IsVisible="{Binding ShowLogin}" />
+                        <Border Background="#0FFFFFFF" BorderBrush="#FEBE10" BorderThickness="1"
+                                CornerRadius="2" Padding="10,5" HorizontalAlignment="Left"
+                                IsVisible="{Binding IsLoggedIn}">
+                            <TextBlock Foreground="#FEBE10" FontSize="12" FontWeight="Bold" LetterSpacing="1">
+                                <Run Text="ESTÁS COMO:" />
+                                <Run Text="{Binding ActiveRole}" />
+                            </TextBlock>
+                        </Border>
                         <TextBlock Text="{Binding Status}" Foreground="#FEBE10" TextWrapping="Wrap" FontSize="14" />
                     </StackPanel>
                 </Border>
@@ -145,9 +168,13 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsAdvisor}">
-                            <Button Classes="cta" Content="Confirmar" Command="{Binding ConfirmSessionCommand}" />
-                            <Button Classes="ghost" Content="Rechazar" Command="{Binding RejectSessionCommand}" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Classes="cta" Content="Confirmar" Command="{Binding ConfirmSessionCommand}"
+                                    IsVisible="{Binding CanDecide}" />
+                            <Button Classes="ghost" Content="Rechazar" Command="{Binding RejectSessionCommand}"
+                                    IsVisible="{Binding CanDecide}" />
+                            <Button Classes="ghost" Content="Cancelar mi asesoría" Command="{Binding CancelSessionCommand}"
+                                    IsVisible="{Binding CanCancel}" />
                         </StackPanel>
                     </StackPanel>
 

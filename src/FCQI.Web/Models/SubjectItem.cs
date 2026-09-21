@@ -4,6 +4,27 @@ using System.Text.Json.Serialization;
 
 namespace FCQI.Web.Models;
 
+/// <summary>
+/// Nombres de rol tal y como los manda la API en <c>roles</c>. Este proyecto
+/// no referencia FCQI.Domain —es el cliente— así que se repiten aquí, en un
+/// solo sitio, en vez de quedar sueltos como literales por la pantalla.
+/// </summary>
+public static class UserRoles
+{
+    public const string Student = "Alumno";
+    public const string Advisor = "Asesor";
+    public const string Admin = "Directivo";
+}
+
+/// <summary>Estados de una asesoría, como los nombra la API.</summary>
+public static class SessionStatuses
+{
+    public const string Pending = "Pendiente";
+    public const string Confirmed = "Confirmada";
+    public const string Cancelled = "Cancelada";
+    public const string Rejected = "Rechazada";
+}
+
 public class SubjectItem
 {
     public int Id { get; set; }
@@ -92,7 +113,15 @@ public class DemoProfileItem
 public class AuthResultItem
 {
     public string Token { get; set; } = string.Empty;
+
+    /// <summary>Rol predeterminado: el de mayor alcance.</summary>
     public string Role { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Todos los roles de la persona. Un asesor par trae Asesor y Alumno.
+    /// </summary>
+    public List<string> Roles { get; set; } = [];
+
     public int ProfileId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

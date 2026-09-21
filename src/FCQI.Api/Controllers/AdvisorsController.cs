@@ -1,11 +1,14 @@
 using FCQI.Application.Advisors.Dtos;
 using FCQI.Application.Advisors.Queries;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FCQI.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+// Catálogo del programa: cualquier usuario autenticado puede consultarlo.
+[Authorize]
 public class AdvisorsController : ControllerBase
 {
     private readonly GetAdvisorsQueryHandler _advisors;

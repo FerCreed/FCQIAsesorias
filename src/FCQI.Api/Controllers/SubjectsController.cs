@@ -1,11 +1,14 @@
 using FCQI.Application.Subjects.Dtos;
 using FCQI.Application.Subjects.Queries;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FCQI.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+// Catálogo del programa: cualquier usuario autenticado puede consultarlo.
+[Authorize]
 public class SubjectsController : ControllerBase
 {
     private readonly GetSubjectsQueryHandler _handler;

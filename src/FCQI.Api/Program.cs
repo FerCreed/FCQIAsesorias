@@ -28,6 +28,10 @@ builder.Services.AddScoped<GetAdminAdvisorsQueryHandler>();
 builder.Services.AddScoped<ReplaceAdvisorSubjectsCommandHandler>();
 builder.Services.AddScoped<ResolveProfileHandler>();
 
+// Identidad de quien llama, leída del JWT.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<FCQI.Api.Security.CurrentUser>();
+
 var jwtKey = builder.Configuration["Authentication:Jwt:Key"] ?? "FCQI-dev-jwt-key-change-me-32chars!";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -54,11 +58,26 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// El esquema y los datos NO los crea la aplicación. Los definen db/01-schema.sql
+// y db/02-seed.sql, que el contenedor ejecuta contra MySQL antes de arrancar la
+// API (ver fcqi-init-db.sh en el Dockerfile). Aquí solo se comprueba que la base
+// esté lista, para fallar con un mensaje claro en vez de en la primera consulta.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-    await Catalog20262Seeder.SeedAsync(db);
+
+    if (!await db.Database.CanConnectAsync())
+    {
+        throw new InvalidOperationException(
+            "No se pudo conectar a MySQL. Revisa ConnectionStrings:DefaultConnection.");
+    }
+
+    if (!await db.Terms.AnyAsync(t => t.IsCurrent))
+    {
+        throw new InvalidOperationException(
+            "La base de datos no está inicializada: no hay ciclo escolar vigente. " +
+            "Ejecuta db/01-schema.sql y db/02-seed.sql antes de arrancar la API.");
+    }
 }
 
 if (app.Environment.IsDevelopment())

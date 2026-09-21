@@ -1,5 +1,6 @@
 using FCQI.Application.Auth;
 using FCQI.Infrastructure.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FCQI.Api.Controllers;
@@ -9,6 +10,8 @@ public record DemoLoginRequest(string Email);
 
 [ApiController]
 [Route("api/auth")]
+// Único controlador público: aquí es donde se obtiene el token.
+[AllowAnonymous]
 public class AuthController : ControllerBase
 {
     private readonly IGoogleTokenValidator _google;
@@ -36,13 +39,33 @@ public class AuthController : ControllerBase
             googleConfigured = !string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"])
         });
 
+    /// <summary>
+    /// El selector de perfiles expone el directorio de personas del programa,
+    /// así que solo existe mientras no haya OAuth configurado. En cuanto se
+    /// define un ClientId de Google, estos dos endpoints desaparecen.
+    /// </summary>
+    private bool DemoLoginEnabled
+        => string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"]);
+
     [HttpGet("demo-profiles")]
     public async Task<ActionResult<IEnumerable<DemoProfileDto>>> DemoProfiles(CancellationToken cancellationToken)
-        => Ok(await _profiles.ListDemoProfilesAsync(cancellationToken));
+    {
+        if (!DemoLoginEnabled)
+        {
+            return NotFound();
+        }
+
+        return Ok(await _profiles.ListDemoProfilesAsync(cancellationToken));
+    }
 
     [HttpPost("demo")]
     public async Task<ActionResult<AuthResult>> Demo([FromBody] DemoLoginRequest request, CancellationToken cancellationToken)
     {
+        if (!DemoLoginEnabled)
+        {
+            return NotFound();
+        }
+
         try
         {
             var resolved = await _profiles.ResolveAsync(request.Email, "pending", cancellationToken);
