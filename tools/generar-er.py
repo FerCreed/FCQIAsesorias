@@ -157,46 +157,46 @@ out.append("")
 #    segunda copia del diagrama envejeciendo sin que nadie lo note.
 out.append("""## Cómo leer las relaciones clave
 
-**Una persona, varios roles.** `PEOPLE` se relaciona con los tres perfiles como
+**Una persona, varios roles.** `PERSONAS` se relaciona con los tres perfiles como
 `||--o|`: cero o un perfil de cada tipo, y los tres a la vez si hace falta. Es
 lo que permite que un alumno sea también asesor —los asesores pares del
 programa— sin duplicar su identidad. El modelo anterior tenía tres tablas de
 identidad separadas y el rol lo decidía el orden de los `SELECT`, así que esa
 persona quedaba atrapada en uno solo.
 
-**`ADVISORY_SESSIONS` cuelga de dos llaves foráneas compuestas**, y no son
+**`ASESORIAS` cuelga de dos llaves foráneas compuestas**, y no son
 adorno:
 
-- `(AvailabilityId, AdvisorId)` → `AVAILABILITIES (Id, AdvisorId)` hace
+- `(HorarioId, AsesorId)` → `HORARIOS (Id, AsesorId)` hace
   imposible que una sesión declare un asesor distinto al dueño del horario.
-- `(TermId, AdvisorId, SubjectId)` → `ADVISOR_SUBJECTS` impide agendar una
+- `(CicloId, AsesorId, MateriaId)` → `ASESORES_MATERIAS` impide agendar una
   materia que ese asesor no imparte en ese ciclo.
 
 Ambas reglas existían antes solo como `if` en C#, de modo que cualquier
 `INSERT` por SQL podía saltárselas.
 
-**`ActiveAt` es el mecanismo de cupo.** Vale la fecha mientras la sesión ocupa
+**`ActivaEn` es el mecanismo de cupo.** Vale la fecha mientras la sesión ocupa
 lugar y `NULL` cuando se cancela o se rechaza. Como los `NULL` no colisionan en
 un índice único, cancelar libera el asiento sin borrar la fila ni perder el
 historial. La mantienen los triggers, no la aplicación.
 
-**`LOCATIONS` absorbe la modalidad.** Antes `availabilities` guardaba
+**`LUGARES` absorbe la modalidad.** Antes `availabilities` guardaba
 `Modality` y `Location` por separado, y el valor `'Enlace virtual (Meet/Teams)'`
 implicaba modalidad virtual: una dependencia transitiva. Ahora la sede declara
 su modalidad una sola vez.
 
-**Todo cuelga de un ciclo.** `ACADEMIC_TERMS` aparece en `ADVISOR_SUBJECTS`,
-`AVAILABILITIES` y `ADVISORY_SESSIONS`. Antes el ciclo era la cadena
+**Todo cuelga de un ciclo.** `CICLOS_ESCOLARES` aparece en
+`ASESORES_MATERIAS`, `HORARIOS` y `ASESORIAS`. Antes el ciclo era la cadena
 `'FCQI 2026-2'` repetida en las 44 materias, y reasignar borraba el historial
 del semestre anterior.
 
 ## Lo que el diagrama no dice
 
-El cupo (`MaxCapacity`) se respeta con índices únicos sobre `ActiveAt` más un
+El cupo (`CupoMaximo`) se respeta con índices únicos sobre `ActivaEn` más un
 trigger que compara el asiento contra el cupo del bloque; un `CHECK` no habría
 podido, porque no puede consultar otra tabla.
 
-Que `ScheduledAt` caiga en el día y la hora del bloque **no** lo valida la
+Que `ProgramadaEn` caiga en el día y la hora del bloque **no** lo valida la
 base: comprobarlo exige `CONVERT_TZ` entre UTC y `America/Tijuana`, y esa
 validación vive en `CreateSessionCommandHandler`, donde la zona horaria es
 explícita.

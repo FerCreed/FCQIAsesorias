@@ -2,7 +2,7 @@ namespace FCQI.Domain;
 
 /// <summary>
 /// Nombres de los estados, tal y como los expone la API y los muestra la
-/// interfaz. Deben coincidir con session_statuses.Name en la base.
+/// interfaz. Deben coincidir con estados_sesion.Nombre en la base.
 /// </summary>
 public static class SessionStatuses
 {
@@ -16,7 +16,7 @@ public static class SessionStatuses
 }
 
 /// <summary>
-/// Identificadores de session_statuses. Son fijos: el esquema los inserta en
+/// Identificadores de estados_sesion. Son fijos: el esquema los inserta en
 /// 01-schema.sql porque las llaves foráneas dependen de que existan.
 /// </summary>
 public static class SessionStatusIds

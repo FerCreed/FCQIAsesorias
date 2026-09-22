@@ -118,7 +118,7 @@ public class CreateSessionCommandHandler
             throw new InvalidOperationException("No se puede agendar una asesoría en el pasado.");
         }
 
-        // academic_terms define la ventana del ciclo. Sin esta comprobación se
+        // ciclos_escolares define la ventana del ciclo. Sin esta comprobación se
         // podían agendar asesorías para un semestre que ni siquiera existe.
         var day = DateOnly.FromDateTime(local);
         if (day < term.StartsOn || day > term.EndsOn)

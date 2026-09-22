@@ -20,7 +20,7 @@ public class GetAvailabilitiesQueryHandler
     {
         var termId = await _term.IdAsync(cancellationToken);
 
-        // Modality ya no es columna de availabilities: la declara la sede.
+        // La modalidad ya no es columna de horarios: la declara la sede.
         return await _context.Availabilities
             .AsNoTracking()
             .Where(a => a.AdvisorId == advisorId && a.TermId == termId && a.IsActive)

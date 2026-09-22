@@ -8,146 +8,146 @@ Generado por introspección de `information_schema` sobre la base `fcqi_asesoria
 
 ```mermaid
 erDiagram
-    PEOPLE ||--o| ADMIN_PROFILES : "PersonId"
-    MODALITIES ||--o{ ADVISOR_PROFILES : "DefaultModalityId"
-    PEOPLE ||--o| ADVISOR_PROFILES : "PersonId"
-    PROGRAMS ||--o{ ADVISOR_PROFILES : "ProgramId"
-    ADVISOR_PROFILES ||--o{ ADVISOR_SUBJECTS : "AdvisorId"
-    SUBJECTS ||--o{ ADVISOR_SUBJECTS : "SubjectId"
-    ACADEMIC_TERMS ||--o{ ADVISOR_SUBJECTS : "TermId"
-    AVAILABILITIES ||--o{ ADVISORY_SESSIONS : "AvailabilityId+AdvisorId (compuesta)"
-    SESSION_STATUSES ||--o{ ADVISORY_SESSIONS : "StatusId"
-    STUDENT_PROFILES ||--o{ ADVISORY_SESSIONS : "StudentId"
-    ADVISOR_SUBJECTS ||--o{ ADVISORY_SESSIONS : "TermId+AdvisorId+SubjectId (compuesta)"
-    ADVISOR_PROFILES ||--o{ AVAILABILITIES : "AdvisorId"
-    LOCATIONS ||--o{ AVAILABILITIES : "LocationId"
-    ACADEMIC_TERMS ||--o{ AVAILABILITIES : "TermId"
-    MODALITIES ||--o{ LOCATIONS : "ModalityId"
-    PROGRAMS ||--o{ PROGRAM_SUBJECTS : "ProgramId"
-    SUBJECTS ||--o{ PROGRAM_SUBJECTS : "SubjectId"
-    SESSION_STATUSES |o--o{ SESSION_STATUS_HISTORY : "FromStatusId"
-    PEOPLE |o--o{ SESSION_STATUS_HISTORY : "ChangedBy"
-    ADVISORY_SESSIONS ||--o{ SESSION_STATUS_HISTORY : "SessionId"
-    SESSION_STATUSES ||--o{ SESSION_STATUS_HISTORY : "ToStatusId"
-    PEOPLE ||--o| STUDENT_PROFILES : "PersonId"
-    PROGRAMS |o--o{ STUDENT_PROFILES : "ProgramId"
+    PERFILES_ASESOR ||--o{ ASESORES_MATERIAS : "AsesorId"
+    CICLOS_ESCOLARES ||--o{ ASESORES_MATERIAS : "CicloId"
+    MATERIAS ||--o{ ASESORES_MATERIAS : "MateriaId"
+    PERFILES_ALUMNO ||--o{ ASESORIAS : "AlumnoId"
+    ESTADOS_SESION ||--o{ ASESORIAS : "EstadoId"
+    HORARIOS ||--o{ ASESORIAS : "HorarioId+AsesorId (compuesta)"
+    ASESORES_MATERIAS ||--o{ ASESORIAS : "CicloId+AsesorId+MateriaId (compuesta)"
+    ASESORIAS ||--o{ HISTORIAL_ESTADOS_SESION : "AsesoriaId"
+    ESTADOS_SESION |o--o{ HISTORIAL_ESTADOS_SESION : "EstadoAnteriorId"
+    ESTADOS_SESION ||--o{ HISTORIAL_ESTADOS_SESION : "EstadoNuevoId"
+    PERSONAS |o--o{ HISTORIAL_ESTADOS_SESION : "CambiadoPor"
+    PERFILES_ASESOR ||--o{ HORARIOS : "AsesorId"
+    CICLOS_ESCOLARES ||--o{ HORARIOS : "CicloId"
+    LUGARES ||--o{ HORARIOS : "LugarId"
+    MODALIDADES ||--o{ LUGARES : "ModalidadId"
+    PERSONAS ||--o| PERFILES_ALUMNO : "PersonaId"
+    PROGRAMAS |o--o{ PERFILES_ALUMNO : "ProgramaId"
+    MODALIDADES ||--o{ PERFILES_ASESOR : "ModalidadPredeterminadaId"
+    PERSONAS ||--o| PERFILES_ASESOR : "PersonaId"
+    PROGRAMAS ||--o{ PERFILES_ASESOR : "ProgramaId"
+    PERSONAS ||--o| PERFILES_DIRECTIVO : "PersonaId"
+    MATERIAS ||--o{ PROGRAMAS_MATERIAS : "MateriaId"
+    PROGRAMAS ||--o{ PROGRAMAS_MATERIAS : "ProgramaId"
 
-    ACADEMIC_TERMS {
-        smallint Id PK "autoincremental"
-        varchar Code UK "p. ej. 2026-2"
-        varchar Name
-        date StartsOn
-        date EndsOn
-        tinyint IsCurrent
+    ASESORES_MATERIAS {
+        smallint CicloId PK
+        int AsesorId PK
+        int MateriaId PK
+        datetime CreadoEn "valor por omisión"
     }
-    ADMIN_PROFILES {
-        int PersonId PK
-        varchar Title
-        tinyint IsActive
-        datetime CreatedAt "valor por omisión"
-    }
-    ADVISOR_PROFILES {
-        int PersonId PK
-        smallint ProgramId FK "era advisors.Area"
-        tinyint DefaultModalityId FK
-        tinyint IsActive
-        datetime CreatedAt "valor por omisión"
-    }
-    ADVISOR_SUBJECTS {
-        smallint TermId PK
-        int AdvisorId PK
-        int SubjectId PK
-        datetime CreatedAt "valor por omisión"
-    }
-    ADVISORY_SESSIONS {
+    ASESORIAS {
         bigint Id PK "autoincremental"
-        smallint TermId FK
-        int AvailabilityId FK
-        int AdvisorId FK
-        int StudentId FK
-        int SubjectId FK
-        datetime ScheduledAt "UTC; la hora local es America/Tijuana"
-        smallint SeatNumber
-        tinyint StatusId FK
-        varchar Topic
-        datetime CreatedAt "valor por omisión"
-        datetime UpdatedAt "valor por omisión"
-        datetime ActiveAt "nullable"
+        smallint CicloId FK
+        int HorarioId FK
+        int AsesorId FK
+        int AlumnoId FK
+        int MateriaId FK
+        datetime ProgramadaEn "UTC; la hora local es America/Tijuana"
+        smallint NumeroLugar
+        tinyint EstadoId FK
+        varchar Tema
+        datetime CreadoEn "valor por omisión"
+        datetime ActualizadoEn "valor por omisión"
+        datetime ActivaEn "nullable"
     }
-    AVAILABILITIES {
-        int Id PK "autoincremental"
-        smallint TermId FK
-        int AdvisorId FK
-        tinyint DayOfWeek
-        time StartTime
-        time EndTime
-        smallint MaxCapacity
-        smallint LocationId FK
-        tinyint IsActive
-        datetime CreatedAt "valor por omisión"
-    }
-    LOCATIONS {
+    CICLOS_ESCOLARES {
         smallint Id PK "autoincremental"
-        varchar Name UK
-        tinyint ModalityId FK
-        varchar Details "nullable"
-        tinyint IsActive
+        varchar Codigo UK "p. ej. 2026-2"
+        varchar Nombre
+        date FechaInicio
+        date FechaFin
+        tinyint EsActual
     }
-    MODALITIES {
+    ESTADOS_SESION {
         tinyint Id PK
-        varchar Code UK
-        varchar Name
+        varchar Codigo UK
+        varchar Nombre
+        tinyint Activo
     }
-    PEOPLE {
-        int Id PK "autoincremental"
-        varchar Honorific "nullable, Dra., Dr., Mtro. — opcional"
-        varchar FirstName
-        varchar LastNamePaternal
-        varchar LastNameMaternal "nullable"
-        varchar DisplayName "calculada por la base"
-        varchar Email UK
-        tinyint IsActive
-        datetime CreatedAt "valor por omisión"
-        datetime UpdatedAt "valor por omisión"
-    }
-    PROGRAM_SUBJECTS {
-        smallint ProgramId PK
-        int SubjectId PK
-        tinyint Semester "nullable, semestre sugerido del plan"
-    }
-    PROGRAMS {
-        smallint Id PK "autoincremental"
-        varchar Code UK
-        varchar Name
-        tinyint IsActive
-    }
-    SESSION_STATUS_HISTORY {
+    HISTORIAL_ESTADOS_SESION {
         bigint Id PK "autoincremental"
-        bigint SessionId FK
-        tinyint FromStatusId FK "nullable, NULL = creación"
-        tinyint ToStatusId FK
-        int ChangedBy FK "nullable, NULL = proceso automático"
-        datetime ChangedAt "valor por omisión"
-        varchar Reason "nullable"
+        bigint AsesoriaId FK
+        tinyint EstadoAnteriorId FK "nullable, NULL = creación"
+        tinyint EstadoNuevoId FK
+        int CambiadoPor FK "nullable, NULL = proceso automático"
+        datetime CambiadoEn "valor por omisión"
+        varchar Motivo "nullable"
     }
-    SESSION_STATUSES {
-        tinyint Id PK
-        varchar Code UK
-        varchar Name
-        tinyint IsActive
-    }
-    STUDENT_PROFILES {
-        int PersonId PK
-        varchar StudentNumber UK
-        smallint ProgramId FK "nullable"
-        tinyint IsActive
-        datetime CreatedAt "valor por omisión"
-    }
-    SUBJECTS {
+    HORARIOS {
         int Id PK "autoincremental"
-        varchar Code UK
-        varchar Name
-        tinyint IsActive
+        smallint CicloId FK
+        int AsesorId FK
+        tinyint DiaSemana
+        time HoraInicio
+        time HoraFin
+        smallint CupoMaximo
+        smallint LugarId FK
+        tinyint Activo
+        datetime CreadoEn "valor por omisión"
+    }
+    LUGARES {
+        smallint Id PK "autoincremental"
+        varchar Nombre UK
+        tinyint ModalidadId FK
+        varchar Detalles "nullable"
+        tinyint Activo
+    }
+    MATERIAS {
+        int Id PK "autoincremental"
+        varchar Codigo UK
+        varchar Nombre
+        tinyint Activo
+    }
+    MODALIDADES {
+        tinyint Id PK
+        varchar Codigo UK
+        varchar Nombre
+    }
+    PERFILES_ALUMNO {
+        int PersonaId PK
+        varchar Matricula UK
+        smallint ProgramaId FK "nullable"
+        tinyint Activo
+        datetime CreadoEn "valor por omisión"
+    }
+    PERFILES_ASESOR {
+        int PersonaId PK
+        smallint ProgramaId FK "era advisors.Area"
+        tinyint ModalidadPredeterminadaId FK
+        tinyint Activo
+        datetime CreadoEn "valor por omisión"
+    }
+    PERFILES_DIRECTIVO {
+        int PersonaId PK
+        varchar Cargo
+        tinyint Activo
+        datetime CreadoEn "valor por omisión"
+    }
+    PERSONAS {
+        int Id PK "autoincremental"
+        varchar Tratamiento "nullable, Dra., Dr., Mtro. — opcional"
+        varchar Nombres
+        varchar ApellidoPaterno
+        varchar ApellidoMaterno "nullable"
+        varchar NombreCompleto "calculada por la base"
+        varchar Correo UK
+        tinyint Activo
+        datetime CreadoEn "valor por omisión"
+        datetime ActualizadoEn "valor por omisión"
+    }
+    PROGRAMAS {
+        smallint Id PK "autoincremental"
+        varchar Codigo UK
+        varchar Nombre
+        tinyint Activo
+    }
+    PROGRAMAS_MATERIAS {
+        smallint ProgramaId PK
+        int MateriaId PK
+        tinyint Semestre "nullable, semestre sugerido del plan"
     }
 ```
 
@@ -155,21 +155,21 @@ erDiagram
 
 | Tabla | Filas |
 |-------|-------|
-| `academic_terms` | 1 |
-| `admin_profiles` | 1 |
-| `advisor_profiles` | 14 |
-| `advisor_subjects` | 92 |
-| `advisory_sessions` | 6 |
-| `availabilities` | 104 |
-| `locations` | 2 |
-| `modalities` | 2 |
-| `people` | 21 |
-| `program_subjects` | 57 |
-| `programs` | 5 |
-| `session_status_history` | 6 |
-| `session_statuses` | 4 |
-| `student_profiles` | 8 |
-| `subjects` | 44 |
+| `asesores_materias` | 92 |
+| `asesorias` | 6 |
+| `ciclos_escolares` | 1 |
+| `estados_sesion` | 4 |
+| `historial_estados_sesion` | 6 |
+| `horarios` | 104 |
+| `lugares` | 2 |
+| `materias` | 44 |
+| `modalidades` | 2 |
+| `perfiles_alumno` | 8 |
+| `perfiles_asesor` | 14 |
+| `perfiles_directivo` | 1 |
+| `personas` | 21 |
+| `programas` | 5 |
+| `programas_materias` | 57 |
 
 ## Reglas que impone la base
 
@@ -177,74 +177,74 @@ Estas no dependen del código de la aplicación: valen para cualquier cliente qu
 
 ### Llaves foráneas compuestas
 
-- `advisory_sessions(AvailabilityId, AdvisorId)` → `availabilities(Id, AdvisorId)`
-- `advisory_sessions(TermId, AdvisorId, SubjectId)` → `advisor_subjects(TermId, AdvisorId, SubjectId)`
+- `asesorias(HorarioId, AsesorId)` → `horarios(Id, AsesorId)`
+- `asesorias(CicloId, AsesorId, MateriaId)` → `asesores_materias(CicloId, AsesorId, MateriaId)`
 
 ### Restricciones CHECK
 
-- `CK_academic_terms_Range`: `(`EndsOn` > `StartsOn`)`
-- `CK_availabilities_Capacity`: `(`MaxCapacity` >= 1)`
-- `CK_availabilities_DayOfWeek`: `(`DayOfWeek` between 0 and 6)`
-- `CK_availabilities_TimeRange`: `(`EndTime` > `StartTime`)`
-- `CK_people_InstitutionalEmail`: `((`Email` like _utf8mb4\\'%@uabc.edu.mx\\') and (`Email` = lower(`Email`)))`
-- `CK_sessions_Seat`: `(`SeatNumber` >= 1)`
+- `CK_asesorias_Lugar`: `(`NumeroLugar` >= 1)`
+- `CK_ciclos_escolares_Rango`: `(`FechaFin` > `FechaInicio`)`
+- `CK_horarios_Cupo`: `(`CupoMaximo` >= 1)`
+- `CK_horarios_DiaSemana`: `(`DiaSemana` between 0 and 6)`
+- `CK_horarios_RangoHoras`: `(`HoraFin` > `HoraInicio`)`
+- `CK_personas_CorreoInstitucional`: `((`Correo` like _utf8mb4\\'%@uabc.edu.mx\\') and (`Correo` = lower(`Correo`)))`
 
 ### Triggers
 
-- `TRG_sessions_before_insert` — BEFORE INSERT en `advisory_sessions`
-- `TRG_sessions_before_update` — BEFORE UPDATE en `advisory_sessions`
-- `TRG_sessions_history_insert` — AFTER INSERT en `advisory_sessions`
-- `TRG_sessions_history_update` — AFTER UPDATE en `advisory_sessions`
+- `TRG_asesorias_antes_actualizar` — BEFORE UPDATE en `asesorias`
+- `TRG_asesorias_antes_insertar` — BEFORE INSERT en `asesorias`
+- `TRG_asesorias_historial_actualizar` — AFTER UPDATE en `asesorias`
+- `TRG_asesorias_historial_insertar` — AFTER INSERT en `asesorias`
 
 ### Vistas
 
-- `v_advisors`
-- `v_availability_load`
-- `v_person_roles`
-- `v_students`
+- `v_alumnos`
+- `v_asesores`
+- `v_ocupacion_horarios`
+- `v_roles_persona`
 
 ## Cómo leer las relaciones clave
 
-**Una persona, varios roles.** `PEOPLE` se relaciona con los tres perfiles como
+**Una persona, varios roles.** `PERSONAS` se relaciona con los tres perfiles como
 `||--o|`: cero o un perfil de cada tipo, y los tres a la vez si hace falta. Es
 lo que permite que un alumno sea también asesor —los asesores pares del
 programa— sin duplicar su identidad. El modelo anterior tenía tres tablas de
 identidad separadas y el rol lo decidía el orden de los `SELECT`, así que esa
 persona quedaba atrapada en uno solo.
 
-**`ADVISORY_SESSIONS` cuelga de dos llaves foráneas compuestas**, y no son
+**`ASESORIAS` cuelga de dos llaves foráneas compuestas**, y no son
 adorno:
 
-- `(AvailabilityId, AdvisorId)` → `AVAILABILITIES (Id, AdvisorId)` hace
+- `(HorarioId, AsesorId)` → `HORARIOS (Id, AsesorId)` hace
   imposible que una sesión declare un asesor distinto al dueño del horario.
-- `(TermId, AdvisorId, SubjectId)` → `ADVISOR_SUBJECTS` impide agendar una
+- `(CicloId, AsesorId, MateriaId)` → `ASESORES_MATERIAS` impide agendar una
   materia que ese asesor no imparte en ese ciclo.
 
 Ambas reglas existían antes solo como `if` en C#, de modo que cualquier
 `INSERT` por SQL podía saltárselas.
 
-**`ActiveAt` es el mecanismo de cupo.** Vale la fecha mientras la sesión ocupa
+**`ActivaEn` es el mecanismo de cupo.** Vale la fecha mientras la sesión ocupa
 lugar y `NULL` cuando se cancela o se rechaza. Como los `NULL` no colisionan en
 un índice único, cancelar libera el asiento sin borrar la fila ni perder el
 historial. La mantienen los triggers, no la aplicación.
 
-**`LOCATIONS` absorbe la modalidad.** Antes `availabilities` guardaba
+**`LUGARES` absorbe la modalidad.** Antes `availabilities` guardaba
 `Modality` y `Location` por separado, y el valor `'Enlace virtual (Meet/Teams)'`
 implicaba modalidad virtual: una dependencia transitiva. Ahora la sede declara
 su modalidad una sola vez.
 
-**Todo cuelga de un ciclo.** `ACADEMIC_TERMS` aparece en `ADVISOR_SUBJECTS`,
-`AVAILABILITIES` y `ADVISORY_SESSIONS`. Antes el ciclo era la cadena
+**Todo cuelga de un ciclo.** `CICLOS_ESCOLARES` aparece en
+`ASESORES_MATERIAS`, `HORARIOS` y `ASESORIAS`. Antes el ciclo era la cadena
 `'FCQI 2026-2'` repetida en las 44 materias, y reasignar borraba el historial
 del semestre anterior.
 
 ## Lo que el diagrama no dice
 
-El cupo (`MaxCapacity`) se respeta con índices únicos sobre `ActiveAt` más un
+El cupo (`CupoMaximo`) se respeta con índices únicos sobre `ActivaEn` más un
 trigger que compara el asiento contra el cupo del bloque; un `CHECK` no habría
 podido, porque no puede consultar otra tabla.
 
-Que `ScheduledAt` caiga en el día y la hora del bloque **no** lo valida la
+Que `ProgramadaEn` caiga en el día y la hora del bloque **no** lo valida la
 base: comprobarlo exige `CONVERT_TZ` entre UTC y `America/Tijuana`, y esa
 validación vive en `CreateSessionCommandHandler`, donde la zona horaria es
 explícita.

@@ -25,22 +25,22 @@ docker exec -i fcqi-dev mysql -uroot -pdev_root < db/02-seed.sql
 
 ```bash
 docker exec fcqi-dev mysql -uroot -pdev_root fcqi_asesorias -e "
-SELECT 'personas',COUNT(*) FROM people
-UNION ALL SELECT 'asesores',COUNT(*) FROM advisor_profiles
-UNION ALL SELECT 'perfiles de alumno',COUNT(*) FROM student_profiles
-UNION ALL SELECT 'materias',COUNT(*) FROM subjects
-UNION ALL SELECT 'bloques',COUNT(*) FROM availabilities
-UNION ALL SELECT 'sesiones',COUNT(*) FROM advisory_sessions;"
+SELECT 'personas',COUNT(*) FROM personas
+UNION ALL SELECT 'asesores',COUNT(*) FROM perfiles_asesor
+UNION ALL SELECT 'perfiles de alumno',COUNT(*) FROM perfiles_alumno
+UNION ALL SELECT 'materias',COUNT(*) FROM materias
+UNION ALL SELECT 'bloques',COUNT(*) FROM horarios
+UNION ALL SELECT 'sesiones',COUNT(*) FROM asesorias;"
 ```
 
   | Tabla | Esperado |
   |-------|----------|
-  | `people` | 21 |
-  | `advisor_profiles` | 14 |
-  | `student_profiles` | 8 |
-  | `subjects` | 44 |
-  | `availabilities` | 104 |
-  | `advisory_sessions` | 6 |
+  | `personas` | 21 |
+  | `perfiles_asesor` | 14 |
+  | `perfiles_alumno` | 8 |
+  | `materias` | 44 |
+  | `horarios` | 104 |
+  | `asesorias` | 6 |
 
 - [ ] **Hay asesores pares**: dos personas con más de un rol. Si esta consulta
       sale vacía, el selector de rol no tiene nada que seleccionar y medio
@@ -48,15 +48,15 @@ UNION ALL SELECT 'sesiones',COUNT(*) FROM advisory_sessions;"
 
 ```bash
 docker exec fcqi-dev mysql -uroot -pdev_root fcqi_asesorias -e "
-SELECT PersonId, Email, GROUP_CONCAT(Role) AS roles
-FROM v_person_roles GROUP BY PersonId, Email HAVING COUNT(*) > 1;"
+SELECT PersonaId, Correo, GROUP_CONCAT(Rol) AS roles
+FROM v_roles_persona GROUP BY PersonaId, Correo HAVING COUNT(*) > 1;"
 ```
 
   Esperado: `v1299027@uabc.edu.mx` y `j2207105@uabc.edu.mx`, cada uno con
   `Asesor,Alumno`.
 
 - [ ] El historial de estados se escribió solo, por los triggers:
-      `SELECT COUNT(*) FROM session_status_history;` devuelve 6 (una fila de
+      `SELECT COUNT(*) FROM historial_estados_sesion;` devuelve 6 (una fila de
       creación por sesión), sin que el seed lo inserte.
 - [ ] El diagrama sigue describiendo la base real:
       `python3 tools/generar-er.py` y `git diff db/diagrama-er.md` solo cambia
@@ -177,7 +177,7 @@ No son fallos de lo entregado, pero conviene tenerlos escritos:
   la pantalla todavía no tiene el botón: falta el puente de JavaScript de
   Google Identity Services hacia el WASM. Al configurar el ClientId, el acceso
   de demostración se retira y la pantalla lo dice en lugar de fallar.
-- **La carrera del alumno** (`student_profiles.ProgramId`) va en NULL para los
+- **La carrera del alumno** (`perfiles_alumno.ProgramaId`) va en NULL para los
   seis alumnos que venían del modelo anterior, que no la registraba. Los dos
   asesores pares sí la traen, porque su perfil de asesor la declara.
 - **No hay pruebas automáticas de la interfaz en el navegador**; el bloque 4 es

@@ -34,8 +34,8 @@ public class UpdateSessionStatusCommandHandler
 
         EnsureTransitionIsPossible(session.StatusId, target);
 
-        // El trigger de la base recalcula ActiveAt (liberando el cupo cuando se
-        // cancela) y registra el cambio en session_status_history.
+        // El trigger de la base recalcula ActivaEn (liberando el cupo cuando se
+        // cancela) y registra el cambio en historial_estados_sesion.
         session.StatusId = target;
 
         try

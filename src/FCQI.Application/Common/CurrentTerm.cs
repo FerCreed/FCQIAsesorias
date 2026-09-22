@@ -23,7 +23,7 @@ public class CurrentTerm
             .FirstOrDefaultAsync(cancellationToken);
 
         return term ?? throw new InvalidOperationException(
-            "No hay un ciclo escolar marcado como vigente en academic_terms.");
+            "No hay un ciclo escolar marcado como vigente en ciclos_escolares.");
     }
 
     public async Task<short> IdAsync(CancellationToken cancellationToken = default)
