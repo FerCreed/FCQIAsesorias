@@ -10,6 +10,11 @@
 --  Estructura de partida: db/legacy/v1-schema.sql
 --  Estructura de llegada: db/01-schema.sql
 --
+--  Los nombres en inglés que aparecen calificados con `fcqi_asesorias_v1`
+--  son los del modelo viejo y se quedan como estaban: describen una base que
+--  ya existe y que este script solo lee. Todo lo que se escribe usa los
+--  nombres en español del modelo v2.
+--
 --  Estrategia: no altera la base v1 in situ. Construye la base nueva al lado
 --  y copia los datos transformados, de modo que si algo sale mal la original
 --  queda intacta y basta con borrar la nueva.
@@ -24,15 +29,15 @@
 --      db/01-schema.sql.
 --
 --  Cambios que aplica:
---    1. students + advisors + admins  ->  people + *_profiles
+--    1. students + advisors + admins  ->  personas + perfiles_*
 --       Deduplica por correo: una persona con dos roles deja de ser dos filas.
---    2. FullName  ->  Honorific + FirstName + LastNamePaternal + LastNameMaternal
---    3. advisors.Area (texto)  ->  programs (catálogo)
---    4. availabilities.Modality + Location  ->  locations (catálogo)
---    5. subjects.Program ('FCQI 2026-2')  ->  academic_terms
---    6. Status (texto)  ->  session_statuses (catálogo)
---    7. ScheduledAt local  ->  UTC
---    8. Alta de TermId en advisor_subjects, availabilities y advisory_sessions
+--    2. FullName  ->  Tratamiento + Nombres + ApellidoPaterno + ApellidoMaterno
+--    3. advisors.Area (texto)  ->  programas (catálogo)
+--    4. availabilities.Modality + Location  ->  lugares (catálogo)
+--    5. subjects.Program ('FCQI 2026-2')  ->  ciclos_escolares
+--    6. Status (texto)  ->  estados_sesion (catálogo)
+--    7. ScheduledAt local  ->  ProgramadaEn en UTC
+--    8. Alta de CicloId en asesores_materias, horarios y asesorias
 -- =============================================================================
 
 SET NAMES utf8mb4;
@@ -47,14 +52,14 @@ START TRANSACTION;
 --     las 44 filas de subjects.Program.
 --     REVISAR: fechas estimadas, ajustar al calendario oficial UABC.
 -- -----------------------------------------------------------------------------
-INSERT INTO `academic_terms` (`Id`,`Code`,`Name`,`StartsOn`,`EndsOn`,`IsCurrent`)
+INSERT INTO `ciclos_escolares` (`Id`,`Codigo`,`Nombre`,`FechaInicio`,`FechaFin`,`EsActual`)
 VALUES (1, '2026-2', 'Otoño 2026', '2026-08-10', '2026-12-11', 1);
 
 
 -- -----------------------------------------------------------------------------
 --  2. Programas, desde el texto libre de advisors.Area.
 -- -----------------------------------------------------------------------------
-INSERT INTO `programs` (`Code`, `Name`)
+INSERT INTO `programas` (`Codigo`, `Nombre`)
 SELECT DISTINCT
        CASE a.`Area`
            WHEN 'Ingeniería en Electrónica'          THEN 'IE'
@@ -74,10 +79,10 @@ ORDER BY a.`Area`;
 --     En v1, 'Enlace virtual (Meet/Teams)' implicaba modalidad Virtual: la
 --     dependencia transitiva que este catálogo elimina.
 -- -----------------------------------------------------------------------------
-INSERT INTO `locations` (`Name`, `ModalityId`)
+INSERT INTO `lugares` (`Nombre`, `ModalidadId`)
 SELECT DISTINCT v.`Location`, m.`Id`
 FROM `fcqi_asesorias_v1`.`availabilities` v
-JOIN `modalities` m ON m.`Name` = v.`Modality`
+JOIN `modalidades` m ON m.`Nombre` = v.`Modality`
 ORDER BY v.`Location`;
 
 
@@ -89,14 +94,14 @@ ORDER BY v.`Location`;
 --     contando desde el final. Las partículas ('de', 'la', 'del') rompen esa
 --     cuenta, así que se corrigen en el paso 4b.
 -- -----------------------------------------------------------------------------
-CREATE TEMPORARY TABLE `tmp_names` (
-    `Email`     varchar(150) NOT NULL PRIMARY KEY,
-    `FullName`  varchar(200) NOT NULL,
-    `Honorific` varchar(20)  NULL,
-    `Clean`     varchar(200) NOT NULL
+CREATE TEMPORARY TABLE `tmp_nombres` (
+    `Correo`         varchar(150) NOT NULL PRIMARY KEY,
+    `NombreCompleto` varchar(200) NOT NULL,
+    `Tratamiento`    varchar(20)  NULL,
+    `Limpio`         varchar(200) NOT NULL
 ) ENGINE = InnoDB;
 
-INSERT INTO `tmp_names` (`Email`, `FullName`, `Honorific`, `Clean`)
+INSERT INTO `tmp_nombres` (`Correo`, `NombreCompleto`, `Tratamiento`, `Limpio`)
 SELECT u.`Email`, u.`FullName`,
        CASE WHEN SUBSTRING_INDEX(u.`FullName`, ' ', 1)
                  IN ('Dra.','Dr.','Mtro.','Mtra.','Ing.','Lic.')
@@ -123,92 +128,92 @@ FROM (
 --  Así 'Carlos Enrique Martínez de la Cruz' da Martínez / de la Cruz, y
 --  'Felipe de Jesús Márquez Vizcarra' da Márquez / Vizcarra sin que la
 --  partícula de los nombres de pila estorbe.
-INSERT INTO `people` (`Honorific`, `FirstName`, `LastNamePaternal`, `LastNameMaternal`, `Email`)
-SELECT  x.`Honorific`,
-        TRIM(LEFT(x.`Rest`, CHAR_LENGTH(x.`Rest`) - CHAR_LENGTH(x.`Paternal`))),
-        x.`Paternal`,
-        x.`Maternal`,
-        x.`Email`
+INSERT INTO `personas` (`Tratamiento`, `Nombres`, `ApellidoPaterno`, `ApellidoMaterno`, `Correo`)
+SELECT  x.`Tratamiento`,
+        TRIM(LEFT(x.`Resto`, CHAR_LENGTH(x.`Resto`) - CHAR_LENGTH(x.`Paterno`))),
+        x.`Paterno`,
+        x.`Materno`,
+        x.`Correo`
 FROM (
-    SELECT  y.`Honorific`, y.`Email`, y.`FullName`, y.`Maternal`, y.`Rest`,
-            SUBSTRING_INDEX(y.`Rest`, ' ', -1) AS `Paternal`
+    SELECT  y.`Tratamiento`, y.`Correo`, y.`NombreCompleto`, y.`Materno`, y.`Resto`,
+            SUBSTRING_INDEX(y.`Resto`, ' ', -1) AS `Paterno`
     FROM (
-        SELECT  t.`Honorific`, t.`Email`, t.`FullName`, z.`Maternal`,
-                TRIM(LEFT(t.`Clean`, CHAR_LENGTH(t.`Clean`) - CHAR_LENGTH(z.`Maternal`))) AS `Rest`
-        FROM `tmp_names` t
+        SELECT  t.`Tratamiento`, t.`Correo`, t.`NombreCompleto`, z.`Materno`,
+                TRIM(LEFT(t.`Limpio`, CHAR_LENGTH(t.`Limpio`) - CHAR_LENGTH(z.`Materno`))) AS `Resto`
+        FROM `tmp_nombres` t
         JOIN LATERAL (
             SELECT COALESCE(
-                TRIM(REGEXP_SUBSTR(t.`Clean`, '( (de|del|la|las|los|y))+ [^ ]+$')),
-                SUBSTRING_INDEX(t.`Clean`, ' ', -1)
-            ) AS `Maternal`
+                TRIM(REGEXP_SUBSTR(t.`Limpio`, '( (de|del|la|las|los|y))+ [^ ]+$')),
+                SUBSTRING_INDEX(t.`Limpio`, ' ', -1)
+            ) AS `Materno`
         ) z ON TRUE
     ) y
 ) x
-ORDER BY x.`FullName`;
+ORDER BY x.`NombreCompleto`;
 
 
 -- -----------------------------------------------------------------------------
 --  5. Perfiles por rol.
 -- -----------------------------------------------------------------------------
-INSERT INTO `advisor_profiles` (`PersonId`, `ProgramId`, `DefaultModalityId`, `IsActive`)
+INSERT INTO `perfiles_asesor` (`PersonaId`, `ProgramaId`, `ModalidadPredeterminadaId`, `Activo`)
 SELECT p.`Id`, pr.`Id`, m.`Id`, a.`IsActive`
 FROM `fcqi_asesorias_v1`.`advisors` a
-JOIN `people`     p  ON p.`Email` = LOWER(TRIM(a.`Email`))
-JOIN `programs`   pr ON pr.`Name` = a.`Area`
-JOIN `modalities` m  ON m.`Name`  = a.`DefaultModality`;
+JOIN `personas`    p  ON p.`Correo` = LOWER(TRIM(a.`Email`))
+JOIN `programas`   pr ON pr.`Nombre` = a.`Area`
+JOIN `modalidades` m  ON m.`Nombre`  = a.`DefaultModality`;
 
---  ProgramId queda NULL: v1 no registraba la carrera del alumno.
-INSERT INTO `student_profiles` (`PersonId`, `StudentNumber`, `ProgramId`)
+--  ProgramaId queda NULL: v1 no registraba la carrera del alumno.
+INSERT INTO `perfiles_alumno` (`PersonaId`, `Matricula`, `ProgramaId`)
 SELECT p.`Id`, s.`StudentNumber`, NULL
 FROM `fcqi_asesorias_v1`.`students` s
-JOIN `people` p ON p.`Email` = LOWER(TRIM(s.`Email`));
+JOIN `personas` p ON p.`Correo` = LOWER(TRIM(s.`Email`));
 
-INSERT INTO `admin_profiles` (`PersonId`, `Title`)
+INSERT INTO `perfiles_directivo` (`PersonaId`, `Cargo`)
 SELECT p.`Id`, a.`Title`
 FROM `fcqi_asesorias_v1`.`admins` a
-JOIN `people` p ON p.`Email` = LOWER(TRIM(a.`Email`));
+JOIN `personas` p ON p.`Correo` = LOWER(TRIM(a.`Email`));
 
 
 -- -----------------------------------------------------------------------------
 --  6. Materias. Se descarta la columna Program: su contenido ('FCQI 2026-2')
---     era el ciclo, ya recogido en academic_terms.
+--     era el ciclo, ya recogido en ciclos_escolares.
 -- -----------------------------------------------------------------------------
-INSERT INTO `subjects` (`Code`, `Name`)
+INSERT INTO `materias` (`Codigo`, `Nombre`)
 SELECT s.`Code`, s.`Name`
 FROM `fcqi_asesorias_v1`.`subjects` s
 ORDER BY s.`Id`;
 
 --  PROVISIONAL: vínculo carrera-materia inferido de que un asesor adscrito a
 --  una carrera imparta la materia. No es el plan de estudios oficial.
-INSERT INTO `program_subjects` (`ProgramId`, `SubjectId`)
-SELECT DISTINCT ap.`ProgramId`, ns.`Id`
+INSERT INTO `programas_materias` (`ProgramaId`, `MateriaId`)
+SELECT DISTINCT ap.`ProgramaId`, ns.`Id`
 FROM `fcqi_asesorias_v1`.`advisor_subjects` xs
 JOIN `fcqi_asesorias_v1`.`advisors` a  ON a.`Id`  = xs.`AdvisorId`
 JOIN `fcqi_asesorias_v1`.`subjects` os ON os.`Id` = xs.`SubjectId`
-JOIN `people`           p  ON p.`Email`    = LOWER(TRIM(a.`Email`))
-JOIN `advisor_profiles` ap ON ap.`PersonId` = p.`Id`
-JOIN `subjects`         ns ON ns.`Code`    = os.`Code`;
+JOIN `personas`        p  ON p.`Correo`    = LOWER(TRIM(a.`Email`))
+JOIN `perfiles_asesor` ap ON ap.`PersonaId` = p.`Id`
+JOIN `materias`        ns ON ns.`Codigo`   = os.`Code`;
 
 
 -- -----------------------------------------------------------------------------
 --  7. Oferta, ahora acotada al ciclo.
 -- -----------------------------------------------------------------------------
-INSERT INTO `advisor_subjects` (`TermId`, `AdvisorId`, `SubjectId`)
+INSERT INTO `asesores_materias` (`CicloId`, `AsesorId`, `MateriaId`)
 SELECT 1, p.`Id`, ns.`Id`
 FROM `fcqi_asesorias_v1`.`advisor_subjects` xs
 JOIN `fcqi_asesorias_v1`.`advisors` a  ON a.`Id`  = xs.`AdvisorId`
 JOIN `fcqi_asesorias_v1`.`subjects` os ON os.`Id` = xs.`SubjectId`
-JOIN `people`   p  ON p.`Email` = LOWER(TRIM(a.`Email`))
-JOIN `subjects` ns ON ns.`Code` = os.`Code`;
+JOIN `personas` p  ON p.`Correo` = LOWER(TRIM(a.`Email`))
+JOIN `materias` ns ON ns.`Codigo` = os.`Code`;
 
 --  Conserva el Id original para que las sesiones sigan apuntando al mismo bloque.
-INSERT INTO `availabilities`
-    (`Id`, `TermId`, `AdvisorId`, `DayOfWeek`, `StartTime`, `EndTime`, `MaxCapacity`, `LocationId`)
+INSERT INTO `horarios`
+    (`Id`, `CicloId`, `AsesorId`, `DiaSemana`, `HoraInicio`, `HoraFin`, `CupoMaximo`, `LugarId`)
 SELECT v.`Id`, 1, p.`Id`, v.`DayOfWeek`, v.`StartTime`, v.`EndTime`, v.`MaxCapacity`, l.`Id`
 FROM `fcqi_asesorias_v1`.`availabilities` v
 JOIN `fcqi_asesorias_v1`.`advisors` a ON a.`Id` = v.`AdvisorId`
-JOIN `people`    p ON p.`Email` = LOWER(TRIM(a.`Email`))
-JOIN `locations` l ON l.`Name`  = v.`Location`;
+JOIN `personas` p ON p.`Correo` = LOWER(TRIM(a.`Email`))
+JOIN `lugares`  l ON l.`Nombre` = v.`Location`;
 
 
 -- -----------------------------------------------------------------------------
@@ -222,9 +227,9 @@ JOIN `locations` l ON l.`Name`  = v.`Location`;
 --     valida contra el bloque, así que el bloque dejó de ser opcional. El
 --     recuento de descartadas se imprime al final.
 -- -----------------------------------------------------------------------------
-INSERT INTO `advisory_sessions`
-    (`Id`, `TermId`, `AvailabilityId`, `AdvisorId`, `StudentId`, `SubjectId`,
-     `ScheduledAt`, `SeatNumber`, `StatusId`, `Topic`)
+INSERT INTO `asesorias`
+    (`Id`, `CicloId`, `HorarioId`, `AsesorId`, `AlumnoId`, `MateriaId`,
+     `ProgramadaEn`, `NumeroLugar`, `EstadoId`, `Tema`)
 SELECT s.`Id`, 1, s.`AvailabilityId`, pa.`Id`, ps.`Id`, ns.`Id`,
        s.`ScheduledAt` + INTERVAL (
            CASE WHEN DATE(s.`ScheduledAt`) >=
@@ -240,10 +245,10 @@ FROM `fcqi_asesorias_v1`.`advisory_sessions` s
 JOIN `fcqi_asesorias_v1`.`advisors` a  ON a.`Id`  = s.`AdvisorId`
 JOIN `fcqi_asesorias_v1`.`students` u  ON u.`Id`  = s.`StudentId`
 JOIN `fcqi_asesorias_v1`.`subjects` os ON os.`Id` = s.`SubjectId`
-JOIN `people`           pa ON pa.`Email` = LOWER(TRIM(a.`Email`))
-JOIN `people`           ps ON ps.`Email` = LOWER(TRIM(u.`Email`))
-JOIN `subjects`         ns ON ns.`Code`  = os.`Code`
-JOIN `session_statuses` st ON st.`Name`  = s.`Status`
+JOIN `personas`        pa ON pa.`Correo` = LOWER(TRIM(a.`Email`))
+JOIN `personas`        ps ON ps.`Correo` = LOWER(TRIM(u.`Email`))
+JOIN `materias`        ns ON ns.`Codigo` = os.`Code`
+JOIN `estados_sesion`  st ON st.`Nombre` = s.`Status`
 WHERE s.`AvailabilityId` IS NOT NULL;
 
 COMMIT;
@@ -253,25 +258,25 @@ COMMIT;
 --  Verificación. Todas las diferencias deben dar 0.
 -- -----------------------------------------------------------------------------
 SELECT 'personas (esperado: alta = suma de roles distintos)' AS control,
-       (SELECT COUNT(*) FROM `people`) AS v2,
+       (SELECT COUNT(*) FROM `personas`) AS v2,
        (SELECT COUNT(DISTINCT `Email`) FROM (
             SELECT `Email` FROM `fcqi_asesorias_v1`.`advisors`
             UNION SELECT `Email` FROM `fcqi_asesorias_v1`.`students`
             UNION SELECT `Email` FROM `fcqi_asesorias_v1`.`admins`) z) AS v1;
 
 SELECT 'nombres mal reconstruidos' AS control, COUNT(*) AS diferencias
-FROM `tmp_names` t JOIN `people` p ON p.`Email` = t.`Email`
-WHERE t.`Clean` <> p.`DisplayName`;
+FROM `tmp_nombres` t JOIN `personas` p ON p.`Correo` = t.`Correo`
+WHERE t.`Limpio` <> p.`NombreCompleto`;
 
 SELECT 'asignaciones asesor-materia' AS control,
-       (SELECT COUNT(*) FROM `advisor_subjects`) AS v2,
+       (SELECT COUNT(*) FROM `asesores_materias`) AS v2,
        (SELECT COUNT(*) FROM `fcqi_asesorias_v1`.`advisor_subjects`) AS v1;
 
 SELECT 'bloques de horario' AS control,
-       (SELECT COUNT(*) FROM `availabilities`) AS v2,
+       (SELECT COUNT(*) FROM `horarios`) AS v2,
        (SELECT COUNT(*) FROM `fcqi_asesorias_v1`.`availabilities`) AS v1;
 
 SELECT 'sesiones descartadas por no tener bloque' AS control, COUNT(*) AS filas
 FROM `fcqi_asesorias_v1`.`advisory_sessions` WHERE `AvailabilityId` IS NULL;
 
-DROP TEMPORARY TABLE IF EXISTS `tmp_names`;
+DROP TEMPORARY TABLE IF EXISTS `tmp_nombres`;

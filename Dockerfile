@@ -573,7 +573,7 @@ SEED_SQL="$DB_DIR/02-seed.sql"
 db_is_ready() {
     myroot -N -B -e \
         "SELECT COUNT(*) FROM information_schema.tables
-          WHERE table_schema='${DB}' AND table_name='academic_terms'" 2>/dev/null \
+          WHERE table_schema='${DB}' AND table_name='ciclos_escolares'" 2>/dev/null \
         | grep -q '^1$'
 }
 
@@ -599,9 +599,9 @@ if [ "$NEED_INIT" = "1" ]; then
     myroot < "$SEED_SQL"
 
     log "Base lista: $(myroot -N -B -e "SELECT CONCAT(
-            (SELECT COUNT(*) FROM \`${DB}\`.people),        ' personas, ',
-            (SELECT COUNT(*) FROM \`${DB}\`.subjects),      ' materias, ',
-            (SELECT COUNT(*) FROM \`${DB}\`.availabilities),' bloques')")"
+            (SELECT COUNT(*) FROM \`${DB}\`.personas), ' personas, ',
+            (SELECT COUNT(*) FROM \`${DB}\`.materias), ' materias, ',
+            (SELECT COUNT(*) FROM \`${DB}\`.horarios), ' bloques')")"
 else
     log "La base ya está inicializada; no se toca."
 fi

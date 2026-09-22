@@ -28,25 +28,25 @@ SET NAMES utf8mb4;
 USE `fcqi_asesorias`;
 
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE `session_status_history`;
-TRUNCATE TABLE `advisory_sessions`;
-TRUNCATE TABLE `advisor_subjects`;
-TRUNCATE TABLE `availabilities`;
-TRUNCATE TABLE `program_subjects`;
-TRUNCATE TABLE `subjects`;
-TRUNCATE TABLE `admin_profiles`;
-TRUNCATE TABLE `student_profiles`;
-TRUNCATE TABLE `advisor_profiles`;
-TRUNCATE TABLE `people`;
-TRUNCATE TABLE `locations`;
-TRUNCATE TABLE `academic_terms`;
-TRUNCATE TABLE `programs`;
+TRUNCATE TABLE `historial_estados_sesion`;
+TRUNCATE TABLE `asesorias`;
+TRUNCATE TABLE `asesores_materias`;
+TRUNCATE TABLE `horarios`;
+TRUNCATE TABLE `programas_materias`;
+TRUNCATE TABLE `materias`;
+TRUNCATE TABLE `perfiles_directivo`;
+TRUNCATE TABLE `perfiles_alumno`;
+TRUNCATE TABLE `perfiles_asesor`;
+TRUNCATE TABLE `personas`;
+TRUNCATE TABLE `lugares`;
+TRUNCATE TABLE `ciclos_escolares`;
+TRUNCATE TABLE `programas`;
 SET FOREIGN_KEY_CHECKS = 1;
 
 START TRANSACTION;
 
 -- 5 programas educativos. En el modelo anterior esto era advisors.Area, texto libre repetido.
-INSERT INTO `programs` (`Id`, `Code`, `Name`) VALUES
+INSERT INTO `programas` (`Id`, `Codigo`, `Nombre`) VALUES
     (1, 'II', 'Ingeniería Industrial'),
     (2, 'IQ', 'Ingeniería Química'),
     (3, 'IE', 'Ingeniería en Electrónica'),
@@ -56,12 +56,12 @@ INSERT INTO `programs` (`Id`, `Code`, `Name`) VALUES
 -- Ciclo escolar. Concepto ausente en el modelo anterior, donde 'FCQI 2026-2'
 -- vivia repetido en las 44 filas de subjects.Program.
 -- REVISAR: las fechas de inicio y fin son estimadas; ajustar al calendario oficial UABC.
-INSERT INTO `academic_terms` (`Id`, `Code`, `Name`, `StartsOn`, `EndsOn`, `IsCurrent`) VALUES
+INSERT INTO `ciclos_escolares` (`Id`, `Codigo`, `Nombre`, `FechaInicio`, `FechaFin`, `EsActual`) VALUES
     (1, '2026-2', 'Otoño 2026', '2026-08-10', '2026-12-11', 1);
 
 -- La sede declara su modalidad una sola vez. Antes availabilities guardaba
 -- ambas por separado y 'Enlace virtual' implicaba modalidad Virtual.
-INSERT INTO `locations` (`Id`, `Name`, `ModalityId`) VALUES
+INSERT INTO `lugares` (`Id`, `Nombre`, `ModalidadId`) VALUES
     (1, 'Cubículo FCQI', 1),
     (2, 'Enlace virtual (Meet/Teams)', 2);
 
@@ -69,7 +69,7 @@ INSERT INTO `locations` (`Id`, `Name`, `ModalityId`) VALUES
 -- cuelgan de aqui. Los nombres se separaron desde el campo FullName del
 -- modelo anterior segun la convencion [nombres] [paterno] [materno].
 -- REVISAR: la separacion es automatica y algunos casos son ambiguos.
-INSERT INTO `people` (`Id`, `Honorific`, `FirstName`, `LastNamePaternal`, `LastNameMaternal`, `Email`) VALUES
+INSERT INTO `personas` (`Id`, `Tratamiento`, `Nombres`, `ApellidoPaterno`, `ApellidoMaterno`, `Correo`) VALUES
     (1, NULL, 'Felipe de Jesús', 'Márquez', 'Vizcarra', 'felipe.marquez63@uabc.edu.mx'),
     (2, NULL, 'Edgar Kenichi', 'Tsuchiya', 'Godínez', 'edgar.tsuchiya@uabc.edu.mx'),
     (3, NULL, 'Eduardo Isaías', 'Mérida', 'Rodríguez', 'eduardo.merida@uabc.edu.mx'),
@@ -93,7 +93,7 @@ INSERT INTO `people` (`Id`, `Honorific`, `FirstName`, `LastNamePaternal`, `LastN
     (21, 'Dra.', 'Lizeth Carolina', 'Aguilar', 'Dodier', 'progasesorias.fcqi@uabc.edu.mx');
 
 -- 14 asesores.
-INSERT INTO `advisor_profiles` (`PersonId`, `ProgramId`, `DefaultModalityId`) VALUES
+INSERT INTO `perfiles_asesor` (`PersonaId`, `ProgramaId`, `ModalidadPredeterminadaId`) VALUES
     (1, 3, 1),
     (2, 3, 1),
     (3, 1, 1),
@@ -115,9 +115,9 @@ INSERT INTO `advisor_profiles` (`PersonId`, `ProgramId`, `DefaultModalityId`) VA
 -- modelo anterior no podia representar y la razon de ser de este rediseno:
 -- sin estas dos filas, ninguna persona de la base tiene mas de un rol y
 -- todo el mecanismo de roles multiples queda sin datos que lo ejerciten.
--- ProgramId va NULL en los demas: el modelo anterior no registraba la
+-- ProgramaId va NULL en los demas: el modelo anterior no registraba la
 -- carrera del alumno y no se inventa el dato.
-INSERT INTO `student_profiles` (`PersonId`, `StudentNumber`, `ProgramId`) VALUES
+INSERT INTO `perfiles_alumno` (`PersonaId`, `Matricula`, `ProgramaId`) VALUES
     (10, '1299027', 5),     -- asesor par: Quimico Industrial
     (12, '2207105', 4),     -- asesora par: Quimica Farmaceutica Biologica
     (15, '2208134', NULL),
@@ -128,12 +128,12 @@ INSERT INTO `student_profiles` (`PersonId`, `StudentNumber`, `ProgramId`) VALUES
     (20, '2211002', NULL);
 
 -- Responsable del programa.
-INSERT INTO `admin_profiles` (`PersonId`, `Title`) VALUES
+INSERT INTO `perfiles_directivo` (`PersonaId`, `Cargo`) VALUES
     (21, 'Responsable del Programa de Asesorías Académicas');
 
 -- 44 materias. Sin columna Program: una materia como 'Calculo
--- Diferencial' se cursa en varias carreras, y esa relacion N:M vive en program_subjects.
-INSERT INTO `subjects` (`Id`, `Code`, `Name`) VALUES
+-- Diferencial' se cursa en varias carreras, y esa relacion N:M vive en programas_materias.
+INSERT INTO `materias` (`Id`, `Codigo`, `Nombre`) VALUES
     (1, 'INTRODUCCION-A-LAS-MATEMATICAS-UNIVERSITARIAS', 'Introducción a las Matemáticas Universitarias'),
     (2, 'CALCULO-DIFERENCIAL', 'Cálculo Diferencial'),
     (3, 'CALCULO-INTEGRAL', 'Cálculo Integral'),
@@ -183,7 +183,7 @@ INSERT INTO `subjects` (`Id`, `Code`, `Name`) VALUES
 -- PROVISIONAL: derivados de que un asesor adscrito a una carrera imparta la
 -- materia. Es una inferencia razonable para datos de prueba, NO el plan de
 -- estudios oficial. Debe reemplazarlo la coordinacion.
-INSERT INTO `program_subjects` (`ProgramId`, `SubjectId`) VALUES
+INSERT INTO `programas_materias` (`ProgramaId`, `MateriaId`) VALUES
     (1, 1),
     (1, 2),
     (1, 3),
@@ -243,7 +243,7 @@ INSERT INTO `program_subjects` (`ProgramId`, `SubjectId`) VALUES
     (5, 27);
 
 -- 92 asignaciones asesor-materia, ahora acotadas al ciclo.
-INSERT INTO `advisor_subjects` (`TermId`, `AdvisorId`, `SubjectId`) VALUES
+INSERT INTO `asesores_materias` (`CicloId`, `AsesorId`, `MateriaId`) VALUES
     (1, 1, 1),
     (1, 1, 2),
     (1, 1, 3),
@@ -337,9 +337,9 @@ INSERT INTO `advisor_subjects` (`TermId`, `AdvisorId`, `SubjectId`) VALUES
     (1, 14, 42),
     (1, 14, 44);
 
--- 104 bloques de horario. DayOfWeek: 0=domingo .. 6=sabado.
--- Modality desaparece: la determina LocationId.
-INSERT INTO `availabilities` (`Id`, `TermId`, `AdvisorId`, `DayOfWeek`, `StartTime`, `EndTime`, `MaxCapacity`, `LocationId`) VALUES
+-- 104 bloques de horario. DiaSemana: 0=domingo .. 6=sabado.
+-- La modalidad desaparece como columna: la determina LugarId.
+INSERT INTO `horarios` (`Id`, `CicloId`, `AsesorId`, `DiaSemana`, `HoraInicio`, `HoraFin`, `CupoMaximo`, `LugarId`) VALUES
     (1, 1, 1, 1, '12:00:00', '16:00:00', 1, 1),
     (2, 1, 1, 3, '12:00:00', '16:00:00', 1, 1),
     (3, 1, 1, 4, '12:00:00', '16:00:00', 1, 1),
@@ -455,7 +455,7 @@ INSERT INTO `availabilities` (`Id`, `TermId`, `AdvisorId`, `DayOfWeek`, `StartTi
 --      DAYOFWEEK() de MySQL: 1=domingo .. 7=sábado
 --      El literal que se resta usa System.DayOfWeek: 1=lunes, 3=miércoles, 4=jueves.
 --
--- 2. ScheduledAt ahora es UTC; antes era hora local sin zona. Baja California
+-- 2. ProgramadaEn ahora es UTC; antes era hora local sin zona. Baja California
 --    sigue el horario de verano de EE.UU.: UTC-7 del 2.º domingo de marzo al
 --    1.er domingo de noviembre, UTC-8 el resto del año. Se calcula abajo en
 --    lugar de usar CONVERT_TZ, que devuelve NULL cuando las tablas de zona
@@ -467,7 +467,7 @@ SET @dst_start  := @mar1 + INTERVAL ((8 - DAYOFWEEK(@mar1)) % 7) DAY + INTERVAL 
 SET @dst_end    := @nov1 + INTERVAL ((8 - DAYOFWEEK(@nov1)) % 7) DAY;
 SET @utc_offset := IF(CURDATE() >= @dst_start AND CURDATE() < @dst_end, 7, 8);
 
-INSERT INTO `advisory_sessions` (`Id`, `TermId`, `AvailabilityId`, `AdvisorId`, `StudentId`, `SubjectId`, `ScheduledAt`, `SeatNumber`, `StatusId`, `Topic`) VALUES
+INSERT INTO `asesorias` (`Id`, `CicloId`, `HorarioId`, `AsesorId`, `AlumnoId`, `MateriaId`, `ProgramadaEn`, `NumeroLugar`, `EstadoId`, `Tema`) VALUES
     (1, 1, 1, 1, 15, 2, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((1 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '12:00:00') + INTERVAL @utc_offset HOUR, 1, 1, 'Límites y continuidad — dudas del parcial 1'),
     (2, 1, 1, 1, 17, 2, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((1 - DAYOFWEEK(CURDATE()) + 7) % 7) + 8 DAY), '12:00:00') + INTERVAL @utc_offset HOUR, 1, 1, 'Derivadas de funciones trigonométricas'),
     (3, 1, 21, 4, 15, 10, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((3 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '17:00:00') + INTERVAL @utc_offset HOUR, 1, 2, 'Presente perfecto'),
@@ -482,5 +482,5 @@ INSERT INTO `advisory_sessions` (`Id`, `TermId`, `AvailabilityId`, `AdvisorId`, 
 
 COMMIT;
 
--- El historial de estados (session_status_history) NO se inserta aquí: los
+-- El historial de estados (historial_estados_sesion) NO se inserta aquí: los
 -- triggers de la sección 7 del esquema lo escriben solos al crear cada sesión.

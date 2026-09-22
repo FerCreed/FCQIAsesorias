@@ -63,7 +63,7 @@ modelo anterior y la migración entre ambos quedan en `db/legacy/` y
 
 ### Horario y zona horaria
 
-`advisory_sessions.ScheduledAt` guarda **UTC**. La hora local del campus
+`asesorias.ProgramadaEn` guarda **UTC**. La hora local del campus
 (`America/Tijuana`) se calcula en la API con las reglas reales de horario de
 verano, no con un desplazamiento fijo. La API recibe y devuelve hora local;
 `scheduledAtUtc` lleva además el instante absoluto.
@@ -74,21 +74,25 @@ verano, no con un desplazamiento fijo. La API recibe y devuelve hora local;
 2. Conéctate a `localhost` / `127.0.0.1`, puerto `3306`, usuario `root`, tu contraseña.
 3. En el panel izquierdo (SCHEMAS) abre **`fcqi_asesorias`**.
 4. Tablas principales:
-   - `people` — identidad única por correo institucional
-   - `student_profiles` / `advisor_profiles` / `admin_profiles` — roles; una
+   - `personas` — identidad única por correo institucional
+   - `perfiles_alumno` / `perfiles_asesor` / `perfiles_directivo` — roles; una
      persona puede tener varios. En los datos de prueba, Vladimir Ramírez
      (`v1299027`) y Jimena Beltrán (`j2207105`) son **asesores pares**: tienen
      perfil de asesor y de alumno a la vez. Son el caso que el modelo anterior
      no podía representar, y con ellos se prueba el selector de rol
-   - `subjects` — materias
-   - `programs` — carreras · `academic_terms` — ciclos escolares
-   - `advisor_subjects` — qué materias asignó dirección a cada tutor, por ciclo
-   - `availabilities` — bloques de horario · `locations` — sedes
-   - `advisory_sessions` — solicitudes / citas
-   - `session_status_history` — auditoría de cambios de estado
+   - `materias` — materias
+   - `programas` — carreras · `ciclos_escolares` — ciclos escolares
+   - `asesores_materias` — qué materias asignó dirección a cada tutor, por ciclo
+   - `horarios` — bloques de horario · `lugares` — sedes
+   - `asesorias` — solicitudes / citas
+   - `historial_estados_sesion` — auditoría de cambios de estado
 
-   Vistas útiles: `v_person_roles` (todos los roles de una persona),
-   `v_availability_load` (cupo libre por bloque).
+   Las tablas y las columnas están en español; las clases de C# conservan sus
+   nombres en inglés y las enlazan las configuraciones de EF Core
+   (`src/FCQI.Infrastructure/Persistence/Configurations/`).
+
+   Vistas útiles: `v_roles_persona` (todos los roles de una persona),
+   `v_ocupacion_horarios` (cupo libre por bloque).
 
 Clic derecho en una tabla → **Select Rows - Limit 1000**.
 
@@ -97,41 +101,41 @@ Consultas útiles:
 ```sql
 USE fcqi_asesorias;
 
-SELECT Id, Code, Name FROM subjects ORDER BY Name;
+SELECT Id, Codigo, Nombre FROM materias ORDER BY Nombre;
 
 -- Asesores con su carrera y modalidad
-SELECT * FROM v_advisors ORDER BY FullName;
+SELECT * FROM v_asesores ORDER BY NombreCompleto;
 
 -- Materias asignadas a cada asesor en el ciclo vigente
-SELECT p.DisplayName AS asesor, s.Name AS materia
-FROM advisor_subjects xs
-JOIN people   p ON p.Id = xs.AdvisorId
-JOIN subjects s ON s.Id = xs.SubjectId
-JOIN academic_terms t ON t.Id = xs.TermId AND t.IsCurrent = 1
-ORDER BY p.DisplayName, s.Name;
+SELECT p.NombreCompleto AS asesor, m.Nombre AS materia
+FROM asesores_materias xs
+JOIN personas p ON p.Id = xs.AsesorId
+JOIN materias m ON m.Id = xs.MateriaId
+JOIN ciclos_escolares c ON c.Id = xs.CicloId AND c.EsActual = 1
+ORDER BY p.NombreCompleto, m.Nombre;
 
 -- Citas, con la hora convertida a la zona del campus
-SELECT s.Id, s.Topic, st.Name AS estado,
-       CONVERT_TZ(s.ScheduledAt, 'UTC', 'America/Tijuana') AS hora_local
-FROM advisory_sessions s
-JOIN session_statuses st ON st.Id = s.StatusId
-ORDER BY s.ScheduledAt DESC;
+SELECT s.Id, s.Tema, e.Nombre AS estado,
+       CONVERT_TZ(s.ProgramadaEn, 'UTC', 'America/Tijuana') AS hora_local
+FROM asesorias s
+JOIN estados_sesion e ON e.Id = s.EstadoId
+ORDER BY s.ProgramadaEn DESC;
 
 -- Cupo libre por bloque
-SELECT * FROM v_availability_load WHERE SeatsLeft > 0;
+SELECT * FROM v_ocupacion_horarios WHERE LugaresDisponibles > 0;
 ```
 
 ### Cómo ver los datos (consola)
 
 ```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -e "USE fcqi_asesorias; SHOW TABLES; SELECT COUNT(*) AS materias FROM subjects; SELECT COUNT(*) AS tutores FROM advisor_profiles;"
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -e "USE fcqi_asesorias; SHOW TABLES; SELECT COUNT(*) AS materias FROM materias; SELECT COUNT(*) AS tutores FROM perfiles_asesor;"
 ```
 
 (`-p` pide la contraseña.)
 
 ## OAuth Google (`@uabc.edu.mx`)
 
-`POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `people` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno.
+`POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `personas` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno.
 
 ```powershell
 dotnet user-secrets set "Authentication:Google:ClientId" "TU_CLIENT_ID.apps.googleusercontent.com" --project src/FCQI.Api

@@ -18,8 +18,8 @@ public class GetSubjectsQueryHandler
 
     public async Task<IReadOnlyList<SubjectDto>> HandleAsync(CancellationToken cancellationToken = default)
     {
-        // subjects ya no tiene columna Program: su contenido ('FCQI 2026-2')
-        // era en realidad el ciclo escolar. Se toma de academic_terms para no
+        // materias ya no tiene columna Program: su contenido ('FCQI 2026-2')
+        // era en realidad el ciclo escolar. Se toma de ciclos_escolares para no
         // cambiar el contrato que consume la interfaz.
         var term = await _term.GetAsync(cancellationToken);
         var program = $"FCQI {term.Code}";
