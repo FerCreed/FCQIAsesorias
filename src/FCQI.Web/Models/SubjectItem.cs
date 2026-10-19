@@ -21,12 +21,13 @@ public class AdvisorItem
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Area { get; set; } = string.Empty;
+    public string TutorKind { get; set; } = "Alumno tutor";
     public string DefaultModality { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public List<string> Subjects { get; set; } = [];
 
     [JsonIgnore]
-    public string Display => $"{FullName} — {Area} ({DefaultModality})";
+    public string Display => $"{FullName} · {TutorKind} — {Area} ({DefaultModality})";
 }
 
 public class AvailabilityItem
@@ -58,6 +59,22 @@ public class AvailabilityItem
             return $"{day} {StartTime}–{EndTime} · {Modality} · {Location}";
         }
     }
+
+    [JsonIgnore]
+    public string DayName => DayOfWeek switch
+    {
+        0 => "Domingo",
+        1 => "Lunes",
+        2 => "Martes",
+        3 => "Miércoles",
+        4 => "Jueves",
+        5 => "Viernes",
+        6 => "Sábado",
+        _ => "?"
+    };
+
+    [JsonIgnore]
+    public string TimeRange => $"{StartTime}–{EndTime}";
 }
 
 public class SessionItem
@@ -75,7 +92,7 @@ public class SessionItem
     public string Status { get; set; } = string.Empty;
 
     [JsonIgnore]
-    public string Display => $"{Status} · {SubjectName} · {StudentName} → {AdvisorName} · {ScheduledAt:g} · {Topic}";
+    public string Display => $"{SubjectName} · {StudentName} con {AdvisorName} · {ScheduledAt:g} · {Topic}";
 }
 
 public class DemoProfileItem

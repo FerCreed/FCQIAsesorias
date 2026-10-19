@@ -712,7 +712,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     FCQI_API_CMD="cd /src && dotnet watch --project src/FCQI.Api/FCQI.Api.csproj run --no-launch-profile"
 
 COPY --from=assets --chmod=0755 /assets/install-services.sh /tmp/install-services.sh
-RUN MYSQL_APT_COMPONENT="${MYSQL_APT_COMPONENT}" /tmp/install-services.sh \
+# CRLF (checkout en Windows) rompe el shebang: /usr/bin/env: 'bash\r'
+RUN sed -i 's/\r$//' /tmp/install-services.sh \
+ && MYSQL_APT_COMPONENT="${MYSQL_APT_COMPONENT}" bash /tmp/install-services.sh \
  && rm -f /tmp/install-services.sh \
  && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone
 
@@ -736,6 +738,8 @@ COPY --from=assets --chmod=0755 /assets/entrypoint.sh     /usr/local/bin/fcqi-en
 COPY --from=assets --chmod=0755 /assets/start-api.sh      /usr/local/bin/fcqi-start-api.sh
 COPY --from=assets --chmod=0755 /assets/fatal-watcher.sh  /usr/local/bin/fcqi-fatal-watcher.sh
 COPY --from=assets --chmod=0755 /assets/rebuild-web.sh    /usr/local/bin/fcqi-rebuild-web.sh
+RUN sed -i 's/\r$//' /usr/local/bin/fcqi-*.sh /etc/fcqi/mysqld-fcqi.cnf /etc/nginx/conf.d/fcqi.conf /etc/supervisor/fcqi-supervisord.conf \
+ && for d in /etc/mysql/conf.d /etc/mysql/mysql.conf.d; do cp /etc/fcqi/mysqld-fcqi.cnf "$d/zz-fcqi.cnf"; done
 
 # Código fuente (móntalo con -v "$PWD/src:/src/src" para editar desde el host).
 WORKDIR /src
@@ -779,7 +783,8 @@ LABEL org.opencontainers.image.title="Sistema de Asesorías FCQI" \
 
 # --- Sistema operativo y servicios ------------------------------------------
 COPY --from=assets --chmod=0755 /assets/install-services.sh /tmp/install-services.sh
-RUN MYSQL_APT_COMPONENT="${MYSQL_APT_COMPONENT}" /tmp/install-services.sh \
+RUN sed -i 's/\r$//' /tmp/install-services.sh \
+ && MYSQL_APT_COMPONENT="${MYSQL_APT_COMPONENT}" bash /tmp/install-services.sh \
  && rm -f /tmp/install-services.sh \
  && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone
 
@@ -799,6 +804,8 @@ COPY --from=assets            /assets/supervisord.conf  /etc/supervisor/fcqi-sup
 COPY --from=assets --chmod=0755 /assets/entrypoint.sh    /usr/local/bin/fcqi-entrypoint.sh
 COPY --from=assets --chmod=0755 /assets/start-api.sh     /usr/local/bin/fcqi-start-api.sh
 COPY --from=assets --chmod=0755 /assets/fatal-watcher.sh /usr/local/bin/fcqi-fatal-watcher.sh
+RUN sed -i 's/\r$//' /usr/local/bin/fcqi-*.sh /etc/fcqi/mysqld-fcqi.cnf /etc/nginx/conf.d/fcqi.conf /etc/supervisor/fcqi-supervisord.conf \
+ && for d in /etc/mysql/conf.d /etc/mysql/mysql.conf.d; do cp /etc/fcqi/mysqld-fcqi.cnf "$d/zz-fcqi.cnf"; done
 
 # --- Aplicación -------------------------------------------------------------
 COPY --from=build /out/api              /srv/fcqi/api

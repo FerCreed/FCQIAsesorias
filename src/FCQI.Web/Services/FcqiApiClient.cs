@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FCQI.Web.Models;
 using FCQI.Web.Serialization;
@@ -10,18 +11,30 @@ public class FcqiApiClient
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(20) };
 
+    public void SetAccessToken(string? token)
+    {
+        _http.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(token)
+            ? null
+            : new AuthenticationHeaderValue("Bearer", token);
+    }
+
     public async Task<AuthConfigItem> GetAuthConfigAsync()
         => await _http.GetFromJsonAsync($"{BaseUrl}/api/auth/config", AppJsonContext.Default.AuthConfigItem)
            ?? new AuthConfigItem();
 
-    public async Task<List<DemoProfileItem>> GetDemoProfilesAsync()
-        => await _http.GetFromJsonAsync($"{BaseUrl}/api/auth/demo-profiles", AppJsonContext.Default.ListDemoProfileItem)
-           ?? [];
-
-    public async Task<AuthResultItem> DemoLoginAsync(string email)
+    public async Task<AuthResultItem> LoginAsync(string email, string password)
     {
-        using var response = await _http.PostAsJsonAsync($"{BaseUrl}/api/auth/demo", new DemoLoginBody { Email = email }, AppJsonContext.Default.DemoLoginBody);
-        response.EnsureSuccessStatusCode();
+        using var response = await _http.PostAsJsonAsync(
+            $"{BaseUrl}/api/auth/login",
+            new DemoLoginBody { Email = email, Password = password },
+            AppJsonContext.Default.DemoLoginBody);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.ErrorMessage);
+            throw new InvalidOperationException(error?.Message ?? "No se pudo iniciar sesión.");
+        }
+
         return await response.Content.ReadFromJsonAsync(AppJsonContext.Default.AuthResultItem)
                ?? throw new InvalidOperationException("Respuesta de login vacía.");
     }
@@ -61,7 +74,11 @@ public class FcqiApiClient
     public async Task UpdateStatusAsync(int sessionId, string status)
     {
         using var response = await _http.PatchAsJsonAsync($"{BaseUrl}/api/sessions/{sessionId}/status", new UpdateStatusBody { Status = status }, AppJsonContext.Default.UpdateStatusBody);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.ErrorMessage);
+            throw new InvalidOperationException(error?.Message ?? "No se pudo actualizar la solicitud.");
+        }
     }
 
     public async Task<List<AdvisorItem>> GetAdminAdvisorsAsync()

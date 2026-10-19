@@ -20,3 +20,9 @@ public static class Modalities
     public const string InPerson = "Presencial";
     public const string Virtual = "Virtual";
 }
+
+public static class TutorKinds
+{
+    public const string Professor = "Profesor tutor";
+    public const string Student = "Alumno tutor";
+}

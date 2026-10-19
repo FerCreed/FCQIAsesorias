@@ -11,10 +11,10 @@ public class ResolveProfileHandler
 
     public ResolveProfileHandler(IApplicationDbContext context) => _context = context;
 
-    public async Task<AuthResult?> ResolveAsync(string email, string token, CancellationToken cancellationToken = default)
+    public async Task<AuthResult> ResolveAsync(string email, string token, CancellationToken cancellationToken = default)
     {
         email = email.Trim().ToLowerInvariant();
-        if (!email.EndsWith("@uabc.edu.mx", StringComparison.OrdinalIgnoreCase))
+        if (!email.EndsWith("@uabc.edu.mx", StringComparison.OrdinalIgnoreCase) || email.Length < 14)
         {
             throw new InvalidOperationException("Solo se permiten cuentas institucionales @uabc.edu.mx.");
         }
@@ -31,13 +31,27 @@ public class ResolveProfileHandler
             return new AuthResult(token, UserRoles.Advisor, advisor.Id, advisor.FullName, advisor.Email);
         }
 
-        var student = await _context.Students.AsNoTracking().SingleOrDefaultAsync(s => s.Email.ToLower() == email, cancellationToken);
-        if (student is not null)
+        var student = await _context.Students.SingleOrDefaultAsync(s => s.Email.ToLower() == email, cancellationToken);
+        if (student is null)
         {
-            return new AuthResult(token, UserRoles.Student, student.Id, student.FullName, student.Email);
+            student = new Domain.Entities.Student
+            {
+                Email = email,
+                FullName = NameFromEmail(email),
+                StudentNumber = $"A{DateTime.UtcNow:yyMMddHHmmss}{Random.Shared.Next(10, 99)}"
+            };
+            _context.Students.Add(student);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return null;
+        return new AuthResult(token, UserRoles.Student, student.Id, student.FullName, student.Email);
+    }
+
+    private static string NameFromEmail(string email)
+    {
+        var local = email.Split('@')[0].Replace('.', ' ').Replace('_', ' ').Replace('-', ' ');
+        return string.Join(' ', local.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => char.ToUpperInvariant(part[0]) + part[1..].ToLowerInvariant()));
     }
 
     public async Task<IReadOnlyList<DemoProfileDto>> ListDemoProfilesAsync(CancellationToken cancellationToken = default)

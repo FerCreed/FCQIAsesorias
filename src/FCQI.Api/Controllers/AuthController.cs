@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FCQI.Api.Controllers;
 
 public record GoogleLoginRequest(string IdToken);
-public record DemoLoginRequest(string Email);
+public record LoginRequest(string Email, string Password);
 
 [ApiController]
 [Route("api/auth")]
@@ -40,17 +40,18 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<IEnumerable<DemoProfileDto>>> DemoProfiles(CancellationToken cancellationToken)
         => Ok(await _profiles.ListDemoProfilesAsync(cancellationToken));
 
+    [HttpPost("login")]
     [HttpPost("demo")]
-    public async Task<ActionResult<AuthResult>> Demo([FromBody] DemoLoginRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<AuthResult>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            var resolved = await _profiles.ResolveAsync(request.Email, "pending", cancellationToken);
-            if (resolved is null)
+            if (string.IsNullOrWhiteSpace(request.Password))
             {
-                return Unauthorized(new { message = "El correo UABC no está dado de alta en el programa de asesorías." });
+                return BadRequest(new { message = "Ingresa una contraseña." });
             }
 
+            var resolved = await _profiles.ResolveAsync(request.Email, "pending", cancellationToken);
             var token = _jwt.Create(resolved);
             return Ok(resolved with { Token = token });
         }
@@ -67,14 +68,6 @@ public class AuthController : ControllerBase
         {
             var googleUser = await _google.ValidateAsync(request.IdToken, cancellationToken);
             var resolved = await _profiles.ResolveAsync(googleUser.Email, "pending", cancellationToken);
-            if (resolved is null)
-            {
-                return Unauthorized(new
-                {
-                    message = "El correo @uabc.edu.mx es válido, pero no está registrado como alumno, asesor o directivo del programa."
-                });
-            }
-
             var token = _jwt.Create(resolved);
             return Ok(resolved with { Token = token });
         }

@@ -6,6 +6,7 @@ public class Advisor
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Area { get; set; } = string.Empty;
+    public string TutorKind { get; set; } = "Alumno tutor";
     public string DefaultModality { get; set; } = "Presencial";
     public bool IsActive { get; set; } = true;
 

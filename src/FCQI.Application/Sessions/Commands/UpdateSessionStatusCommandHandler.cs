@@ -21,6 +21,12 @@ public class UpdateSessionStatusCommandHandler
 
         var session = await _context.AdvisorySessions.SingleOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
                       ?? throw new InvalidOperationException("La solicitud no existe.");
+
+        if (session.Status != SessionStatuses.Pending)
+        {
+            throw new InvalidOperationException("Solo se pueden cambiar solicitudes que siguen pendientes.");
+        }
+
         session.Status = status;
         await _context.SaveChangesAsync(cancellationToken);
     }

@@ -24,6 +24,10 @@ public class AdvisorConfiguration : IEntityTypeConfiguration<Advisor>
             .HasMaxLength(120)
             .IsRequired();
 
+        builder.Property(a => a.TutorKind)
+            .HasMaxLength(40)
+            .IsRequired();
+
         builder.Property(a => a.DefaultModality)
             .HasMaxLength(50)
             .IsRequired();

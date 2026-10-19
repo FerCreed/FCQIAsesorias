@@ -10,6 +10,7 @@ public static class Catalog20262Seeder
     {
         if (await db.Advisors.AnyAsync(cancellationToken))
         {
+            await EnsureTutorKindsAsync(db, cancellationToken);
             return;
         }
 
@@ -31,7 +32,7 @@ public static class Catalog20262Seeder
         var meet = "Enlace virtual (Meet/Teams)";
 
         AddAdvisor(db, subjects, "Felipe de Jesús Márquez Vizcarra", "felipe.marquez63@uabc.edu.mx",
-            "Ingeniería en Electrónica", presencial, cubicle,
+            "Ingeniería en Electrónica", TutorKinds.Professor, presencial, cubicle,
             ["Introducción a las Matemáticas Universitarias", "Cálculo Diferencial", "Cálculo Integral",
                 "Circuitos de Corriente Directa", "Circuitos de Corriente Alterna", "Modelado y Control"],
             [
@@ -42,7 +43,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Edgar Kenichi Tsuchiya Godínez", "edgar.tsuchiya@uabc.edu.mx",
-            "Ingeniería en Electrónica", presencial, cubicle,
+            "Ingeniería en Electrónica", TutorKinds.Professor, presencial, cubicle,
             ["Introducción a las Matemáticas Universitarias", "Ecuaciones Diferenciales", "Cálculo Integral",
                 "Circuitos de Corriente Directa"],
             [
@@ -55,7 +56,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Eduardo Isaías Mérida Rodríguez", "eduardo.merida@uabc.edu.mx",
-            "Ingeniería Industrial", presencial, cubicle,
+            "Ingeniería Industrial", TutorKinds.Professor, presencial, cubicle,
             ["Cálculo Diferencial", "Cálculo Integral", "Ecuaciones Diferenciales",
                 "Introducción a las Matemáticas Universitarias", "Ingeniería Económica", "Circuitos Eléctricos"],
             [
@@ -65,7 +66,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Luis Alejandro Flores Díaz", "alejandro.flores48@uabc.edu.mx",
-            "Ingeniería Industrial", virtualMod, meet,
+            "Ingeniería Industrial", TutorKinds.Professor, virtualMod, meet,
             ["Inglés I", "Inglés II", "Introducción a las Matemáticas Universitarias",
                 "Probabilidad y Estadística", "Investigación de Operaciones I"],
             [
@@ -74,7 +75,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Carlos Enrique Martínez de la Cruz", "carlos.martinez86@uabc.edu.mx",
-            "Ingeniería Industrial", presencial, cubicle,
+            "Ingeniería Industrial", TutorKinds.Professor, presencial, cubicle,
             ["Cálculo Diferencial", "Introducción a las Matemáticas Universitarias", "Álgebra Superior"],
             [
                 (Days(DayOfWeek.Monday), "12:00", "14:00"),
@@ -88,7 +89,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Dylan Josué Guerrero Luque", "dylan.guerrero@uabc.edu.mx",
-            "Ingeniería Química", presencial, cubicle,
+            "Ingeniería Química", TutorKinds.Student, presencial, cubicle,
             ["Cálculo Diferencial", "Cálculo Integral", "Álgebra Superior", "Balance de Materia y Energía",
                 "Cinética Química y Catálisis", "Reactores Homogéneos y Heterogéneos"],
             [
@@ -102,7 +103,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Luis Alberto González Rodríguez", "luis.gonzalez.rodriguez@uabc.edu.mx",
-            "Ingeniería Química", presencial, cubicle,
+            "Ingeniería Química", TutorKinds.Professor, presencial, cubicle,
             ["Cálculo Integral", "Inglés I", "Inglés II", "Química", "Ecuaciones Diferenciales",
                 "Electricidad y Magnetismo", "Termodinámica", "Cinética Química y Catálisis",
                 "Control e Instrumentación de Procesos", "Operaciones de Separación"],
@@ -116,7 +117,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Getzamani Guadalupe Solis Gutiérrez", "getzamani.solis@uabc.edu.mx",
-            "Ingeniería Química", presencial, cubicle,
+            "Ingeniería Química", TutorKinds.Student, presencial, cubicle,
             ["Cálculo Diferencial", "Álgebra Superior", "Ecuaciones Diferenciales",
                 "Balance de Materia y Energía", "Cinética Química y Catálisis"],
             [
@@ -129,7 +130,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Mia Italia Alexandres Carrasco", "mia.alexandres@uabc.edu.mx",
-            "Ingeniería Química", presencial, cubicle,
+            "Ingeniería Química", TutorKinds.Student, presencial, cubicle,
             ["Cálculo Integral", "Introducción a las Matemáticas Universitarias", "Inglés I", "Inglés II",
                 "Ecuaciones Diferenciales", "Cinética Química y Catálisis",
                 "Operaciones de Transferencia de Calor", "Reactores Homogéneos y Heterogéneos"],
@@ -141,7 +142,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Vladimir Bonifacio Ramírez Martínez", "v1299027@uabc.edu.mx",
-            "Químico Industrial", presencial, cubicle,
+            "Químico Industrial", TutorKinds.Student, presencial, cubicle,
             ["Química", "Química Orgánica I", "Química General", "Química Orgánica II", "Bioquímica"],
             [
                 (Days(DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday), "08:00", "12:00"),
@@ -151,7 +152,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Bryan Emilio Rafael Muñoz Campos", "bryan.munoz@uabc.edu.mx",
-            "Química Farmacéutica Biológica", presencial, cubicle,
+            "Química Farmacéutica Biológica", TutorKinds.Student, presencial, cubicle,
             ["Química", "Matemáticas Básicas", "Química Analítica I", "Biología", "Biología Molecular",
                 "Bioquímica Clínica", "Bioquímica Estructural", "Bioquímica Metabólica", "Farmacocinética"],
             [
@@ -168,7 +169,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Jimena Beltrán Zepeda", "j2207105@uabc.edu.mx",
-            "Química Farmacéutica Biológica", presencial, cubicle,
+            "Química Farmacéutica Biológica", TutorKinds.Student, presencial, cubicle,
             ["Química", "Física", "Química Analítica I", "Biología", "Biofarmacia", "Farmacología",
                 "Biología Celular", "Análisis Instrumental I"],
             [
@@ -179,7 +180,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Andrés Bautista Cruz", "andres.cruz36@uabc.edu.mx",
-            "Química Farmacéutica Biológica", presencial, cubicle,
+            "Química Farmacéutica Biológica", TutorKinds.Student, presencial, cubicle,
             ["Química", "Biología", "Química Analítica II", "Inmunología", "Anatomía y Fisiología",
                 "Farmacocinética", "Análisis Instrumental I"],
             [
@@ -194,7 +195,7 @@ public static class Catalog20262Seeder
             ]);
 
         AddAdvisor(db, subjects, "Braulio Reynaldo Angulo Curiel", "angulo.braulio@uabc.edu.mx",
-            "Química Farmacéutica Biológica", presencial, cubicle,
+            "Química Farmacéutica Biológica", TutorKinds.Student, presencial, cubicle,
             ["Química", "Física", "Matemáticas Básicas", "Matemáticas Avanzadas", "Biología",
                 "Bioquímica Estructural", "Biología Celular", "Bioquímica Metabólica", "Biología Molecular",
                 "Inmunología"],
@@ -317,12 +318,38 @@ public static class Catalog20262Seeder
         return map;
     }
 
+    private static readonly HashSet<string> ProfessorEmails = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "felipe.marquez63@uabc.edu.mx",
+        "edgar.tsuchiya@uabc.edu.mx",
+        "eduardo.merida@uabc.edu.mx",
+        "alejandro.flores48@uabc.edu.mx",
+        "carlos.martinez86@uabc.edu.mx",
+        "luis.gonzalez.rodriguez@uabc.edu.mx"
+    };
+
+    private static async Task EnsureTutorKindsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var advisors = await db.Advisors.ToListAsync(cancellationToken);
+        foreach (var advisor in advisors)
+        {
+            var kind = ProfessorEmails.Contains(advisor.Email) ? TutorKinds.Professor : TutorKinds.Student;
+            if (advisor.TutorKind != kind)
+            {
+                advisor.TutorKind = kind;
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private static void AddAdvisor(
         AppDbContext db,
         Dictionary<string, Subject> subjects,
         string name,
         string email,
         string area,
+        string tutorKind,
         string modality,
         string location,
         string[] subjectNames,
@@ -333,6 +360,7 @@ public static class Catalog20262Seeder
             FullName = name,
             Email = email,
             Area = area,
+            TutorKind = tutorKind,
             DefaultModality = modality,
             IsActive = true
         };

@@ -29,7 +29,7 @@ GitFlow: `main` (estable), `develop` (integración), `feature/*`.
 - **Motor:** MySQL 8 en `localhost:3306`
 - **Nombre:** `fcqi_asesorias`
 - **Usuario:** `root`
-- **Contraseña:** la de tu instalación local (User Secrets; no se sube al repo)
+- **Contraseña:** 
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Port=3306;Database=fcqi_asesorias;User=root;Password=TU_PASSWORD;" --project src/FCQI.Api
@@ -82,16 +82,22 @@ SELECT id, topic, status, scheduled_at FROM advisory_sessions;
 
 (`-p` pide la contraseña.)
 
-## OAuth Google (`@uabc.edu.mx`)
+## Acceso (`@uabc.edu.mx`)
 
-`POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca al usuario en alumnos, asesores o directivos.
+La web pide correo y contraseña. **Solo entra un correo `@uabc.edu.mx`**. Todavía no hay API de UABC para validar la contraseña: cualquier contraseña no vacía basta.
+
+- Si el correo es de un tutor o de dirección (catálogo 2026-2), abre ese panel.
+- Cualquier otro `@uabc.edu.mx` entra como alumno (se crea el perfil si no existía).
+
+Ejemplos del seeder: `yesua.diaz@uabc.edu.mx` (alumno), `felipe.marquez63@uabc.edu.mx` (tutor), `progasesorias.fcqi@uabc.edu.mx` (dirección).
+
+`POST /api/auth/google` queda listo para cuando haya ClientId de Google; rechaza correos que no sean institucionales.
 
 ```powershell
 dotnet user-secrets set "Authentication:Google:ClientId" "TU_CLIENT_ID.apps.googleusercontent.com" --project src/FCQI.Api
 ```
 
-Orígenes autorizados en Google Cloud: `http://localhost:5016` y `http://localhost:5235`.  
-Si el ClientId está vacío, usa el selector de perfiles dummy (`POST /api/auth/demo`).
+Orígenes autorizados en Google Cloud: `http://localhost:5016` y `http://localhost:5235`.
 
 ## Ejecutar
 
@@ -113,4 +119,3 @@ dotnet run --project src/FCQI.Web.Browser
 dotnet test tests/FCQI.UnitTests
 ```
 
-Prueba rápida: entra como alumno Yesua → Buscar → Cálculo Diferencial → solicita → Salir → entra como Felipe Márquez → Solicitudes.

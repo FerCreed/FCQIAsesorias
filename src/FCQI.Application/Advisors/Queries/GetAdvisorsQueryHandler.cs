@@ -1,4 +1,5 @@
 using FCQI.Application.Advisors.Dtos;
+using FCQI.Domain;
 using FCQI.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,12 +26,14 @@ public class GetAdvisorsQueryHandler
         }
 
         return await query
-            .OrderBy(a => a.FullName)
+            .OrderBy(a => a.TutorKind == TutorKinds.Professor ? 0 : 1)
+            .ThenBy(a => a.FullName)
             .Select(a => new AdvisorDto(
                 a.Id,
                 a.FullName,
                 a.Email,
                 a.Area,
+                a.TutorKind,
                 a.DefaultModality,
                 a.IsActive,
                 a.AdvisorSubjects.Select(x => x.Subject.Name).OrderBy(n => n).ToList()))
