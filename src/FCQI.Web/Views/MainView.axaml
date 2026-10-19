@@ -20,6 +20,14 @@
                             IsVisible="{Binding IsAdvisor}" />
                     <Button Classes="nav" Content="Dirección" Command="{Binding GoCommand}" CommandParameter="admin"
                             IsVisible="{Binding IsAdmin}" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+                                Margin="8,0,0,0" IsVisible="{Binding CanSwitchRole}">
+                        <TextBlock Text="Entrar como" VerticalAlignment="Center"
+                                   FontSize="12" Foreground="#024731" />
+                        <ComboBox ItemsSource="{Binding Roles}"
+                                  SelectedItem="{Binding ActiveRole}"
+                                  MinWidth="120" VerticalAlignment="Center" />
+                    </StackPanel>
                     <Button Classes="ghost" Content="Iniciar sesión" Command="{Binding OpenLoginCommand}"
                             IsVisible="{Binding IsGuest}" Margin="8,4,0,0" />
                     <Button Classes="ghost" Content="Cerrar sesión" Command="{Binding LogoutCommand}"

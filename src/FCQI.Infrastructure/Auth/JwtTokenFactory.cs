@@ -24,15 +24,25 @@ public class JwtTokenFactory
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
             SecurityAlgorithms.HmacSha256);
 
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.Email, profile.Email),
+            new(ClaimTypes.Name, profile.FullName),
+            // Identidad de la persona. Toda comprobación de propiedad ("¿es
+            // tuya esta asesoría?") se hace contra esto, nunca contra un id
+            // que venga en el cuerpo de la petición.
+            new(ClaimTypes.NameIdentifier, profile.ProfileId.ToString()),
+            new("profileId", profile.ProfileId.ToString())
+        };
+
+        // Un claim de rol POR CADA rol: un asesor par lleva Asesor y Alumno, y
+        // puede actuar como cualquiera de los dos sin volver a autenticarse.
+        claims.AddRange(profile.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
         var token = new JwtSecurityToken(
             issuer,
             audience,
-            [
-                new Claim(ClaimTypes.Role, profile.Role),
-                new Claim(ClaimTypes.Email, profile.Email),
-                new Claim(ClaimTypes.Name, profile.FullName),
-                new Claim("profileId", profile.ProfileId.ToString())
-            ],
+            claims,
             expires: DateTime.UtcNow.AddHours(8),
             signingCredentials: credentials);
 

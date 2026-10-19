@@ -1,11 +1,14 @@
 using FCQI.Application.Subjects.Dtos;
 using FCQI.Application.Subjects.Queries;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FCQI.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+// Catálogo del programa: cualquier usuario autenticado puede consultarlo.
+[Authorize]
 public class SubjectsController : ControllerBase
 {
     private readonly GetSubjectsQueryHandler _handler;
@@ -16,6 +19,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(IEnumerable<SubjectDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<SubjectDto>>> Get(CancellationToken cancellationToken)
     {

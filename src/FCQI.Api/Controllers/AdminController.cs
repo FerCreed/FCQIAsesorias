@@ -1,11 +1,15 @@
 using FCQI.Application.Administration;
 using FCQI.Application.Advisors.Dtos;
+using FCQI.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FCQI.Api.Controllers;
 
 [ApiController]
 [Route("api/admin")]
+// Solo dirección: aquí se decide qué asesor cubre cada materia.
+[Authorize(Roles = UserRoles.Admin)]
 public class AdminController : ControllerBase
 {
     private readonly GetAdminAdvisorsQueryHandler _list;

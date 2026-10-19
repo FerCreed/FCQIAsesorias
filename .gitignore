@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Artefactos locales del compilador de Avalonia (contienen un GUID por máquina)
+**/.avalonia-build-tasks/

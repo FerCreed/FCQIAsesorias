@@ -29,6 +29,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _welcome = "Sistema de Asesorías FCQI";
     [ObservableProperty] private bool _googleReady;
     [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private string? _activeRole;
+
+    public ObservableCollection<string> Roles { get; } = [];
 
     public ObservableCollection<SubjectItem> Subjects { get; } = [];
     public ObservableCollection<SubjectItem> VisibleSubjects { get; } = [];
@@ -38,10 +41,12 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<AdvisorItem> AdminAdvisors { get; } = [];
     public ObservableCollection<AssignableSubject> AdminSubjects { get; } = [];
 
-    public bool IsStudent => Session?.Role == "Alumno";
-    public bool IsAdvisor => Session?.Role == "Asesor";
-    public bool IsAdmin => Session?.Role == "Directivo";
+    public bool IsStudent => ActiveRole == UserRoles.Student;
+    public bool IsAdvisor => ActiveRole == UserRoles.Advisor;
+    public bool IsAdmin => ActiveRole == UserRoles.Admin;
     public bool IsLoggedIn => Session is not null;
+    public bool CanSwitchRole => IsLoggedIn && Roles.Count > 1;
+    public bool CanDecide => IsAdvisor || IsAdmin;
     public bool IsGuest => Session is null;
     public bool ShowLogin => Page == "login";
     public bool ShowHome => Page == "home";
@@ -74,7 +79,7 @@ public partial class MainViewModel : ObservableObject
         : SelectedSubject is not null
             ? SelectedSubject.Name
             : "Busca y elige una materia. Luego verás tutores y horarios en este mismo panel.";
-    public string RoleHint => Session?.Role switch
+    public string RoleHint => ActiveRole switch
     {
         "Alumno" => "Reserva con tutores autorizados por dirección para el periodo 2026-2.",
         "Asesor" => "Revisa las solicitudes de tus alumnos y confirma o rechaza cada una.",
@@ -129,7 +134,7 @@ public partial class MainViewModel : ObservableObject
             LoginError = string.Empty;
             OnPropertyChanged(nameof(HasLoginError));
             Session = await _api.LoginAsync(Email.Trim(), Password);
-            _api.SetAccessToken(Session.Token);
+            BeginSession(Session);
             Password = string.Empty;
             Welcome = $"Hola, {Session.FullName}";
             var next = string.IsNullOrWhiteSpace(_returnPage) ? "home" : _returnPage;
@@ -166,6 +171,33 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private void BeginSession(AuthResultItem session)
+    {
+        _api.UseToken(session.Token);
+        Roles.Clear();
+        var roles = session.Roles.Count > 0 ? session.Roles : [session.Role];
+        foreach (var role in roles)
+        {
+            Roles.Add(role);
+        }
+
+        ActiveRole = roles.Contains(session.Role) ? session.Role : roles[0];
+    }
+
+    partial void OnActiveRoleChanged(string? value)
+    {
+        NotifyNav();
+        if (Session is null || string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+
+        Status = Roles.Count > 1
+            ? $"Estás usando el sistema como {value}."
+            : $"{value} · {Session.Email}";
+        _ = LoadHomeDataAsync();
+    }
+
     private void SetLoginError(string message)
     {
         LoginError = message;
@@ -177,7 +209,9 @@ public partial class MainViewModel : ObservableObject
     private void Logout()
     {
         Session = null;
-        _api.SetAccessToken(null);
+        ActiveRole = null;
+        Roles.Clear();
+        _api.UseToken(null);
         _resumeRequest = false;
         _returnPage = "home";
         Page = "home";
@@ -254,6 +288,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsAdvisor));
         OnPropertyChanged(nameof(IsAdmin));
         OnPropertyChanged(nameof(IsLoggedIn));
+        OnPropertyChanged(nameof(CanSwitchRole));
+        OnPropertyChanged(nameof(CanDecide));
         OnPropertyChanged(nameof(IsGuest));
         OnPropertyChanged(nameof(ShowLogin));
         OnPropertyChanged(nameof(ShowHome));
@@ -398,6 +434,12 @@ public partial class MainViewModel : ObservableObject
         if (!IsStudent)
         {
             Status = "Solo una cuenta de alumno puede solicitar asesorías.";
+            return;
+        }
+
+        if (SelectedAdvisor.Id == Session.ProfileId)
+        {
+            Status = "No puedes agendar una asesoría contigo mismo. Elige otro tutor.";
             return;
         }
 

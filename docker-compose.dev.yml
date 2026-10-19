@@ -51,6 +51,9 @@ services:
       # Código fuente en vivo: al guardar en Rider, `dotnet watch` recompila.
       - ./src:/src/src
       - ./tests:/src/tests
+      # Sin este montaje el contenedor usaría los .sql copiados al construir la
+      # imagen, que pueden no coincidir con el C# montado arriba.
+      - ./db:/src/db:ro
       # IMPORTANTE: obj/ y bin/ se quedan DENTRO del contenedor (volúmenes
       # anónimos que tapan los del host). Sin esto, el contenedor reescribe
       # project.assets.json con rutas de Linux (/root/.nuget) y rompe la
