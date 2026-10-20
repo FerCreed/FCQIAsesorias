@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Artefactos locales del compilador de Avalonia (contienen un GUID por máquina)
 **/.avalonia-build-tasks/
+
+# Archivos de graphify
+[Gg]raphify-out/
