@@ -43,8 +43,11 @@ def call(method, path, token=None, body=None):
         request.add_header("Authorization", "Bearer " + token)
     try:
         with urllib.request.urlopen(request, timeout=15) as response:
-            raw = response.read().decode()
-            return response.status, (json.loads(raw) if raw.strip() else None)
+            raw = response.read().decode("utf-8-sig")
+            try:
+                return response.status, (json.loads(raw) if raw.strip() else None)
+            except json.JSONDecodeError:
+                return response.status, raw   # .ics y .csv
     except urllib.error.HTTPError as e:
         raw = e.read().decode()
         try:
@@ -92,14 +95,14 @@ def solicitar(token, **campos):
 
 print(f"Probando {API}\n")
 print("== A. AUTENTICACIÓN Y ACCESO ==")
-check("A1 /api/subjects sin token responde 401", call("GET", "/api/subjects")[0] == 401)
+check("A1 el catálogo es público: /api/subjects sin token responde 200", call("GET", "/api/subjects")[0] == 200)
 check("A2 /api/sessions sin token responde 401", call("GET", "/api/sessions")[0] == 401)
 check("A3 /api/admin sin token responde 401", call("GET", "/api/admin/advisors")[0] == 401)
 s, b = call("POST", "/api/auth/demo", body={"email": "alguien@gmail.com"})
 check("A4 correo no institucional rechazado (400)", s == 400, (s, b))
 s, b = call("POST", "/api/auth/demo", body={"email": "nadie@uabc.edu.mx"})
 check("A5 correo UABC no registrado rechazado (401)", s == 401, (s, b))
-check("A6 token inválido rechazado (401)", call("GET", "/api/subjects", "token.falso")[0] == 401)
+check("A6 token inválido rechazado (401)", call("GET", "/api/sessions", "token.falso")[0] == 401)
 
 alumno = login("yesua.diaz@uabc.edu.mx")
 otro_alumno = login("juan.laguna@uabc.edu.mx")
@@ -236,8 +239,8 @@ check("G6 repetir el estado que ya tiene es inocuo (204)",
       call("PATCH", f"/api/sessions/{objetivo}/status", TD, {"status": "Cancelada"})[0] == 204)
 check("G7 estado inexistente se rechaza (400)",
       call("PATCH", f"/api/sessions/{objetivo}/status", TD, {"status": "Inventada"})[0] == 400)
-check("G8 asesoría inexistente se rechaza (400)",
-      call("PATCH", "/api/sessions/999999/status", TD, {"status": "Confirmada"})[0] == 400)
+check("G8 asesoría inexistente responde 404",
+      call("PATCH", "/api/sessions/999999/status", TD, {"status": "Confirmada"})[0] == 404)
 
 print("\n== H. DIRECCIÓN ==")
 check("H1 un alumno no entra al panel de dirección (403)",
@@ -266,6 +269,53 @@ check("H9 un alumno no puede reasignar materias (403)",
 s, b = call("PUT", "/api/admin/advisors/1/subjects", TD, [])
 check("H10 no se puede quitar una materia con asesorías del ciclo",
       s == 400 and "asesor" in str(b).lower(), (s, str(b)[:120]))
+
+print("\n== I. PROCESOS BPMN NUEVOS ==")
+s, lugares = call("GET", "/api/locations")
+check("I1 las sedes son públicas", s == 200 and len(lugares) > 0, s)
+bloque = {"dayOfWeek": 6, "startTime": "07:00:00", "endTime": "07:30:00", "maxCapacity": 1,
+          "locationId": lugares[0]["id"] if lugares else 1}
+s, b = call("POST", "/api/advisors/me/availabilities", TS, bloque)
+check("I2 el asesor publica un bloque (BPMN 7)", s == 201, (s, b))
+nuevo_bloque = b["id"] if s == 201 else None
+s, b = call("POST", "/api/advisors/me/availabilities", TS, dict(bloque, startTime="07:15:00", endTime="07:45:00"))
+check("I3 un bloque traslapado se rechaza", s == 400 and "traslapa" in str(b), (s, b))
+s, b = call("POST", "/api/advisors/me/availabilities", TA, bloque)
+check("I4 un alumno no publica horarios (403)", s == 403, (s, b))
+if nuevo_bloque:
+    check("I5 el asesor edita el cupo (BPMN 13)",
+          call("PUT", f"/api/advisors/me/availabilities/{nuevo_bloque}", TS, dict(bloque, maxCapacity=2))[0] == 204)
+    check("I6 el asesor retira el bloque (BPMN 16)",
+          call("DELETE", f"/api/advisors/me/availabilities/{nuevo_bloque}", TS)[0] == 204)
+
+s, proximas = call("GET", "/api/sessions?scope=upcoming", TA)
+check("I7 'próximas' solo trae citas vivas (BPMN 19)",
+      s == 200 and all(x["status"] in ("Pendiente", "Confirmada") for x in proximas), s)
+s, historial = call("GET", "/api/sessions?scope=history", TA)
+check("I8 el historial responde (BPMN 14)", s == 200, s)
+
+viva = creadas[1] if len(creadas) > 1 else None
+if viva:
+    s, ics = call("GET", f"/api/sessions/{viva}/calendar.ics", TA)
+    check("I9 la cita se descarga en iCalendar (BPMN 12)", s == 200 and str(ics).startswith("BEGIN:VCALENDAR"), (s, str(ics)[:60]))
+    check("I10 un ajeno no descarga la cita (403)", call("GET", f"/api/sessions/{viva}/calendar.ics", TA2)[0] == 403)
+    s, b = call("POST", f"/api/sessions/{viva}/log", TS, {"attended": True, "notes": "x"})
+    check("I11 no hay bitácora de una cita pendiente (BPMN 9)", s == 400, (s, b))
+    s, b = call("PATCH", f"/api/sessions/{viva}/schedule", TA,
+                {"availabilityId": JUEVES, "scheduledAt": cuando(DIA_JUEVES, HORA_JUEVES, 8)})
+    check("I12 el alumno reprograma (BPMN 11)", s == 200 and b["status"] == "Pendiente", (s, b))
+    if s == 200:
+        creadas.append(b["id"])
+
+s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "Prueba automática de contacto"})
+check("I13 el alumno escribe al tutor (BPMN 15)", s == 204, (s, b))
+s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "   "})
+check("I14 un mensaje vacío se rechaza", s == 400, (s, b))
+s, reporte = call("GET", "/api/admin/reports", TD)
+check("I15 dirección obtiene métricas del ciclo (BPMN 6)", s == 200 and reporte["requested"] > 0, s)
+s, csv = call("GET", "/api/admin/reports.csv", TD)
+check("I16 la constancia sale en CSV", s == 200 and str(csv).startswith("Ciclo,"), (s, str(csv)[:40]))
+check("I17 un alumno no ve reportes (403)", call("GET", "/api/admin/reports", TA)[0] == 403)
 
 print("\n== LIMPIEZA ==")
 for sid in creadas:
