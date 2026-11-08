@@ -83,44 +83,28 @@ public class AuthController : ControllerBase
 
     private async Task<ActionResult<AuthResult>> SignInAsync(string email, CancellationToken cancellationToken)
     {
-        try
+        var resolved = await _profiles.ResolveAsync(email, "pending", cancellationToken);
+        if (resolved is null)
         {
-            var resolved = await _profiles.ResolveAsync(email, "pending", cancellationToken);
-            if (resolved is null)
-            {
-                return Unauthorized(new { message = "El correo UABC no está dado de alta en el programa de asesorías." });
-            }
+            return Unauthorized(new { message = "El correo UABC no está dado de alta en el programa de asesorías." });
+        }
 
-            var token = _jwt.Create(resolved);
-            return Ok(resolved with { Token = token });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(resolved with { Token = _jwt.Create(resolved) });
     }
 
     [HttpPost("google")]
     public async Task<ActionResult<AuthResult>> Google([FromBody] GoogleLoginRequest request, CancellationToken cancellationToken)
     {
-        try
+        var googleUser = await _google.ValidateAsync(request.IdToken, cancellationToken);
+        var resolved = await _profiles.ResolveAsync(googleUser.Email, "pending", cancellationToken);
+        if (resolved is null)
         {
-            var googleUser = await _google.ValidateAsync(request.IdToken, cancellationToken);
-            var resolved = await _profiles.ResolveAsync(googleUser.Email, "pending", cancellationToken);
-            if (resolved is null)
+            return Unauthorized(new
             {
-                return Unauthorized(new
-                {
-                    message = "El correo @uabc.edu.mx es válido, pero no está registrado como alumno, asesor o directivo del programa."
-                });
-            }
+                message = "El correo @uabc.edu.mx es válido, pero no está registrado como alumno, asesor o directivo del programa."
+            });
+        }
 
-            var token = _jwt.Create(resolved);
-            return Ok(resolved with { Token = token });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(resolved with { Token = _jwt.Create(resolved) });
     }
 }

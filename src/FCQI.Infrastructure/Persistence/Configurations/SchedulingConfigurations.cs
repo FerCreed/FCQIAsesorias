@@ -94,6 +94,7 @@ public class AdvisorySessionConfiguration : IEntityTypeConfiguration<AdvisorySes
         builder.Property(s => s.SeatNumber).HasColumnName("NumeroLugar");
         builder.Property(s => s.StatusId).HasColumnName("EstadoId");
         builder.Property(s => s.Topic).HasColumnName("Tema").HasMaxLength(500).IsRequired();
+        builder.Property(s => s.MeetingLink).HasColumnName("EnlaceReunion").HasMaxLength(300);
         builder.Property(s => s.CreatedAt).HasColumnName("CreadoEn").ValueGeneratedOnAdd();
         builder.Property(s => s.UpdatedAt).HasColumnName("ActualizadoEn").ValueGeneratedOnAddOrUpdate();
 
@@ -139,5 +140,25 @@ public class AdvisorySessionConfiguration : IEntityTypeConfiguration<AdvisorySes
             .WithMany()
             .HasForeignKey(s => s.SubjectId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SessionLogConfiguration : IEntityTypeConfiguration<SessionLog>
+{
+    public void Configure(EntityTypeBuilder<SessionLog> builder)
+    {
+        builder.ToTable("bitacoras_asesoria");
+        builder.HasKey(l => l.SessionId);
+
+        builder.Property(l => l.SessionId).HasColumnName("AsesoriaId");
+        builder.Property(l => l.Attended).HasColumnName("Asistio");
+        builder.Property(l => l.Notes).HasColumnName("Notas").HasMaxLength(2000);
+        builder.Property(l => l.RecordedBy).HasColumnName("RegistradoPor");
+        builder.Property(l => l.RecordedAt).HasColumnName("RegistradoEn");
+
+        builder.HasOne(l => l.Session)
+            .WithOne(s => s.Log)
+            .HasForeignKey<SessionLog>(l => l.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

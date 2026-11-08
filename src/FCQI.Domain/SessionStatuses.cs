@@ -10,9 +10,10 @@ public static class SessionStatuses
     public const string Confirmed = "Confirmada";
     public const string Cancelled = "Cancelada";
     public const string Rejected = "Rechazada";
+    public const string Completed = "Realizada";
 
     public static readonly IReadOnlyList<string> All =
-        [Pending, Confirmed, Cancelled, Rejected];
+        [Pending, Confirmed, Cancelled, Rejected, Completed];
 }
 
 /// <summary>
@@ -25,6 +26,7 @@ public static class SessionStatusIds
     public const byte Confirmed = 2;
     public const byte Cancelled = 3;
     public const byte Rejected = 4;
+    public const byte Completed = 5;
 
     public static byte FromName(string name) => name switch
     {
@@ -32,6 +34,7 @@ public static class SessionStatusIds
         SessionStatuses.Confirmed => Confirmed,
         SessionStatuses.Cancelled => Cancelled,
         SessionStatuses.Rejected => Rejected,
+        SessionStatuses.Completed => Completed,
         _ => throw new InvalidOperationException($"Estado no válido: '{name}'.")
     };
 }

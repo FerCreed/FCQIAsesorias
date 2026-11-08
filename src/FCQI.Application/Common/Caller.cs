@@ -15,3 +15,9 @@ public class ForbiddenOperationException : Exception
 {
     public ForbiddenOperationException(string message) : base(message) { }
 }
+
+/// <summary>El recurso pedido no existe. La API la traduce a 404.</summary>
+public class NotFoundException : InvalidOperationException
+{
+    public NotFoundException(string message) : base(message) { }
+}

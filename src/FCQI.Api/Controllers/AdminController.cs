@@ -1,3 +1,4 @@
+using System.Text;
 using FCQI.Application.Administration;
 using FCQI.Application.Advisors.Dtos;
 using FCQI.Domain;
@@ -8,34 +9,41 @@ namespace FCQI.Api.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-// Solo dirección: aquí se decide qué asesor cubre cada materia.
+// Solo dirección: asignación de tutores y reportes del programa.
 [Authorize(Roles = UserRoles.Admin)]
 public class AdminController : ControllerBase
 {
-    private readonly GetAdminAdvisorsQueryHandler _list;
-    private readonly ReplaceAdvisorSubjectsCommandHandler _replace;
+    [HttpGet("advisors")]
+    public async Task<ActionResult<IEnumerable<AdvisorDto>>> GetAdvisors(
+        [FromServices] GetAdminAdvisorsQueryHandler list, CancellationToken cancellationToken)
+        => Ok(await list.HandleAsync(cancellationToken));
 
-    public AdminController(GetAdminAdvisorsQueryHandler list, ReplaceAdvisorSubjectsCommandHandler replace)
+    /// <summary>Asignar tutores a materias (BPMN 2).</summary>
+    [HttpPut("advisors/{id:int}/subjects")]
+    public async Task<IActionResult> PutSubjects(
+        [FromServices] ReplaceAdvisorSubjectsCommandHandler replace,
+        int id, [FromBody] IReadOnlyList<int> subjectIds, CancellationToken cancellationToken)
     {
-        _list = list;
-        _replace = replace;
+        await replace.HandleAsync(id, subjectIds, cancellationToken);
+        return NoContent();
     }
 
-    [HttpGet("advisors")]
-    public async Task<ActionResult<IEnumerable<AdvisorDto>>> GetAdvisors(CancellationToken cancellationToken)
-        => Ok(await _list.HandleAsync(cancellationToken));
+    /// <summary>Métricas del ciclo (BPMN 6).</summary>
+    [HttpGet("reports")]
+    public async Task<ActionResult<AdvisoryReportDto>> Report(
+        [FromServices] AdvisoryReportQueryHandler reports,
+        [FromQuery] int? advisorId, [FromQuery] int? subjectId, CancellationToken cancellationToken)
+        => Ok(await reports.HandleAsync(advisorId, subjectId, cancellationToken));
 
-    [HttpPut("advisors/{id:int}/subjects")]
-    public async Task<IActionResult> PutSubjects(int id, [FromBody] IReadOnlyList<int> subjectIds, CancellationToken cancellationToken)
+    /// <summary>Constancia de horas por asesor en CSV (BPMN 6).</summary>
+    [HttpGet("reports.csv")]
+    public async Task<IActionResult> ReportCsv(
+        [FromServices] AdvisoryReportQueryHandler reports,
+        [FromQuery] int? advisorId, [FromQuery] int? subjectId, CancellationToken cancellationToken)
     {
-        try
-        {
-            await _replace.HandleAsync(id, subjectIds, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var report = await reports.HandleAsync(advisorId, subjectId, cancellationToken);
+        // BOM para que Excel abra los acentos correctamente.
+        var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(AdvisoryReportQueryHandler.ToCsv(report))).ToArray();
+        return File(bytes, "text/csv", $"constancia-horas-{report.Term}.csv");
     }
 }

@@ -31,6 +31,9 @@ public class AdvisorySession
     public byte StatusId { get; set; } = SessionStatusIds.Pending;
     public string Topic { get; set; } = string.Empty;
 
+    /// <summary>Enlace de la reunión virtual; se genera al confirmar (BPMN 10).</summary>
+    public string? MeetingLink { get; set; }
+
     /// <summary>
     /// La mantiene un trigger de la base: vale ScheduledAt mientras la sesión
     /// ocupa cupo y NULL cuando se cancela. Solo lectura desde la aplicación.
@@ -46,4 +49,5 @@ public class AdvisorySession
     public StudentProfile Student { get; set; } = null!;
     public Subject Subject { get; set; } = null!;
     public SessionStatus Status { get; set; } = null!;
+    public SessionLog? Log { get; set; }
 }

@@ -21,6 +21,7 @@ public interface IApplicationDbContext
     DbSet<AdvisorSubject> AdvisorSubjects { get; }
     DbSet<Availability> Availabilities { get; }
     DbSet<AdvisorySession> AdvisorySessions { get; }
+    DbSet<SessionLog> SessionLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

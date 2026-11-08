@@ -32,6 +32,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<AdvisorSubject> AdvisorSubjects => Set<AdvisorSubject>();
     public DbSet<Availability> Availabilities => Set<Availability>();
     public DbSet<AdvisorySession> AdvisorySessions => Set<AdvisorySession>();
+    public DbSet<SessionLog> SessionLogs => Set<SessionLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

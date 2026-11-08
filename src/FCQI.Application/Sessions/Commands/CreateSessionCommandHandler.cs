@@ -1,6 +1,8 @@
 using FCQI.Application.Common;
 using FCQI.Application.Interfaces;
 using FCQI.Application.Sessions.Dtos;
+using FCQI.Application.Sessions.Events;
+using FCQI.Application.Sessions.Queries;
 using FCQI.Domain;
 using FCQI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +14,15 @@ public class CreateSessionCommandHandler
     private readonly IApplicationDbContext _context;
     private readonly CurrentTerm _term;
     private readonly IClock _clock;
+    private readonly SessionEventPublisher _events;
 
-    public CreateSessionCommandHandler(IApplicationDbContext context, CurrentTerm term, IClock clock)
+    public CreateSessionCommandHandler(
+        IApplicationDbContext context, CurrentTerm term, IClock clock, SessionEventPublisher events)
     {
         _context = context;
         _term = term;
         _clock = clock;
+        _events = events;
     }
 
     public async Task<SessionDto> HandleAsync(
@@ -183,7 +188,13 @@ public class CreateSessionCommandHandler
                 "acabe de ocuparse. Vuelve a intentarlo.", ex);
         }
 
-        return await MapAsync(session.Id, cancellationToken);
+        // BPMN 8: el asesor recibe aviso de la nueva solicitud.
+        await _events.PublishAsync(new SessionChanged(session.Id, null, session.StatusId, caller.PersonId), cancellationToken);
+
+        var created = await _context.AdvisorySessions.AsNoTracking()
+            .Where(x => x.Id == session.Id)
+            .ToDtosAsync(_clock, cancellationToken);
+        return created.Single();
     }
 
     private static string DayName(DayOfWeek day) => day switch
@@ -196,35 +207,4 @@ public class CreateSessionCommandHandler
         DayOfWeek.Friday => "viernes",
         _ => "sábado"
     };
-
-    private async Task<SessionDto> MapAsync(long id, CancellationToken cancellationToken)
-    {
-        var s = await _context.AdvisorySessions
-            .AsNoTracking()
-            .Where(x => x.Id == id)
-            .Select(x => new
-            {
-                x.Id,
-                x.StudentId,
-                StudentName = x.Student.Person.DisplayName,
-                x.AdvisorId,
-                AdvisorName = x.Advisor.Person.DisplayName,
-                x.SubjectId,
-                SubjectName = x.Subject.Name,
-                x.AvailabilityId,
-                x.ScheduledAt,
-                x.Topic,
-                Status = x.Status.Name
-            })
-            .SingleAsync(cancellationToken);
-
-        return new SessionDto(
-            (int)s.Id, s.StudentId, s.StudentName,
-            s.AdvisorId, s.AdvisorName,
-            s.SubjectId, s.SubjectName,
-            s.AvailabilityId,
-            _clock.ToLocal(s.ScheduledAt),
-            DateTime.SpecifyKind(s.ScheduledAt, DateTimeKind.Utc),
-            s.Topic, s.Status);
-    }
 }

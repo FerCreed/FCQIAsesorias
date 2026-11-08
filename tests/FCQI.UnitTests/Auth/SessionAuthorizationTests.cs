@@ -106,7 +106,10 @@ public class SessionAuthorizationTests
         Assert.Single(result);
     }
 
-    private static UpdateSessionStatusCommandHandler Handler(AppDbContext db) => new(db);
+    // "Ahora" una semana antes de la cita sembrada: dentro del plazo para cancelar.
+    private static readonly TestClock Clock = new(new DateTime(2026, 9, 30, 12, 0, 0, DateTimeKind.Utc));
+
+    private static UpdateSessionStatusCommandHandler Handler(AppDbContext db) => TestServices.UpdateStatus(db, Clock);
     private static GetSessionsQueryHandler Query(AppDbContext db) => new(db, new CampusClock());
 
     /// <summary>

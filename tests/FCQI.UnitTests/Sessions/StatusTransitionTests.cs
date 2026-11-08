@@ -33,7 +33,7 @@ public class StatusTransitionTests
         await using var db = await SeedAsync(final);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new UpdateSessionStatusCommandHandler(db)
+            () => TestServices.UpdateStatus(db)
                 .HandleAsync(1, SessionStatuses.Confirmed, ElAsesor()));
 
         Assert.Contains(palabra, ex.Message);
@@ -46,7 +46,7 @@ public class StatusTransitionTests
         await using var db = await SeedAsync(SessionStatusIds.Cancelled);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new UpdateSessionStatusCommandHandler(db)
+            () => TestServices.UpdateStatus(db)
                 .HandleAsync(1, SessionStatuses.Pending, Direccion()));
     }
 
@@ -57,7 +57,7 @@ public class StatusTransitionTests
 
         // Una petición repetida, o dos pestañas haciendo lo mismo: no hay nada
         // que cambiar, pero tampoco motivo para fallar.
-        await new UpdateSessionStatusCommandHandler(db)
+        await TestServices.UpdateStatus(db)
             .HandleAsync(1, SessionStatuses.Cancelled, ElAlumno());
 
         Assert.Equal(SessionStatusIds.Cancelled, db.AdvisorySessions.Single().StatusId);
@@ -71,7 +71,7 @@ public class StatusTransitionTests
     {
         await using var db = await SeedAsync(desde);
 
-        await new UpdateSessionStatusCommandHandler(db).HandleAsync(1, hacia, ElAsesor());
+        await TestServices.UpdateStatus(db).HandleAsync(1, hacia, ElAsesor());
 
         Assert.Equal(esperado, db.AdvisorySessions.Single().StatusId);
     }

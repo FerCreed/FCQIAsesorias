@@ -28,6 +28,7 @@ SET NAMES utf8mb4;
 USE `fcqi_asesorias`;
 
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE `bitacoras_asesoria`;
 TRUNCATE TABLE `historial_estados_sesion`;
 TRUNCATE TABLE `asesorias`;
 TRUNCATE TABLE `asesores_materias`;
