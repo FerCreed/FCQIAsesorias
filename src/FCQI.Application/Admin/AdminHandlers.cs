@@ -40,7 +40,10 @@ public class GetAdminAdvisorsQueryHandler
                     .Where(x => x.TermId == termId)
                     .Select(x => x.Subject.Name)
                     .OrderBy(n => n)
-                    .ToList()))
+                    .ToList(),
+                a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive,
+                null,
+                0))
             .ToListAsync(cancellationToken);
     }
 }

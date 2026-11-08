@@ -4,6 +4,7 @@ using FCQI.Application.Interfaces;
 using FCQI.Application.Sessions;
 using FCQI.Infrastructure.Auth;
 using FCQI.Infrastructure.Messaging;
+using FCQI.Infrastructure.Reports;
 using FCQI.Infrastructure.Persistence;
 using FCQI.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         else
             services.AddSingleton<IEmailSender, SmtpEmailSender>();
         services.AddSingleton<IMeetingLinkProvider, LocationMeetingLinkProvider>();
+        services.AddSingleton<IReportRenderer, QuestPdfReportRenderer>();
 
         return services;
     }

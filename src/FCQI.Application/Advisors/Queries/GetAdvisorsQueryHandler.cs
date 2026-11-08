@@ -31,24 +31,37 @@ public class GetAdvisorsQueryHandler
                 .Any(x => x.SubjectId == subjectId && x.TermId == termId));
         }
 
-        return await query
+        var rows = await query
             .OrderBy(a => a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive ? 1 : 0)
             .ThenBy(a => a.Person.LastNamePaternal).ThenBy(a => a.Person.FirstName)
-            .Select(a => new AdvisorDto(
+            .Select(a => new
+            {
                 a.PersonId,
                 a.Person.DisplayName,
                 a.Person.Email,
-                a.Program.Name,
-                a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive
-                    ? AdvisorKinds.Student
-                    : AdvisorKinds.Professor,
-                a.DefaultModality.Name,
+                Area = a.Program.Name,
+                IsStudent = a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive,
+                Modality = a.DefaultModality.Name,
                 a.IsActive,
-                a.AdvisorSubjects
+                Subjects = a.AdvisorSubjects
                     .Where(x => x.TermId == termId)
                     .Select(x => x.Subject.Name)
                     .OrderBy(n => n)
-                    .ToList()))
+                    .ToList(),
+                Blocks = a.Availabilities
+                    .Where(b => b.TermId == termId && b.IsActive)
+                    .Select(b => new { b.DayOfWeek, b.StartTime, b.EndTime })
+                    .ToList()
+            })
             .ToListAsync(cancellationToken);
+
+        // Las horas se suman en memoria: MySQL devuelve la resta de TIME como entero.
+        return rows.Select(a => new AdvisorDto(
+                a.PersonId, a.DisplayName, a.Email, a.Area,
+                a.IsStudent ? AdvisorKinds.Student : AdvisorKinds.Professor,
+                a.Modality, a.IsActive, a.Subjects, a.IsStudent,
+                a.Blocks.Select(b => (int)b.DayOfWeek).Distinct().Order().ToList(),
+                Math.Round(a.Blocks.Sum(b => (b.EndTime - b.StartTime).TotalHours), 1)))
+            .ToList();
     }
 }

@@ -162,3 +162,24 @@ public class SessionLogConfiguration : IEntityTypeConfiguration<SessionLog>
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+/// <summary>Solo lectura: las filas las insertan los triggers de asesorias.</summary>
+public class SessionStatusChangeConfiguration : IEntityTypeConfiguration<SessionStatusChange>
+{
+    public void Configure(EntityTypeBuilder<SessionStatusChange> builder)
+    {
+        builder.ToTable("historial_estados_sesion");
+        builder.HasKey(h => h.Id);
+
+        builder.Property(h => h.SessionId).HasColumnName("AsesoriaId");
+        builder.Property(h => h.FromStatusId).HasColumnName("EstadoAnteriorId");
+        builder.Property(h => h.ToStatusId).HasColumnName("EstadoNuevoId");
+        builder.Property(h => h.ChangedBy).HasColumnName("CambiadoPor");
+        builder.Property(h => h.ChangedAt).HasColumnName("CambiadoEn").ValueGeneratedOnAdd();
+        builder.Property(h => h.Reason).HasColumnName("Motivo").HasMaxLength(500);
+
+        builder.HasOne(h => h.Session).WithMany(s => s.History).HasForeignKey(h => h.SessionId);
+        builder.HasOne(h => h.FromStatus).WithMany().HasForeignKey(h => h.FromStatusId);
+        builder.HasOne(h => h.ToStatus).WithMany().HasForeignKey(h => h.ToStatusId);
+    }
+}

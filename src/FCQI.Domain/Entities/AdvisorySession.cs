@@ -50,4 +50,5 @@ public class AdvisorySession
     public Subject Subject { get; set; } = null!;
     public SessionStatus Status { get; set; } = null!;
     public SessionLog? Log { get; set; }
+    public ICollection<SessionStatusChange> History { get; set; } = new List<SessionStatusChange>();
 }

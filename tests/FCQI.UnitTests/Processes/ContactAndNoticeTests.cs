@@ -51,10 +51,10 @@ public class ContactAndNoticeTests
     }
 
     [Theory]
-    [InlineData(Advisor, new[] { "yesua.diaz@uabc.edu.mx" })]
-    [InlineData(Student, new[] { "felipe.marquez@uabc.edu.mx" })]
-    [InlineData(ProcessWorld.Admin, new[] { "yesua.diaz@uabc.edu.mx", "felipe.marquez@uabc.edu.mx" })]
-    public async Task Aviso_LlegaALaOtraParte_YNombraAQuienActuo(int actor, string[] expected)
+    [InlineData(Advisor)]
+    [InlineData(Student)]
+    [InlineData(ProcessWorld.Admin)]
+    public async Task Aviso_LlegaAAlumnoYAsesor_YNombraAQuienActuo(int actor)
     {
         await using var db = await SeedAsync();
         var outbox = new Outbox();
@@ -62,7 +62,7 @@ public class ContactAndNoticeTests
         await new SessionNotifier(db, outbox, Clock())
             .OnChangedAsync(new SessionChanged(1, SessionStatusIds.Pending, SessionStatusIds.Cancelled, actor), default);
 
-        Assert.Equal(expected, outbox.Sent.Select(m => m.To));
+        Assert.Equal(["yesua.diaz@uabc.edu.mx", "felipe.marquez@uabc.edu.mx"], outbox.Sent.Select(m => m.To));
         var who = actor switch { ProcessWorld.Advisor => "Felipe", ProcessWorld.Student => "Yesua", _ => "Directora" };
         Assert.All(outbox.Sent, m => Assert.StartsWith(who, m.Body));
     }

@@ -1,5 +1,7 @@
 using System.Text;
 using FCQI.Api.Security;
+using FCQI.Application.Interfaces;
+using FCQI.Application.Reports;
 using FCQI.Application.Sessions.Commands;
 using FCQI.Application.Sessions.Dtos;
 using FCQI.Application.Sessions.Queries;
@@ -77,4 +79,11 @@ public class SessionsController : ControllerBase
         [FromServices] SessionCalendarQueryHandler calendar, int id, CancellationToken cancellationToken)
         => File(Encoding.UTF8.GetBytes(await calendar.HandleAsync(id, _user.ToCaller(), cancellationToken)),
             "text/calendar", $"asesoria-{id}.ics");
+
+    /// <summary>Reporte individual en PDF. Lo descargan el alumno, el asesor de la cita y dirección.</summary>
+    [HttpGet("{id:int}/report.pdf")]
+    public async Task<IActionResult> Report(
+        [FromServices] SessionReportQueryHandler report, [FromServices] IReportRenderer pdf,
+        int id, CancellationToken cancellationToken)
+        => this.Pdf(pdf.Session(await report.HandleAsync(id, _user.ToCaller(), cancellationToken)), $"asesoria-{id}");
 }

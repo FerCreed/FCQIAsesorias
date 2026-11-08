@@ -33,6 +33,7 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<Availability> Availabilities => Set<Availability>();
     public DbSet<AdvisorySession> AdvisorySessions => Set<AdvisorySession>();
     public DbSet<SessionLog> SessionLogs => Set<SessionLog>();
+    public DbSet<SessionStatusChange> SessionStatusChanges => Set<SessionStatusChange>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

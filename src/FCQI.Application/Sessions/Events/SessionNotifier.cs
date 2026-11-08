@@ -5,9 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FCQI.Application.Sessions.Events;
 
 /// <summary>
-/// Notificaciones de BPMN 8, 11, 12 y 18: avisa por correo a la otra parte
-/// de la cita. Si cambió el alumno, se entera el asesor, y al revés; si fue
-/// dirección, se enteran los dos. El correo nombra siempre a quien actuó.
+/// Notificaciones de BPMN 8, 11, 12 y 18: avisa por correo al alumno y al
+/// asesor de la cita, nombrando a quien hizo el cambio.
 /// </summary>
 public class SessionNotifier : ISessionObserver
 {
@@ -28,8 +27,6 @@ public class SessionNotifier : ISessionObserver
             .Where(x => x.Id == change.SessionId)
             .Select(x => new
             {
-                x.StudentId,
-                x.AdvisorId,
                 StudentEmail = x.Student.Person.Email,
                 StudentName = x.Student.Person.DisplayName,
                 AdvisorEmail = x.Advisor.Person.Email,
@@ -44,10 +41,6 @@ public class SessionNotifier : ISessionObserver
             .Where(p => p.Id == change.ChangedBy)
             .Select(p => p.DisplayName)
             .SingleOrDefaultAsync(cancellationToken) ?? "Dirección del programa";
-
-        string[] recipients = change.ChangedBy == s.StudentId ? [s.AdvisorEmail]
-            : change.ChangedBy == s.AdvisorId ? [s.StudentEmail]
-            : [s.StudentEmail, s.AdvisorEmail];
 
         var when = _clock.ToLocal(s.ScheduledAt).ToString("dddd dd/MM/yyyy HH:mm", Spanish);
         var what = change switch
@@ -66,7 +59,9 @@ public class SessionNotifier : ISessionObserver
             body += $"\nEnlace de la reunión: {s.MeetingLink}";
         }
 
-        foreach (var to in recipients)
+        // BPMN 8, 11, 12 y 18: el aviso sale "en paralelo al alumno y al asesor";
+        // quien actuó lo recibe como confirmación.
+        foreach (var to in new[] { s.StudentEmail, s.AdvisorEmail })
         {
             await _email.SendAsync(new EmailMessage(to, $"Asesoría de {s.Subject}: {what}", body), cancellationToken);
         }

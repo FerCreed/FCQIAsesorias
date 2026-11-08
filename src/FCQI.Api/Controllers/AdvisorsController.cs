@@ -3,6 +3,8 @@ using FCQI.Api.Security;
 using FCQI.Application.Advisors.Commands;
 using FCQI.Application.Advisors.Dtos;
 using FCQI.Application.Advisors.Queries;
+using FCQI.Application.Interfaces;
+using FCQI.Application.Reports;
 using FCQI.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -81,5 +83,17 @@ public class AdvisorsController : ControllerBase
     {
         await blocks.RetireAsync(id, _user.ToCaller(), cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>Resumen del asesor que llama: sus asesorías del periodo y sus horas trabajadas.</summary>
+    [HttpGet("me/report.{format:regex(^(pdf|csv)$)}")]
+    [Authorize(Roles = UserRoles.Advisor)]
+    public async Task<IActionResult> MyReport(
+        [FromServices] AdvisorSummaryQueryHandler summaries, [FromServices] IReportRenderer pdf,
+        string format, [FromQuery] DateOnly from, [FromQuery] DateOnly to, CancellationToken cancellationToken)
+    {
+        var summary = await summaries.HandleAsync(_user.PersonId, from, to, _user.ToCaller(), cancellationToken);
+        var name = $"resumen-asesorias-{from:yyyyMMdd}-{to:yyyyMMdd}";
+        return format == "pdf" ? this.Pdf(pdf.AdvisorSummary(summary), name) : this.Csv(ReportCsv.Write(summary.Sessions), name);
     }
 }
