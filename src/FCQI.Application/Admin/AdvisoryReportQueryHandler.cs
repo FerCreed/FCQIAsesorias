@@ -51,7 +51,7 @@ public class AdvisoryReportQueryHandler
 
         // Un ciclo tiene a lo sumo unos miles de citas: se agrega en memoria,
         // que es más claro que un GROUP BY con aritmética de TIME en SQL.
-        var rows = await query.Select(s => new
+        var data = await query.Select(s => new
             {
                 s.AdvisorId,
                 AdvisorName = s.Advisor.Person.DisplayName,
@@ -59,9 +59,17 @@ public class AdvisoryReportQueryHandler
                 SubjectName = s.Subject.Name,
                 s.StatusId,
                 Attended = s.Log != null && s.Log.Attended,
-                Duration = s.Availability.EndTime - s.Availability.StartTime
+                s.Availability.StartTime,
+                s.Availability.EndTime
             })
             .ToListAsync(cancellationToken);
+
+        // Las horas se restan en memoria: MySQL devuelve la resta de TIME como entero.
+        var rows = data.Select(r => new
+        {
+            r.AdvisorId, r.AdvisorName, r.SubjectId, r.SubjectName, r.StatusId, r.Attended,
+            Duration = r.EndTime - r.StartTime
+        }).ToList();
 
         static double Hours(IEnumerable<TimeSpan> spans) => Math.Round(spans.Sum(d => d.TotalHours), 2);
 

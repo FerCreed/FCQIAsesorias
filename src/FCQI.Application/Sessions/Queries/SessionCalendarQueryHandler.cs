@@ -26,7 +26,9 @@ public class SessionCalendarQueryHandler
                         Subject = x.Subject.Name,
                         Advisor = x.Advisor.Person.DisplayName,
                         Location = x.Availability.Location.Name,
-                        Duration = x.Availability.EndTime - x.Availability.StartTime
+                        // Las horas se restan en memoria: MySQL devuelve la resta de TIME como entero.
+                        x.Availability.StartTime,
+                        x.Availability.EndTime
                     })
                     .SingleOrDefaultAsync(cancellationToken)
                 ?? throw new NotFoundException("La asesoría no existe.");
@@ -41,7 +43,7 @@ public class SessionCalendarQueryHandler
             .Append($"UID:asesoria-{s.Entity.Id}@fcqi.uabc.edu.mx\r\n")
             .Append($"DTSTAMP:{Stamp(DateTime.UtcNow)}\r\n")
             .Append($"DTSTART:{Stamp(start)}\r\n")
-            .Append($"DTEND:{Stamp(start + s.Duration)}\r\n")
+            .Append($"DTEND:{Stamp(start + (s.EndTime - s.StartTime))}\r\n")
             .Append($"SUMMARY:{Escape($"Asesoría de {s.Subject} con {s.Advisor}")}\r\n")
             .Append($"LOCATION:{Escape(where)}\r\n")
             .Append($"DESCRIPTION:{Escape(s.Entity.Topic)}\r\n")
