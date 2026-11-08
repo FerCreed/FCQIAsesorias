@@ -2,6 +2,8 @@ using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Browser;
 using FCQI.Web;
+using FCQI.Web.Browser;
+using FCQI.Web.Services;
 
 [assembly: SupportedOSPlatform("browser")]
 
@@ -15,6 +17,9 @@ internal sealed partial class Program
     private static Task Main(string[] args)
     {
         App.ApiBaseAddress = ApiAddress(args.FirstOrDefault());
+        HostHooks.Download = (name, mime, bytes) => BrowserInterop.Download(name, mime, Convert.ToBase64String(bytes));
+        HostHooks.GetSetting = BrowserInterop.GetSetting;
+        HostHooks.SetSetting = BrowserInterop.SetSetting;
         return BuildAvaloniaApp()
             .WithInterFont()
             .StartBrowserAppAsync("out");

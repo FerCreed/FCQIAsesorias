@@ -13,11 +13,13 @@ public class CachedCatalogApi : ICatalogApi
     private readonly ICatalogApi _inner;
     private Task<List<SubjectItem>>? _subjects;
     private Task<List<LocationItem>>? _locations;
+    private Task<TermItem>? _term;
 
     public CachedCatalogApi(ICatalogApi inner) => _inner = inner;
 
     public Task<List<SubjectItem>> GetSubjectsAsync() => _subjects = Retry(_subjects) ?? _inner.GetSubjectsAsync();
     public Task<List<LocationItem>> GetLocationsAsync() => _locations = Retry(_locations) ?? _inner.GetLocationsAsync();
+    public Task<TermItem> GetTermAsync() => _term = Retry(_term) ?? _inner.GetTermAsync();
     public Task<List<AdvisorItem>> GetAdvisorsAsync(int subjectId) => _inner.GetAdvisorsAsync(subjectId);
     public Task<List<AvailabilityItem>> GetAvailabilitiesAsync(int advisorId) => _inner.GetAvailabilitiesAsync(advisorId);
 

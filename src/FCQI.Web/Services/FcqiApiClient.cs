@@ -32,6 +32,7 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
     public async Task<List<AdvisorItem>> GetAdvisorsAsync(int subjectId) => await GetAsync($"api/advisors?subjectId={subjectId}", Json.ListAdvisorItem) ?? [];
     public async Task<List<AvailabilityItem>> GetAvailabilitiesAsync(int advisorId) => await GetAsync($"api/advisors/{advisorId}/availabilities", Json.ListAvailabilityItem) ?? [];
     public async Task<List<LocationItem>> GetLocationsAsync() => await GetAsync("api/locations", Json.ListLocationItem) ?? [];
+    public async Task<TermItem> GetTermAsync() => await GetAsync("api/terms/current", Json.TermItem) ?? new TermItem();
 
     // Asesorías
     public async Task<List<SessionItem>> GetSessionsAsync(string scope) => await GetAsync($"api/sessions?scope={scope}", Json.ListSessionItem) ?? [];
@@ -39,7 +40,8 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
     public Task UpdateStatusAsync(int sessionId, string status) => SendAsync(HttpMethod.Patch, $"api/sessions/{sessionId}/status", new UpdateStatusBody(status), Json.UpdateStatusBody);
     public Task RescheduleAsync(int sessionId, RescheduleBody body) => SendAsync(HttpMethod.Patch, $"api/sessions/{sessionId}/schedule", body, Json.RescheduleBody);
     public Task RecordLogAsync(int sessionId, SessionLogBody body) => SendAsync(HttpMethod.Post, $"api/sessions/{sessionId}/log", body, Json.SessionLogBody);
-    public Task<string> GetCalendarAsync(int sessionId) => GetTextAsync($"api/sessions/{sessionId}/calendar.ics");
+    public Task<byte[]> GetCalendarAsync(int sessionId) => GetBytesAsync($"api/sessions/{sessionId}/calendar.ics");
+    public Task<byte[]> GetSessionReportAsync(int sessionId) => GetBytesAsync($"api/sessions/{sessionId}/report.pdf");
     public Task ContactAdvisorAsync(int advisorId, string message) => SendAsync(HttpMethod.Post, $"api/advisors/{advisorId}/messages", new ContactBody(message), Json.ContactBody);
 
     // Horarios del asesor
@@ -51,8 +53,14 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
     // Dirección
     public async Task<List<AdvisorItem>> GetAdminAdvisorsAsync() => await GetAsync("api/admin/advisors", Json.ListAdvisorItem) ?? [];
     public Task SaveAdvisorSubjectsAsync(int advisorId, List<int> subjectIds) => SendAsync(HttpMethod.Put, $"api/admin/advisors/{advisorId}/subjects", subjectIds, Json.ListInt32);
-    public async Task<ReportItem> GetReportAsync() => await GetAsync("api/admin/reports", Json.ReportItem) ?? new ReportItem();
-    public Task<string> GetReportCsvAsync() => GetTextAsync("api/admin/reports.csv");
+    public Task<byte[]> GetMyReportAsync(string format, DateOnly from, DateOnly to)
+        => GetBytesAsync($"api/advisors/me/report.{format}?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
+
+    // Reportes
+    public async Task<DashboardItem> GetDashboardAsync(ReportFilterItem filter) => await GetAsync($"api/admin/reports?{filter.Query}", Json.DashboardItem) ?? new DashboardItem();
+    public Task<byte[]> GetSessionsExportAsync(string format, ReportFilterItem filter) => GetBytesAsync($"api/admin/sessions.{format}?{filter.Query}");
+    public Task<byte[]> GetAdvisorReportAsync(int advisorId, string format, DateOnly from, DateOnly to)
+        => GetBytesAsync($"api/admin/advisors/{advisorId}/report.{format}?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
 
     private async Task<T?> GetAsync<T>(string url, JsonTypeInfo<T> typeInfo)
     {
@@ -61,11 +69,11 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
         return await response.Content.ReadFromJsonAsync(typeInfo);
     }
 
-    private async Task<string> GetTextAsync(string url)
+    private async Task<byte[]> GetBytesAsync(string url)
     {
         using var response = await _http.GetAsync(url);
         await ThrowIfFailedAsync(response);
-        return await response.Content.ReadAsStringAsync();
+        return await response.Content.ReadAsByteArrayAsync();
     }
 
     private async Task SendAsync<T>(HttpMethod method, string url, T? body, JsonTypeInfo<T>? typeInfo)

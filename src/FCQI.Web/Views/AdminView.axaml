@@ -2,23 +2,33 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:FCQI.Web.ViewModels"
              xmlns:models="using:FCQI.Web.Models"
+             xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.AdminView"
              x:DataType="vm:AdminViewModel">
     <StackPanel Classes="page">
         <StackPanel Spacing="4">
-            <TextBlock Classes="h1" Text="Asesores y materias" />
+            <TextBlock Classes="h1" Text="Asesores y materias" AutomationProperties.HeadingLevel="1" />
             <TextBlock Classes="muted" FontSize="15" Text="Elige un asesor y marca las materias que cubre este ciclo." />
         </StackPanel>
 
+        <WrapPanel ItemSpacing="10" LineSpacing="8">
+            <TextBox Text="{Binding Query}" Watermark="Buscar asesor por nombre o correo" MinWidth="260" AutomationProperties.Name="Buscar asesor" />
+            <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" MinWidth="150" AutomationProperties.Name="Tipo de asesor" />
+            <TextBlock Classes="label" Text="{Binding ResultText}" VerticalAlignment="Center" />
+        </WrapPanel>
+
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-            <ListBox Classes="picker" ItemsSource="{Binding Advisors}" SelectedItem="{Binding SelectedAdvisor}">
+            <ListBox Classes="picker" ItemsSource="{Binding Advisors}" SelectedItem="{Binding SelectedAdvisor}" AutomationProperties.Name="Asesores">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="models:AdvisorItem">
                         <Border Classes="pick">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" />
-                                <TextBlock Classes="muted" Text="{Binding Summary}" />
-                            </StackPanel>
+                            <Grid ColumnDefinitions="Auto,*">
+                                <PathIcon Data="{StaticResource Icon.Person}" Foreground="{StaticResource BrushGreen}" Margin="0,2,10,0" VerticalAlignment="Top" />
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" Foreground="{StaticResource BrushGreenDark}" />
+                                    <TextBlock Classes="muted" Text="{Binding Summary}" />
+                                </StackPanel>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -27,6 +37,7 @@
             <Border Classes="card side" VerticalAlignment="Top">
                 <StackPanel Spacing="10">
                     <TextBlock Classes="h3" Text="{Binding SelectedAdvisor.FullName, FallbackValue='Elige un asesor'}" />
+                    <TextBox Text="{Binding SubjectQuery}" Watermark="Filtrar materias" AutomationProperties.Name="Filtrar materias" />
                     <ItemsControl ItemsSource="{Binding Subjects}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:AssignableSubject">
@@ -34,8 +45,9 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button Classes="primary" Content="Guardar materias" Command="{Binding SaveCommand}"
-                            IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+                    <Button Classes="primary" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch">
+                        <views:IconText Icon="{StaticResource Icon.Checkmark}" Text="Guardar materias" />
+                    </Button>
                 </StackPanel>
             </Border>
         </Grid>

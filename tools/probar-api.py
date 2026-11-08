@@ -43,11 +43,11 @@ def call(method, path, token=None, body=None):
         request.add_header("Authorization", "Bearer " + token)
     try:
         with urllib.request.urlopen(request, timeout=15) as response:
-            raw = response.read().decode("utf-8-sig")
+            raw = response.read().decode("utf-8-sig", errors="replace")
             try:
                 return response.status, (json.loads(raw) if raw.strip() else None)
             except json.JSONDecodeError:
-                return response.status, raw   # .ics y .csv
+                return response.status, raw   # .ics, .csv y .pdf
     except urllib.error.HTTPError as e:
         raw = e.read().decode()
         try:
@@ -311,13 +311,32 @@ s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "Prueba automát
 check("I13 el alumno escribe al asesor (BPMN 15)", s == 204, (s, b))
 s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "   "})
 check("I14 un mensaje vacío se rechaza", s == 400, (s, b))
+hoy = datetime.date.today()
+desde, hasta = (hoy - datetime.timedelta(days=60)).isoformat(), hoy.isoformat()
+rango = f"from={desde}&to={hasta}"
+s, ciclo = call("GET", "/api/terms/current")
+check("I15 el ciclo vigente es público (límites del calendario)", s == 200 and ciclo.get("startsOn"), (s, ciclo))
+s, tablero = call("GET", f"/api/admin/reports?{rango}", TD)
+check("I16 dirección obtiene métricas del periodo (BPMN 6)", s == 200 and tablero["metrics"]["total"] > 0, (s, str(tablero)[:120]))
+s, csv = call("GET", f"/api/admin/sessions.csv?{rango}", TD)
+check("I17 todas las asesorías desde una fecha en CSV (25 columnas)",
+      s == 200 and str(csv).startswith('"Id"') and str(csv).splitlines()[0].count('","') == 24, (s, str(csv)[:60]))
+s, pdf = call("GET", f"/api/admin/sessions.pdf?{rango}", TD)
+check("I18 todas las asesorías en PDF", s == 200 and str(pdf).startswith("%PDF"), (s, str(pdf)[:20]))
+check("I19 un asesor no descarga todas las asesorías (403)", call("GET", f"/api/admin/sessions.csv?{rango}", TS)[0] == 403)
+s, pdf = call("GET", f"/api/advisors/me/report.pdf?{rango}", TS)
+check("I20 el asesor descarga su resumen con horas (PDF)", s == 200 and str(pdf).startswith("%PDF"), (s, str(pdf)[:20]))
+check("I21 un alumno no tiene resumen de asesor (403)", call("GET", f"/api/advisors/me/report.csv?{rango}", TA)[0] == 403)
+s, csv = call("GET", f"/api/admin/advisors/1/report.csv?{rango}", TD)
+check("I22 dirección descarga el resumen de cualquier asesor", s == 200 and str(csv).startswith('"Id"'), (s, str(csv)[:40]))
+if viva:
+    s, pdf = call("GET", f"/api/sessions/{viva}/report.pdf", TA)
+    check("I23 el alumno descarga el reporte individual", s == 200 and str(pdf).startswith("%PDF"), (s, str(pdf)[:20]))
+    check("I24 dirección también lo descarga", call("GET", f"/api/sessions/{viva}/report.pdf", TD)[0] == 200)
+    check("I25 un ajeno no lo descarga (403)", call("GET", f"/api/sessions/{viva}/report.pdf", TA2)[0] == 403)
+check("I26 sin fecha inicial el reporte se rechaza (400)", call("GET", "/api/admin/reports", TD)[0] == 400)
 estados = [call("POST", "/api/advisors/1/messages", TA, {"message": f"Ráfaga {i}"})[0] for i in range(5)]
-check("I18 más de 5 mensajes por minuto se frenan (429)", 429 in estados, estados)
-s, reporte = call("GET", "/api/admin/reports", TD)
-check("I15 dirección obtiene métricas del ciclo (BPMN 6)", s == 200 and reporte["requested"] > 0, s)
-s, csv = call("GET", "/api/admin/reports.csv", TD)
-check("I16 la constancia sale en CSV", s == 200 and str(csv).startswith("Ciclo,"), (s, str(csv)[:40]))
-check("I17 un alumno no ve reportes (403)", call("GET", "/api/admin/reports", TA)[0] == 403)
+check("I27 más de 5 mensajes por minuto se frenan (429)", 429 in estados, estados)
 
 print("\n== LIMPIEZA ==")
 for sid in creadas:

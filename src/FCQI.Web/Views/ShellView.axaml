@@ -4,15 +4,14 @@
              xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.ShellView"
              x:DataType="vm:ShellViewModel"
-             Background="{StaticResource Paper}">
+             Background="{StaticResource BrushPaper}">
 
     <!--
         Diseño adaptable: ShellView.axaml.cs pone la clase "compact" en la raíz
-        cuando la app mide menos de 640 px de ancho. Decide el ancho de la
-        propia app, no el de la pantalla, así que funciona igual en una ventana
-        de escritorio angosta que en un teléfono vertical.
-          · ancho:    menú horizontal en la cabecera.
-          · compact:  cabecera compacta y pestañas fijas abajo.
+        cuando el ancho disponible (ya con zoom) baja de 640 px. Así un teléfono
+        vertical, una ventana angosta o un zoom grande usan el mismo diseño.
+          · ancho:    encabezado completo con menú.
+          · compact:  encabezado corto y pestañas fijas abajo.
         Clases que usan las páginas: .side, .cards, .stretchCompact.
     -->
     <UserControl.Styles>
@@ -23,11 +22,15 @@
             <Setter Property="Columns" Value="3" />
         </Style>
         <Style Selector="StackPanel.page">
-            <Setter Property="Margin" Value="24,24,24,32" />
+            <Setter Property="Margin" Value="20,20,20,36" />
             <Setter Property="MaxWidth" Value="1040" />
             <Setter Property="Spacing" Value="16" />
         </Style>
-        <!-- Panel lateral de las páginas con lista + formulario. -->
+        <!-- Columna y alineación van en estilo, no en el elemento: un valor local no lo podría cambiar el estilo de móvil. -->
+        <Style Selector="WrapPanel.account">
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
         <Style Selector="Control.side">
             <Setter Property="Grid.Column" Value="1" />
             <Setter Property="Grid.Row" Value="0" />
@@ -39,21 +42,25 @@
         <Style Selector="Grid.compact Border.bottomTabs">
             <Setter Property="IsVisible" Value="True" />
         </Style>
-        <Style Selector="Grid.compact ItemsControl.topMenu">
+        <Style Selector="Grid.compact ItemsControl.topMenu, Grid.compact TextBlock.wideOnly">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <Style Selector="Grid.compact TextBlock.subtitle">
-            <Setter Property="IsVisible" Value="False" />
+        <!-- En el teléfono la fila de zoom y cuenta baja debajo del título; queda en la columna 0 para que la columna automática no reserve ancho. -->
+        <Style Selector="Grid.compact WrapPanel.account">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,0,0,10" />
         </Style>
         <Style Selector="Grid.compact UniformGrid.cards">
             <Setter Property="Columns" Value="1" />
         </Style>
         <Style Selector="Grid.compact StackPanel.page">
-            <Setter Property="Margin" Value="14,16,14,24" />
+            <Setter Property="Margin" Value="12,14,12,24" />
             <Setter Property="Spacing" Value="12" />
         </Style>
         <Style Selector="Grid.compact TextBlock.h1">
-            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontSize" Value="22" />
         </Style>
         <Style Selector="Grid.compact Border.card">
             <Setter Property="Padding" Value="14" />
@@ -69,6 +76,17 @@
         </Style>
     </UserControl.Styles>
 
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}" />
+        <KeyBinding Gesture="Ctrl+Add" Command="{Binding ZoomInCommand}" />
+        <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOutCommand}" />
+        <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding ZoomOutCommand}" />
+        <KeyBinding Gesture="Ctrl+D0" Command="{Binding ZoomResetCommand}" />
+        <KeyBinding Gesture="Meta+OemPlus" Command="{Binding ZoomInCommand}" />
+        <KeyBinding Gesture="Meta+OemMinus" Command="{Binding ZoomOutCommand}" />
+        <KeyBinding Gesture="Meta+D0" Command="{Binding ZoomResetCommand}" />
+    </UserControl.KeyBindings>
+
     <UserControl.DataTemplates>
         <DataTemplate DataType="vm:HomeViewModel"><views:HomeView /></DataTemplate>
         <DataTemplate DataType="vm:LoginViewModel"><views:LoginView /></DataTemplate>
@@ -79,75 +97,111 @@
         <DataTemplate DataType="vm:ReportsViewModel"><views:ReportsView /></DataTemplate>
     </UserControl.DataTemplates>
 
-    <Grid x:Name="Root" RowDefinitions="Auto,Auto,*,Auto">
+    <!-- Zoom de accesibilidad: escala toda la interfaz y el diseño se recalcula. -->
+    <LayoutTransformControl>
+        <LayoutTransformControl.LayoutTransform>
+            <ScaleTransform ScaleX="{Binding Zoom}" ScaleY="{Binding Zoom}" />
+        </LayoutTransformControl.LayoutTransform>
 
-        <!-- Cabecera -->
-        <Border Grid.Row="0" Background="{StaticResource GreenDeep}" Padding="20,12,20,0">
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                <StackPanel Spacing="2" Margin="0,0,0,10">
-                    <TextBlock Text="Asesorías académicas" Foreground="White" FontSize="18" FontWeight="Bold" />
-                    <TextBlock Classes="subtitle" Text="Facultad de Ciencias Químicas e Ingeniería, UABC" Foreground="#B9D7C5" FontSize="12" />
-                </StackPanel>
+        <Grid x:Name="Root" RowDefinitions="Auto,Auto,*,Auto">
 
-                <!-- Cuenta: rol activo, entrar y salir -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
-                    <ComboBox ItemsSource="{Binding Session.Roles}" SelectedItem="{Binding Session.ActiveRole}"
-                              IsVisible="{Binding Session.HasSeveralRoles}" MinWidth="120"
-                              ToolTip.Tip="Rol con el que usas el sistema" />
-                    <Button Classes="primary" Content="Entrar" Command="{Binding OpenLoginCommand}"
-                            IsVisible="{Binding !Session.IsLoggedIn}" />
-                    <Button Classes="quiet" Content="Salir" Command="{Binding LogoutCommand}"
-                            Foreground="White" BorderBrush="#7FB89A"
-                            IsVisible="{Binding Session.IsLoggedIn}" />
-                </StackPanel>
+            <!-- Encabezado institucional -->
+            <Border Grid.Row="0" Background="White" BoxShadow="0 1 8 0 #22000000" ZIndex="2">
+                <Grid Margin="16,10,16,0" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                    <StackPanel Margin="0,0,0,8">
+                        <TextBlock Classes="wideOnly" Text="Universidad Autónoma de Baja California"
+                                   FontSize="11" Foreground="{StaticResource BrushGreenDark}" />
+                        <TextBlock Text="Facultad de Ciencias Químicas e Ingeniería"
+                                   FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Text="Sistema de Asesorías Académicas" FontSize="13" Foreground="{StaticResource BrushGoldText}" />
+                    </StackPanel>
 
-                <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" Classes="topMenu" ItemsSource="{Binding Menu}">
+                    <!-- Accesibilidad y cuenta -->
+                    <WrapPanel Classes="account" ItemSpacing="6" LineSpacing="6" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <Button Classes="quiet" Padding="10,6" Command="{Binding ZoomOutCommand}"
+                                    AutomationProperties.Name="Reducir tamaño" ToolTip.Tip="Reducir tamaño (Ctrl −)">
+                                <PathIcon Data="{StaticResource Icon.ZoomOut}" />
+                            </Button>
+                            <Button Classes="quiet" Padding="8,6" MinWidth="58" Command="{Binding ZoomResetCommand}"
+                                    Content="{Binding ZoomText}" FontSize="12"
+                                    AutomationProperties.Name="Restablecer tamaño" ToolTip.Tip="Tamaño normal (Ctrl 0)" />
+                            <Button Classes="quiet" Padding="10,6" Command="{Binding ZoomInCommand}"
+                                    AutomationProperties.Name="Aumentar tamaño" ToolTip.Tip="Aumentar tamaño (Ctrl +)">
+                                <PathIcon Data="{StaticResource Icon.ZoomIn}" />
+                            </Button>
+                        </StackPanel>
+                        <ComboBox ItemsSource="{Binding Session.Roles}" SelectedItem="{Binding Session.ActiveRole}"
+                                  IsVisible="{Binding Session.HasSeveralRoles}" MinWidth="120"
+                                  AutomationProperties.Name="Entrar como" ToolTip.Tip="Rol con el que usas el sistema" />
+                        <Button Classes="primary" Command="{Binding OpenLoginCommand}" IsVisible="{Binding !Session.IsLoggedIn}">
+                            <views:IconText Icon="{StaticResource Icon.SignIn}" Text="Entrar" />
+                        </Button>
+                        <Button Classes="quiet" Command="{Binding LogoutCommand}" IsVisible="{Binding Session.IsLoggedIn}">
+                            <views:IconText Icon="{StaticResource Icon.SignOut}" Text="Salir" />
+                        </Button>
+                    </WrapPanel>
+
+                    <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" Classes="topMenu" ItemsSource="{Binding Menu}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:NavItem">
+                                <Button Classes="nav" Classes.current="{Binding IsCurrent}"
+                                        Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).GoCommand}"
+                                        CommandParameter="{Binding Page}">
+                                    <views:IconText Icon="{Binding Icon}" Text="{Binding Label}" />
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
+            <!-- Mensajes del sistema: fijos bajo el encabezado, siempre a la vista. -->
+            <Border Grid.Row="1" Background="{StaticResource BrushNotice}" BorderBrush="{StaticResource BrushNoticeLine}"
+                    BorderThickness="0,0,0,1" Padding="16,8"
+                    IsVisible="{Binding Status.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Classes.error="{Binding Status.IsError}">
+                <Border.Styles>
+                    <Style Selector="Border.error">
+                        <Setter Property="Background" Value="{StaticResource BrushDangerMist}" />
+                    </Style>
+                </Border.Styles>
+                <Grid ColumnDefinitions="Auto,*" MaxWidth="1040" HorizontalAlignment="Stretch">
+                    <PathIcon Data="{StaticResource Icon.Info}" Foreground="{StaticResource BrushGreenDark}" VerticalAlignment="Top" Margin="0,1,8,0" />
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock IsVisible="{Binding Session.IsLoggedIn}" FontSize="12" FontWeight="Bold"
+                                   Foreground="{StaticResource BrushGreenDark}"
+                                   Text="{Binding Session.ActiveRole, StringFormat='Estás como {0}'}" />
+                        <TextBlock Text="{Binding Status.Message}" Foreground="{StaticResource BrushInk}" FontSize="14" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+                <ContentControl Content="{Binding CurrentPage}" />
+            </ScrollViewer>
+
+            <!-- Pestañas inferiores en pantallas angostas -->
+            <Border Grid.Row="3" Classes="bottomTabs" Background="White"
+                    BorderBrush="{StaticResource BrushLine}" BorderThickness="0,1,0,0">
+                <ItemsControl ItemsSource="{Binding Menu}">
                     <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:NavItem">
-                            <Button Classes="nav" Classes.current="{Binding IsCurrent}" Content="{Binding Label}"
+                            <Button Classes="tab" Classes.current="{Binding IsCurrent}"
                                     Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).GoCommand}"
-                                    CommandParameter="{Binding Page}" />
+                                    CommandParameter="{Binding Page}">
+                                <views:IconText Icon="{Binding Icon}" Text="{Binding Label}" Vertical="True" />
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </Grid>
-        </Border>
-
-        <!-- Resultado de la última acción -->
-        <Border Grid.Row="1" Padding="20,10" IsVisible="{Binding Status.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                Background="{StaticResource GreenMist}" Classes.error="{Binding Status.IsError}">
-            <Border.Styles>
-                <Style Selector="Border.error">
-                    <Setter Property="Background" Value="#FDECEA" />
-                </Style>
-            </Border.Styles>
-            <TextBlock Text="{Binding Status.Message}" FontSize="13" MaxWidth="1040" HorizontalAlignment="Left" />
-        </Border>
-
-        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
-            <ContentControl Content="{Binding CurrentPage}" />
-        </ScrollViewer>
-
-        <!-- Pestañas inferiores en pantallas angostas -->
-        <Border Grid.Row="3" Classes="bottomTabs" Background="{StaticResource Surface}"
-                BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
-            <ItemsControl ItemsSource="{Binding Menu}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:NavItem">
-                        <Button Classes="tab" Classes.current="{Binding IsCurrent}"
-                                Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).GoCommand}"
-                                CommandParameter="{Binding Page}">
-                            <TextBlock Text="{Binding Label}" TextAlignment="Center" FontSize="12" Foreground="{Binding $parent[Button].Foreground}" />
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Border>
-    </Grid>
+            </Border>
+        </Grid>
+    </LayoutTransformControl>
 </UserControl>

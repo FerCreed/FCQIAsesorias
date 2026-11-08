@@ -31,33 +31,71 @@ public class SessionItem
     [JsonIgnore] public bool HasMeetingLink => !string.IsNullOrEmpty(MeetingLink);
 }
 
-public class ReportItem
+/// <summary>Tablero de dirección: periodo y métricas de las asesorías.</summary>
+public class DashboardItem
 {
-    public string Term { get; set; } = string.Empty;
-    public int Requested { get; set; }
+    public PeriodItem Period { get; set; } = new();
+    public MetricsItem Metrics { get; set; } = new();
+}
+
+public class PeriodItem
+{
+    public DateOnly From { get; set; }
+    public DateOnly To { get; set; }
+}
+
+public class MetricsItem
+{
+    public int Total { get; set; }
+    public int Pending { get; set; }
+    public int Confirmed { get; set; }
     public int Completed { get; set; }
     public int Cancelled { get; set; }
     public int Rejected { get; set; }
+    public int Attended { get; set; }
+    public int NoShow { get; set; }
     public double AttendanceRate { get; set; }
+    public double CancellationRate { get; set; }
+    public double RejectionRate { get; set; }
     public double Hours { get; set; }
+    public double AverageLeadDays { get; set; }
     public bool HasData { get; set; }
-    public List<AdvisorReportItem> ByAdvisor { get; set; } = [];
-    public List<SubjectDemandItem> BySubject { get; set; } = [];
+    public List<AdvisorRowItem> ByAdvisor { get; set; } = [];
+    public List<CountRowItem> BySubject { get; set; } = [];
+    public List<CountRowItem> ByWeekday { get; set; } = [];
+    public List<CountRowItem> ByModality { get; set; } = [];
 }
 
-public class AdvisorReportItem
+public class AdvisorRowItem
 {
     public int AdvisorId { get; set; }
     public string AdvisorName { get; set; } = string.Empty;
+    public string Kind { get; set; } = string.Empty;
     public int Requested { get; set; }
     public int Completed { get; set; }
     public int Attended { get; set; }
     public double Hours { get; set; }
 }
 
-public class SubjectDemandItem
+public class CountRowItem
 {
-    public int SubjectId { get; set; }
-    public string SubjectName { get; set; } = string.Empty;
-    public int Requested { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public double Hours { get; set; }
+}
+
+/// <summary>Filtros de los reportes de dirección.</summary>
+public record ReportFilterItem(DateOnly From, DateOnly To, int? AdvisorId = null, int? SubjectId = null, string? Status = null)
+{
+    public string Query
+    {
+        get
+        {
+            var q = $"from={From:yyyy-MM-dd}&to={To:yyyy-MM-dd}";
+            if (AdvisorId is not null) q += $"&advisorId={AdvisorId}";
+            if (SubjectId is not null) q += $"&subjectId={SubjectId}";
+            if (!string.IsNullOrEmpty(Status)) q += $"&status={Uri.EscapeDataString(Status)}";
+            return q;
+        }
+    }
 }

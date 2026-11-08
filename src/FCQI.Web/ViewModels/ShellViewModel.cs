@@ -1,19 +1,27 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
-/// <summary>Entrada del menú: a qué página lleva y cuándo se muestra.</summary>
+/// <summary>Entrada del menú: a qué página lleva, con qué ícono y cuándo se muestra.</summary>
 public partial class NavItem : ObservableObject
 {
-    public NavItem(string label, AppPage page, Func<SessionContext, bool> isVisible)
-        => (Label, Page, IsVisibleFor) = (label, page, isVisible);
+    public NavItem(string label, AppPage page, string icon, Func<SessionContext, bool> isVisible)
+    {
+        (Label, Page, IsVisibleFor) = (label, page, isVisible);
+        Icon = Application.Current?.TryFindResource($"Icon.{icon}", out var geometry) == true ? geometry as Geometry : null;
+    }
 
     public string Label { get; }
     public AppPage Page { get; }
+    public Geometry? Icon { get; }
     public Func<SessionContext, bool> IsVisibleFor { get; }
 
     [ObservableProperty] private bool _isCurrent;
@@ -21,36 +29,52 @@ public partial class NavItem : ObservableObject
 
 /// <summary>
 /// Contenedor de la app (Composición): arma el menú, decide qué página se
-/// muestra y protege las que exigen sesión o rol. Las páginas se crean con la
-/// fábrica de DI, una sola vez cada una, y conservan su estado entre visitas.
+/// muestra, protege las que exigen sesión o rol y controla el zoom. Las
+/// páginas se crean con la fábrica de DI, una vez cada una.
 /// </summary>
 public partial class ShellViewModel : ObservableObject, INavigator
 {
+    public const double MinZoom = 0.8;
+    public const double MaxZoom = 2.0;
+    private const string ZoomKey = "fcqi.zoom";
+
     private readonly Func<AppPage, PageViewModel> _pages;
     private readonly IFcqiApi _api;
+    private readonly IPlatformServices _platform;
     private readonly NavItem[] _menu;
     private AppPage _returnTo = AppPage.Home;
     private AppPage _current = AppPage.Home;
 
     [ObservableProperty] private PageViewModel? _currentPage;
 
-    public ShellViewModel(Func<AppPage, PageViewModel> pages, SessionContext session, AppStatus status, IFcqiApi api)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ZoomText))]
+    private double _zoom = 1;
+
+    public ShellViewModel(
+        Func<AppPage, PageViewModel> pages, SessionContext session, AppStatus status, IFcqiApi api, IPlatformServices platform)
     {
         _pages = pages;
         _api = api;
+        _platform = platform;
         Session = session;
         Status = status;
 
         _menu =
         [
-            new("Inicio", AppPage.Home, _ => true),
-            new("Catálogo", AppPage.Catalog, _ => true),
-            new("Mis asesorías", AppPage.Sessions, s => s.IsStudent),
-            new("Solicitudes", AppPage.Sessions, s => s.IsAdvisor),
-            new("Mis horarios", AppPage.Availability, s => s.IsAdvisor),
-            new("Dirección", AppPage.Admin, s => s.IsAdmin),
-            new("Reportes", AppPage.Reports, s => s.IsAdmin)
+            new("Inicio", AppPage.Home, "Home", _ => true),
+            new("Buscar", AppPage.Catalog, "Search", _ => true),
+            new("Mis asesorías", AppPage.Sessions, "Calendar", s => s.IsStudent),
+            new("Solicitudes", AppPage.Sessions, "Board", s => s.IsAdvisor),
+            new("Mis horarios", AppPage.Availability, "Clock", s => s.IsAdvisor),
+            new("Dirección", AppPage.Admin, "People", s => s.IsAdmin),
+            new("Reportes", AppPage.Reports, "DataBar", s => s.IsAdmin)
         ];
+
+        if (double.TryParse(platform.GetSetting(ZoomKey), NumberStyles.Float, CultureInfo.InvariantCulture, out var saved))
+        {
+            Zoom = Math.Clamp(saved, MinZoom, MaxZoom);
+        }
 
         Session.PropertyChanged += OnSessionChanged;
         RefreshMenu();
@@ -59,6 +83,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
     public SessionContext Session { get; }
     public AppStatus Status { get; }
     public ObservableCollection<NavItem> Menu { get; } = [];
+    public string ZoomText => $"{Math.Round(Zoom * 100)} %";
 
     public async Task StartAsync()
     {
@@ -119,12 +144,29 @@ public partial class ShellViewModel : ObservableObject, INavigator
     [RelayCommand]
     private void OpenLogin() => RequireLogin(_current == AppPage.Login ? AppPage.Home : _current, "Entra con tu correo institucional @uabc.edu.mx.");
 
+    /// <summary>BPMN 17: borra el token y vacía listas y selecciones para que nadie vea datos ajenos.</summary>
     [RelayCommand]
     private async Task LogoutAsync()
     {
         Session.SignOut();
+        foreach (var page in Enum.GetValues<AppPage>().Select(_pages).OfType<IResettable>())
+        {
+            page.Reset();
+        }
+
         Status.Info("Sesión cerrada. El catálogo sigue disponible.");
         await GoAsync(AppPage.Home);
+    }
+
+    [RelayCommand] private void ZoomIn() => SetZoom(Zoom + 0.1);
+    [RelayCommand] private void ZoomOut() => SetZoom(Zoom - 0.1);
+    [RelayCommand] private void ZoomReset() => SetZoom(1);
+
+    private void SetZoom(double value)
+    {
+        Zoom = Math.Round(Math.Clamp(value, MinZoom, MaxZoom), 1);
+        _platform.SetSetting(ZoomKey, Zoom.ToString(CultureInfo.InvariantCulture));
+        Status.Info($"Tamaño de la interfaz: {ZoomText}.");
     }
 
     /// <summary>Por qué no se puede entrar a una página, o null si se puede.</summary>
@@ -138,18 +180,20 @@ public partial class ShellViewModel : ObservableObject, INavigator
 
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(SessionContext.ActiveRole))
+        if (e.PropertyName is not nameof(SessionContext.ActiveRole))
         {
-            RefreshMenu();
-            // Al cambiar de rol, la página actual puede dejar de estar permitida.
-            if (Guard(_current) is not null)
-            {
-                _ = GoAsync(AppPage.Home);
-            }
-            else
-            {
-                _ = CurrentPage?.OnNavigatedToAsync();
-            }
+            return;
+        }
+
+        RefreshMenu();
+        // Al cambiar de rol, la página actual puede dejar de estar permitida.
+        if (Guard(_current) is not null)
+        {
+            _ = GoAsync(AppPage.Home);
+        }
+        else
+        {
+            _ = CurrentPage?.OnNavigatedToAsync();
         }
     }
 

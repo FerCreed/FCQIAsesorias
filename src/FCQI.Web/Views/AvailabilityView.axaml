@@ -2,15 +2,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:FCQI.Web.ViewModels"
              xmlns:models="using:FCQI.Web.Models"
+             xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.AvailabilityView"
              x:DataType="vm:AvailabilityViewModel">
     <StackPanel Classes="page">
         <StackPanel Spacing="4">
-            <TextBlock Classes="h1" Text="Mis horarios" />
-            <TextBlock Classes="muted" FontSize="15" Text="Bloques semanales del ciclo vigente. Los alumnos los ven en el catálogo." />
+            <TextBlock Classes="h1" Text="Mis horarios" AutomationProperties.HeadingLevel="1" />
+            <TextBlock Classes="muted" FontSize="15">
+                <Run Text="Bloques semanales del ciclo vigente:" /> <Run Text="{Binding WeeklyHours}" /><Run Text=" horas por semana." />
+            </TextBlock>
         </StackPanel>
 
-        <!-- Ancho: lista y formulario lado a lado. Angosto: el formulario baja (.side). -->
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
             <StackPanel Spacing="8">
                 <Border Classes="card" IsVisible="{Binding IsEmpty}">
@@ -23,21 +25,24 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:AvailabilityItem">
                             <Border Classes="pick">
-                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock FontWeight="SemiBold">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <PathIcon Data="{StaticResource Icon.Clock}" Foreground="{StaticResource BrushGreen}" Margin="0,2,10,0" VerticalAlignment="Top" />
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock FontWeight="SemiBold" Foreground="{StaticResource BrushGreenDark}">
                                             <Run Text="{Binding DayName}" /> <Run Text="{Binding TimeRange}" />
                                         </TextBlock>
                                         <TextBlock Classes="muted" Text="{Binding Where}" />
                                         <TextBlock Classes="muted" Text="{Binding MaxCapacity, StringFormat='Cupo: {0}'}" />
                                     </StackPanel>
-                                    <WrapPanel Grid.Column="1" ItemSpacing="8" VerticalAlignment="Center">
-                                        <Button Classes="quiet" Content="Editar"
-                                                Command="{Binding $parent[UserControl].((vm:AvailabilityViewModel)DataContext).EditCommand}"
-                                                CommandParameter="{Binding}" />
-                                        <Button Classes="danger" Content="Retirar"
-                                                Command="{Binding $parent[UserControl].((vm:AvailabilityViewModel)DataContext).RetireCommand}"
-                                                CommandParameter="{Binding}" />
+                                    <WrapPanel Grid.Column="2" ItemSpacing="8" LineSpacing="8" VerticalAlignment="Center">
+                                        <Button Classes="quiet" Command="{Binding $parent[UserControl].((vm:AvailabilityViewModel)DataContext).EditCommand}"
+                                                CommandParameter="{Binding}">
+                                            <views:IconText Icon="{StaticResource Icon.Edit}" Text="Editar" />
+                                        </Button>
+                                        <Button Classes="danger" Command="{Binding $parent[UserControl].((vm:AvailabilityViewModel)DataContext).RetireCommand}"
+                                                CommandParameter="{Binding}">
+                                            <views:IconText Icon="{StaticResource Icon.Delete}" Text="Retirar" />
+                                        </Button>
                                     </WrapPanel>
                                 </Grid>
                             </Border>
@@ -46,33 +51,57 @@
                 </ItemsControl>
             </StackPanel>
 
-            <Border Classes="card side" VerticalAlignment="Top">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="{Binding FormTitle}" />
-                    <TextBlock Classes="label" Text="Día" />
-                    <ComboBox ItemsSource="{Binding Days}" SelectedItem="{Binding Day}" />
-                    <Grid ColumnDefinitions="*,12,*">
-                        <StackPanel Spacing="10">
-                            <TextBlock Classes="label" Text="Inicio" />
-                            <TextBox Text="{Binding Start}" Watermark="12:00" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="10">
-                            <TextBlock Classes="label" Text="Fin" />
-                            <TextBox Text="{Binding End}" Watermark="13:00" />
-                        </StackPanel>
-                    </Grid>
-                    <TextBlock Classes="label" Text="Cupo por sesión" />
-                    <NumericUpDown Value="{Binding Capacity}" Minimum="1" Maximum="30" Increment="1" FormatString="0" />
-                    <TextBlock Classes="label" Text="Lugar" />
-                    <ComboBox ItemsSource="{Binding Locations}" SelectedItem="{Binding Location}" />
-                    <Button Classes="primary" Content="Guardar horario" Command="{Binding SaveCommand}"
-                            IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
-                    <Button Classes="quiet" Content="Cancelar edición" Command="{Binding NewCommand}"
-                            IsVisible="{Binding IsEditing}" HorizontalAlignment="Stretch" />
-                    <TextBlock Classes="muted" FontSize="12"
-                               Text="No se puede mover ni retirar un bloque con citas por venir; cancélalas primero." />
-                </StackPanel>
-            </Border>
+            <StackPanel Classes="side" Spacing="14">
+                <Border Classes="card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="h3" Text="{Binding FormTitle}" />
+                        <Label Content="Día" Target="Day" />
+                        <ComboBox x:Name="Day" ItemsSource="{Binding Days}" SelectedItem="{Binding Day}" />
+                        <Grid ColumnDefinitions="*,10,*">
+                            <StackPanel Spacing="6">
+                                <Label Content="Inicio" Target="Start" />
+                                <TimePicker x:Name="Start" SelectedTime="{Binding Start}" MinuteIncrement="30" ClockIdentifier="24HourClock" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Spacing="6">
+                                <Label Content="Fin" Target="End" />
+                                <TimePicker x:Name="End" SelectedTime="{Binding End}" MinuteIncrement="30" ClockIdentifier="24HourClock" />
+                            </StackPanel>
+                        </Grid>
+                        <Label Content="Cupo por sesión" Target="Capacity" />
+                        <NumericUpDown x:Name="Capacity" Value="{Binding Capacity}" Minimum="1" Maximum="30" Increment="1" FormatString="0" />
+                        <Label Content="Lugar" Target="Place" />
+                        <ComboBox x:Name="Place" ItemsSource="{Binding Locations}" SelectedItem="{Binding Location}" />
+                        <Button Classes="primary" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch">
+                            <views:IconText Icon="{StaticResource Icon.Checkmark}" Text="Guardar horario" />
+                        </Button>
+                        <Button Classes="quiet" Command="{Binding NewCommand}" IsVisible="{Binding IsEditing}" HorizontalAlignment="Stretch">
+                            <views:IconText Icon="{StaticResource Icon.Dismiss}" Text="Cancelar edición" />
+                        </Button>
+                        <TextBlock Classes="muted" FontSize="12"
+                                   Text="No se puede mover ni retirar un bloque con citas por venir; cancélalas primero." />
+                    </StackPanel>
+                </Border>
+
+                <!-- Resumen del asesor: asesorías y horas trabajadas -->
+                <Border Classes="card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="h3" Text="Mi resumen de horas" />
+                        <TextBlock Classes="muted" Text="Tus asesorías del periodo y las horas trabajadas (realizadas con asistencia)." />
+                        <Label Content="Desde" Target="From" />
+                        <CalendarDatePicker x:Name="From" SelectedDate="{Binding SummaryFrom}" SelectedDateFormat="Short" />
+                        <Label Content="Hasta" Target="To" />
+                        <CalendarDatePicker x:Name="To" SelectedDate="{Binding SummaryTo}" SelectedDateFormat="Short" />
+                        <WrapPanel ItemSpacing="8" LineSpacing="8">
+                            <Button Classes="primary" Command="{Binding DownloadSummaryCommand}" CommandParameter="pdf">
+                                <views:IconText Icon="{StaticResource Icon.Pdf}" Text="PDF" />
+                            </Button>
+                            <Button Classes="quiet" Command="{Binding DownloadSummaryCommand}" CommandParameter="csv">
+                                <views:IconText Icon="{StaticResource Icon.Table}" Text="CSV" />
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Grid>
     </StackPanel>
 </UserControl>

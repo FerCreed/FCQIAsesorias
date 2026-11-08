@@ -1,81 +1,108 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.HomeView"
              x:DataType="vm:HomeViewModel">
-    <StackPanel Classes="page">
-        <StackPanel Spacing="6" Margin="0,8,0,8">
-            <TextBlock Classes="h1" Text="{Binding Greeting}" />
-            <TextBlock Classes="muted" FontSize="15" MaxWidth="620" HorizontalAlignment="Left"
-                       Text="Encuentra un asesor para tu materia, elige un horario y solicita tu asesoría del periodo 2026-2." />
+    <StackPanel>
+        <!-- Banda verde de bienvenida (diseño anterior). -->
+        <Border Background="{StaticResource BrushGreenDark}" Padding="20,26">
+            <StackPanel MaxWidth="1040" Spacing="8">
+                <TextBlock Text="{Binding Greeting}" FontSize="26" FontWeight="Bold" Foreground="White"
+                           AutomationProperties.HeadingLevel="1" />
+                <TextBlock Foreground="#E7F3EA" FontSize="15"
+                           Text="Busca tu materia, elige asesor y horario, y solicita tu asesoría del periodo 2026-2." />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Classes="page">
+            <UniformGrid Classes="cards">
+                <UniformGrid.Styles>
+                    <Style Selector="Border.card">
+                        <Setter Property="Margin" Value="0,0,14,14" />
+                    </Style>
+                </UniformGrid.Styles>
+
+                <Border Classes="card">
+                    <StackPanel Spacing="10">
+                        <views:IconText Icon="{StaticResource Icon.Search}" Text="Buscar asesoría" HorizontalAlignment="Left"
+                                        TextElement.FontSize="16" TextElement.FontWeight="Bold" TextElement.Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Classes="muted" Text="Materias, asesores autorizados y horarios. No necesitas cuenta para consultar." />
+                        <Button Classes="primary" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Catalog}">
+                            <views:IconText Icon="{StaticResource Icon.Search}" Text="Abrir buscador" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding !Session.IsLoggedIn}">
+                    <StackPanel Spacing="10">
+                        <views:IconText Icon="{StaticResource Icon.SignIn}" Text="Entrar" HorizontalAlignment="Left"
+                                        TextElement.FontSize="16" TextElement.FontWeight="Bold" TextElement.Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Classes="muted" Text="Con tu correo @uabc.edu.mx puedes solicitar citas y ver su estado." />
+                        <Button Classes="quiet" Command="{Binding LoginCommand}">
+                            <views:IconText Icon="{StaticResource Icon.SignIn}" Text="Entrar con correo UABC" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding Session.IsStudent}">
+                    <StackPanel Spacing="10">
+                        <views:IconText Icon="{StaticResource Icon.Calendar}" Text="Mis asesorías" HorizontalAlignment="Left"
+                                        TextElement.FontSize="16" TextElement.FontWeight="Bold" TextElement.Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Classes="muted" Text="Próximas citas, enlaces de reunión, reportes e historial." />
+                        <Button Classes="quiet" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Sessions}">
+                            <views:IconText Icon="{StaticResource Icon.Calendar}" Text="Ver mis asesorías" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding Session.IsAdvisor}">
+                    <StackPanel Spacing="10">
+                        <views:IconText Icon="{StaticResource Icon.Board}" Text="Solicitudes" HorizontalAlignment="Left"
+                                        TextElement.FontSize="16" TextElement.FontWeight="Bold" TextElement.Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Classes="muted" Text="Confirma o rechaza citas y registra la bitácora al terminar." />
+                        <Button Classes="quiet" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Sessions}">
+                            <views:IconText Icon="{StaticResource Icon.Board}" Text="Ver solicitudes" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding Session.IsAdvisor}">
+                    <StackPanel Spacing="10">
+                        <views:IconText Icon="{StaticResource Icon.Clock}" Text="Mis horarios" HorizontalAlignment="Left"
+                                        TextElement.FontSize="16" TextElement.FontWeight="Bold" TextElement.Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Classes="muted" Text="Publica o retira bloques y descarga tu resumen de horas." />
+                        <Button Classes="quiet" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Availability}">
+                            <views:IconText Icon="{StaticResource Icon.Clock}" Text="Administrar horarios" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding Session.IsAdmin}">
+                    <StackPanel Spacing="10">
+                        <views:IconText Icon="{StaticResource Icon.People}" Text="Asesores y materias" HorizontalAlignment="Left"
+                                        TextElement.FontSize="16" TextElement.FontWeight="Bold" TextElement.Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Classes="muted" Text="Decide qué materias cubre cada asesor en el ciclo." />
+                        <Button Classes="quiet" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Admin}">
+                            <views:IconText Icon="{StaticResource Icon.People}" Text="Asignar materias" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding Session.IsAdmin}">
+                    <StackPanel Spacing="10">
+                        <views:IconText Icon="{StaticResource Icon.DataBar}" Text="Reportes" HorizontalAlignment="Left"
+                                        TextElement.FontSize="16" TextElement.FontWeight="Bold" TextElement.Foreground="{StaticResource BrushGreen}" />
+                        <TextBlock Classes="muted" Text="Métricas, todas las asesorías y resúmenes por asesor en PDF y CSV." />
+                        <Button Classes="quiet" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Reports}">
+                            <views:IconText Icon="{StaticResource Icon.DataBar}" Text="Ver reportes" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <TextBlock Classes="muted"
+                       Text="Programa de Asesorías Académicas, FCQI UABC Tijuana. Dudas: progasesorias.fcqi@uabc.edu.mx" />
         </StackPanel>
-
-        <!-- Accesos según el rol activo: 3 columnas en ancho, 1 en móvil (ver ShellView). -->
-        <UniformGrid Classes="cards">
-            <UniformGrid.Styles>
-                <Style Selector="Border.card">
-                    <Setter Property="Margin" Value="0,0,12,12" />
-                </Style>
-            </UniformGrid.Styles>
-
-            <Border Classes="card">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Buscar asesoría" />
-                    <TextBlock Classes="muted" Text="Materias, asesores autorizados y horarios. No necesitas cuenta para consultar." />
-                    <Button Classes="primary" Content="Abrir catálogo" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Catalog}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" IsVisible="{Binding !Session.IsLoggedIn}">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Entrar" />
-                    <TextBlock Classes="muted" Text="Con tu correo @uabc.edu.mx puedes solicitar citas y ver su estado." />
-                    <Button Classes="secondary" Content="Entrar con correo UABC" Command="{Binding LoginCommand}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" IsVisible="{Binding Session.IsStudent}">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Mis asesorías" />
-                    <TextBlock Classes="muted" Text="Próximas citas, enlaces de reunión, cancelaciones e historial." />
-                    <Button Classes="secondary" Content="Ver mis asesorías" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Sessions}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" IsVisible="{Binding Session.IsAdvisor}">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Solicitudes" />
-                    <TextBlock Classes="muted" Text="Confirma o rechaza citas y registra la bitácora al terminar." />
-                    <Button Classes="secondary" Content="Ver solicitudes" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Sessions}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" IsVisible="{Binding Session.IsAdvisor}">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Mis horarios" />
-                    <TextBlock Classes="muted" Text="Publica, edita o retira tus bloques semanales." />
-                    <Button Classes="secondary" Content="Administrar horarios" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Availability}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" IsVisible="{Binding Session.IsAdmin}">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Asesores y materias" />
-                    <TextBlock Classes="muted" Text="Decide qué materias cubre cada asesor en el ciclo." />
-                    <Button Classes="secondary" Content="Asignar materias" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Admin}" />
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" IsVisible="{Binding Session.IsAdmin}">
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Reportes" />
-                    <TextBlock Classes="muted" Text="Demanda por materia, horas impartidas, asistencia y constancias." />
-                    <Button Classes="secondary" Content="Ver reportes" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Reports}" />
-                </StackPanel>
-            </Border>
-        </UniformGrid>
-
-        <TextBlock Classes="muted" Margin="0,16,0,0"
-                   Text="Programa de Asesorías Académicas, FCQI UABC Tijuana. Dudas: progasesorias.fcqi@uabc.edu.mx" />
     </StackPanel>
 </UserControl>

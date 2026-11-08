@@ -2,52 +2,105 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:FCQI.Web.ViewModels"
              xmlns:models="using:FCQI.Web.Models"
+             xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.ReportsView"
              x:DataType="vm:ReportsViewModel">
     <UserControl.Styles>
         <Style Selector="Border.metric">
-            <Setter Property="MinWidth" Value="150" />
+            <Setter Property="Margin" Value="0,0,12,12" />
         </Style>
         <Style Selector="Border.metric TextBlock.value">
-            <Setter Property="FontSize" Value="28" />
+            <Setter Property="FontSize" Value="26" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="{StaticResource GreenDeep}" />
+            <Setter Property="Foreground" Value="{StaticResource BrushGreenDark}" />
         </Style>
     </UserControl.Styles>
 
     <StackPanel Classes="page">
-        <Grid ColumnDefinitions="*,Auto">
-            <StackPanel Spacing="4">
-                <TextBlock Classes="h1" Text="Reportes del ciclo" />
-                <TextBlock Classes="muted" FontSize="15" Text="{Binding Report.Term, StringFormat='Periodo {0}', FallbackValue=''}" />
+        <StackPanel Spacing="4">
+            <TextBlock Classes="h1" Text="Reportes de asesorías" AutomationProperties.HeadingLevel="1" />
+            <TextBlock Classes="muted" FontSize="15" Text="Asesorías creadas a partir de la fecha elegida, con todos sus datos y métricas." />
+        </StackPanel>
+
+        <!-- Periodo y filtros -->
+        <Border Classes="card" Padding="14">
+            <StackPanel Spacing="10">
+                <WrapPanel ItemSpacing="12" LineSpacing="10">
+                    <StackPanel Spacing="4" MinWidth="200">
+                        <Label Content="Creadas desde" Target="From" />
+                        <CalendarDatePicker x:Name="From" SelectedDate="{Binding From}" SelectedDateFormat="Short" />
+                    </StackPanel>
+                    <StackPanel Spacing="4" MinWidth="200">
+                        <Label Content="Hasta" Target="To" />
+                        <CalendarDatePicker x:Name="To" SelectedDate="{Binding To}" SelectedDateFormat="Short" />
+                    </StackPanel>
+                    <StackPanel Spacing="4" MinWidth="220">
+                        <Label Content="Asesor" Target="Advisor" />
+                        <ComboBox x:Name="Advisor" ItemsSource="{Binding Advisors}" SelectedItem="{Binding Advisor}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:AdvisorItem"><TextBlock Text="{Binding FullName}" /></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Spacing="4" MinWidth="220">
+                        <Label Content="Materia" Target="Subject" />
+                        <ComboBox x:Name="Subject" ItemsSource="{Binding Subjects}" SelectedItem="{Binding Subject}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:SubjectItem"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Spacing="4" MinWidth="160">
+                        <Label Content="Estado" Target="State" />
+                        <ComboBox x:Name="State" ItemsSource="{Binding Statuses}" SelectedItem="{Binding StatusFilter}" />
+                    </StackPanel>
+                </WrapPanel>
+                <WrapPanel ItemSpacing="8" LineSpacing="8">
+                    <Button Classes="primary" Command="{Binding RefreshCommand}">
+                        <views:IconText Icon="{StaticResource Icon.DataBar}" Text="Ver métricas" />
+                    </Button>
+                    <Button Classes="quiet" Command="{Binding ExportCommand}" CommandParameter="pdf">
+                        <views:IconText Icon="{StaticResource Icon.Pdf}" Text="Todas las asesorías: PDF" />
+                    </Button>
+                    <Button Classes="quiet" Command="{Binding ExportCommand}" CommandParameter="csv">
+                        <views:IconText Icon="{StaticResource Icon.Table}" Text="Todas las asesorías: CSV" />
+                    </Button>
+                    <Button Classes="quiet" Command="{Binding ExportAdvisorCommand}" CommandParameter="pdf" IsEnabled="{Binding HasAdvisor}">
+                        <views:IconText Icon="{StaticResource Icon.Pdf}" Text="Resumen del asesor: PDF" />
+                    </Button>
+                    <Button Classes="quiet" Command="{Binding ExportAdvisorCommand}" CommandParameter="csv" IsEnabled="{Binding HasAdvisor}">
+                        <views:IconText Icon="{StaticResource Icon.Table}" Text="Resumen del asesor: CSV" />
+                    </Button>
+                </WrapPanel>
+                <TextBlock Classes="muted" FontSize="12" Text="Para el resumen de un asesor, elígelo en el filtro “Asesor”." />
             </StackPanel>
-            <Button Grid.Column="1" Classes="primary" Content="Descargar constancia" VerticalAlignment="Top"
-                    Command="{Binding ExportCommand}" IsEnabled="{Binding HasData}" />
-        </Grid>
+        </Border>
 
         <Border Classes="card" IsVisible="{Binding !HasData}">
-            <TextBlock Classes="muted" Text="Todavía no hay asesorías en este periodo; el reporte se llena conforme se soliciten." />
+            <TextBlock Classes="muted" Text="No hay asesorías en el periodo y filtros elegidos." />
         </Border>
 
         <StackPanel Spacing="16" IsVisible="{Binding HasData}">
-            <WrapPanel ItemSpacing="12" LineSpacing="12">
-                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.Requested}" /><TextBlock Classes="muted" Text="solicitudes" /></StackPanel></Border>
-                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.Completed}" /><TextBlock Classes="muted" Text="realizadas" /></StackPanel></Border>
-                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.Hours}" /><TextBlock Classes="muted" Text="horas con asistencia" /></StackPanel></Border>
-                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.AttendanceRate, StringFormat='{}{0}%'}" /><TextBlock Classes="muted" Text="asistencia" /></StackPanel></Border>
-            </WrapPanel>
+            <UniformGrid Classes="cards">
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Metrics.Total}" /><TextBlock Classes="muted" Text="solicitadas" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Metrics.Completed}" /><TextBlock Classes="muted" Text="realizadas" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Metrics.Hours}" /><TextBlock Classes="muted" Text="horas trabajadas" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Metrics.AttendanceRate, StringFormat='{}{0} %'}" /><TextBlock Classes="muted" Text="asistencia" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Metrics.CancellationRate, StringFormat='{}{0} %'}" /><TextBlock Classes="muted" Text="canceladas" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Metrics.AverageLeadDays, StringFormat='{}{0} días'}" /><TextBlock Classes="muted" Text="anticipación promedio" /></StackPanel></Border>
+            </UniformGrid>
 
             <Border Classes="card">
                 <StackPanel Spacing="8">
                     <TextBlock Classes="h3" Text="Horas por asesor" />
-                    <ItemsControl ItemsSource="{Binding Report.ByAdvisor}">
+                    <ItemsControl ItemsSource="{Binding Metrics.ByAdvisor}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:AdvisorReportItem">
+                            <DataTemplate x:DataType="models:AdvisorRowItem">
                                 <Grid ColumnDefinitions="*,Auto" Margin="0,6">
                                     <StackPanel>
                                         <TextBlock Text="{Binding AdvisorName}" FontWeight="SemiBold" />
                                         <TextBlock Classes="muted">
-                                            <Run Text="{Binding Requested}" /> solicitadas, <Run Text="{Binding Completed}" /> realizadas, <Run Text="{Binding Attended}" /> con asistencia
+                                            <Run Text="{Binding Kind}" />: <Run Text="{Binding Requested}" /> solicitadas, <Run Text="{Binding Completed}" /> realizadas, <Run Text="{Binding Attended}" /> con asistencia
                                         </TextBlock>
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="{Binding Hours, StringFormat='{}{0} h'}" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" />
@@ -58,21 +111,44 @@
                 </StackPanel>
             </Border>
 
-            <Border Classes="card">
-                <StackPanel Spacing="8">
-                    <TextBlock Classes="h3" Text="Demanda por materia" />
-                    <ItemsControl ItemsSource="{Binding Report.BySubject}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:SubjectDemandItem">
-                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                    <TextBlock Text="{Binding SubjectName}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Requested}" FontWeight="SemiBold" Margin="12,0,0,0" />
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
+            <UniformGrid Classes="cards">
+                <Border Classes="card metric">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="h3" Text="Demanda por materia" />
+                        <ItemsControl ItemsSource="{Binding Metrics.BySubject}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:CountRowItem">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,3"><TextBlock Text="{Binding Name}" /><TextBlock Grid.Column="1" Text="{Binding Count}" FontWeight="SemiBold" Margin="8,0,0,0" /></Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                <Border Classes="card metric">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="h3" Text="Por día de la semana" />
+                        <ItemsControl ItemsSource="{Binding Metrics.ByWeekday}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:CountRowItem">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,3"><TextBlock Text="{Binding Name}" /><TextBlock Grid.Column="1" Text="{Binding Count}" FontWeight="SemiBold" Margin="8,0,0,0" /></Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                <Border Classes="card metric">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="h3" Text="Por modalidad" />
+                        <ItemsControl ItemsSource="{Binding Metrics.ByModality}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:CountRowItem">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,3"><TextBlock Text="{Binding Name}" /><TextBlock Grid.Column="1" Text="{Binding Count}" FontWeight="SemiBold" Margin="8,0,0,0" /></Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
         </StackPanel>
     </StackPanel>
 </UserControl>

@@ -59,5 +59,6 @@ public class ClientLogicTests
         public Task<List<AdvisorItem>> GetAdvisorsAsync(int subjectId) => Task.FromResult(new List<AdvisorItem>());
         public Task<List<AvailabilityItem>> GetAvailabilitiesAsync(int advisorId) => Task.FromResult(new List<AvailabilityItem>());
         public Task<List<LocationItem>> GetLocationsAsync() => Task.FromResult(new List<LocationItem>());
+        public Task<TermItem> GetTermAsync() => Task.FromResult(new TermItem());
     }
 }

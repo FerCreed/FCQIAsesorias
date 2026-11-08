@@ -14,17 +14,21 @@ public enum CatalogStep
 }
 
 /// <summary>
-/// Catálogo público en tres pasos: materia (BPMN 5), asesor (BPMN 4) y horario
-/// (BPMN 3); al final, solicitar (BPMN 8) o escribir al asesor (BPMN 15).
-/// Se consulta sin cuenta; solicitar pide entrar y retoma la solicitud.
+/// Buscar asesoría en tres pasos: materia (BPMN 5), asesor (BPMN 4) y horario
+/// (BPMN 3), con filtros en cada paso (BPMN 8: materia, programa, profesor,
+/// modalidad, día y horario). Al final se elige la fecha en el calendario y se
+/// solicita, o se escribe al asesor (BPMN 15). Se consulta sin cuenta.
 /// </summary>
-public partial class CatalogViewModel : PageViewModel
+public partial class CatalogViewModel : PageViewModel, IResettable
 {
     private readonly ICatalogApi _catalog;
     private readonly IFcqiApi _api;
     private readonly SessionContext _session;
     private readonly INavigator _navigator;
     private List<SubjectItem> _allSubjects = [];
+    private List<AdvisorItem> _allAdvisors = [];
+    private List<AvailabilityItem> _allSlots = [];
+    private TermItem? _term;
     private bool _resumeRequest;
 
     [ObservableProperty]
@@ -36,13 +40,21 @@ public partial class CatalogViewModel : PageViewModel
     private AdvisorItem? _selectedAdvisor;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSlotSelected))]
+    [NotifyPropertyChangedFor(nameof(HasSlotSelected), nameof(AllowedDates))]
     private AvailabilityItem? _selectedSlot;
 
-    [ObservableProperty] private string _query = string.Empty;
+    [ObservableProperty] private DateTime? _selectedDate;
     [ObservableProperty] private string _topic = string.Empty;
     [ObservableProperty] private string _message = string.Empty;
     [ObservableProperty] private bool _isContactOpen;
+
+    // Filtros
+    [ObservableProperty] private string _query = string.Empty;
+    [ObservableProperty] private string _program = CatalogFilters.All;
+    [ObservableProperty] private bool _onlyWithAdvisors = true;
+    [ObservableProperty] private string _kind = CatalogFilters.All;
+    [ObservableProperty] private string _modality = CatalogFilters.All;
+    [ObservableProperty] private Option<TimeBand> _timeBand = CatalogFilters.TimeBands[0];
 
     public CatalogViewModel(AppStatus status, ICatalogApi catalog, IFcqiApi api, SessionContext session, INavigator navigator)
         : base(status)
@@ -51,14 +63,20 @@ public partial class CatalogViewModel : PageViewModel
         _api = api;
         _session = session;
         _navigator = navigator;
+        Days = DayToggle.Weekdays(ApplyFilters);
         _session.PropertyChanged += (_, _) => OnPropertyChanged(nameof(RequestLabel));
     }
 
-    public override string Title => "Catálogo";
+    public override string Title => "Buscar asesoría";
 
     public ObservableCollection<SubjectItem> Subjects { get; } = [];
     public ObservableCollection<AdvisorItem> Advisors { get; } = [];
     public ObservableCollection<AvailabilityItem> Slots { get; } = [];
+    public ObservableCollection<string> Programs { get; } = [CatalogFilters.All];
+    public IReadOnlyList<DayToggle> Days { get; }
+    public IReadOnlyList<string> Kinds => CatalogFilters.Kinds;
+    public IReadOnlyList<string> Modalities => CatalogFilters.Modalities;
+    public IReadOnlyList<Option<TimeBand>> TimeBands => CatalogFilters.TimeBands;
 
     public CatalogStep Step => SelectedAdvisor is not null ? CatalogStep.Slot
         : SelectedSubject is not null ? CatalogStep.Advisor
@@ -70,6 +88,15 @@ public partial class CatalogViewModel : PageViewModel
     public bool CanGoBack => SelectedSubject is not null;
     public bool HasSlotSelected => SelectedSlot is not null;
 
+    /// <summary>Primer día que se puede pedir: mañana. Último: fin del ciclo.</summary>
+    public DateTime FirstDate => DateTime.Today.AddDays(1);
+    public DateTime LastDate => _term?.EndsOn.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today.AddMonths(4);
+
+    /// <summary>Fechas del ciclo que caen en el día del bloque elegido; el calendario bloquea las demás.</summary>
+    public IReadOnlyList<DateTime>? AllowedDates => SelectedSlot is null
+        ? null
+        : CatalogFilters.DatesOn(SelectedSlot.DayOfWeek, FirstDate, LastDate).ToList();
+
     public string Heading => Step switch
     {
         CatalogStep.Subject => "Elige una materia",
@@ -79,16 +106,27 @@ public partial class CatalogViewModel : PageViewModel
 
     public string Context => Step switch
     {
-        CatalogStep.Subject => "Busca por nombre o clave.",
+        CatalogStep.Subject => "Busca por nombre o clave y filtra por programa educativo.",
         CatalogStep.Advisor => SelectedSubject!.Name,
         _ => $"{SelectedSubject!.Name}, con {SelectedAdvisor!.FullName}"
     };
 
+    public string ResultText => Step switch
+    {
+        CatalogStep.Subject => $"{Subjects.Count} de {_allSubjects.Count} materias",
+        CatalogStep.Advisor => $"{Advisors.Count} de {_allAdvisors.Count} asesores",
+        _ => $"{Slots.Count} de {_allSlots.Count} horarios"
+    };
+
     public string EmptyText => Step switch
     {
-        CatalogStep.Subject => "Ninguna materia coincide con la búsqueda.",
-        CatalogStep.Advisor => "Dirección aún no asigna asesores a esta materia. Prueba con otra.",
-        _ => "Este asesor no tiene horarios publicados. Escríbele o elige otro asesor."
+        CatalogStep.Subject => "Ninguna materia coincide con los filtros.",
+        CatalogStep.Advisor => _allAdvisors.Count == 0
+            ? "Dirección aún no asigna asesores a esta materia. Prueba con otra."
+            : "Ningún asesor coincide con los filtros.",
+        _ => _allSlots.Count == 0
+            ? "Este asesor no tiene horarios publicados. Escríbele o elige otro asesor."
+            : "Ningún horario coincide con los filtros."
     };
 
     public bool IsEmpty => !IsBusy && Step switch
@@ -106,8 +144,15 @@ public partial class CatalogViewModel : PageViewModel
         {
             await RunAsync(async () =>
             {
+                _term = await _catalog.GetTermAsync();
                 _allSubjects = await _catalog.GetSubjectsAsync();
-                Filter();
+                foreach (var p in _allSubjects.SelectMany(s => s.Programs).Distinct().Order())
+                {
+                    Programs.Add(p);
+                }
+
+                OnPropertyChanged(nameof(LastDate));
+                ApplyFilters();
             });
         }
 
@@ -118,15 +163,28 @@ public partial class CatalogViewModel : PageViewModel
         }
     }
 
-    partial void OnQueryChanged(string value) => Filter();
+    public void Reset()
+    {
+        SelectedSubject = null;
+        (Topic, Message, IsContactOpen, _resumeRequest) = (string.Empty, string.Empty, false, false);
+        ClearFilters();
+    }
+
+    partial void OnQueryChanged(string value) => ApplyFilters();
+    partial void OnProgramChanged(string value) => ApplyFilters();
+    partial void OnOnlyWithAdvisorsChanged(bool value) => ApplyFilters();
+    partial void OnKindChanged(string value) => ApplyFilters();
+    partial void OnModalityChanged(string value) => ApplyFilters();
+    partial void OnTimeBandChanged(Option<TimeBand> value) => ApplyFilters();
 
     partial void OnSelectedSubjectChanged(SubjectItem? value)
     {
         SelectedAdvisor = null;
+        _allAdvisors = [];
         Advisors.Clear();
         if (value is not null)
         {
-            _ = LoadAsync(Advisors, () => _catalog.GetAdvisorsAsync(value.Id), () => SelectedSubject == value);
+            _ = LoadAsync(() => _catalog.GetAdvisorsAsync(value.Id), items => _allAdvisors = items, () => SelectedSubject == value);
         }
 
         NotifyStep();
@@ -136,13 +194,26 @@ public partial class CatalogViewModel : PageViewModel
     {
         SelectedSlot = null;
         IsContactOpen = false;
+        _allSlots = [];
         Slots.Clear();
         if (value is not null)
         {
-            _ = LoadAsync(Slots, () => _catalog.GetAvailabilitiesAsync(value.Id), () => SelectedAdvisor == value);
+            _ = LoadAsync(() => _catalog.GetAvailabilitiesAsync(value.Id), items => _allSlots = items, () => SelectedAdvisor == value);
         }
 
         NotifyStep();
+    }
+
+    partial void OnSelectedSlotChanged(AvailabilityItem? value)
+        => SelectedDate = value?.NextOccurrence(DateTime.Today).Date;
+
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        (Query, Program, OnlyWithAdvisors, Kind, Modality, TimeBand) =
+            (string.Empty, CatalogFilters.All, true, CatalogFilters.All, CatalogFilters.All, CatalogFilters.TimeBands[0]);
+        foreach (var day in Days) day.IsChecked = false;
+        ApplyFilters();
     }
 
     [RelayCommand]
@@ -158,9 +229,9 @@ public partial class CatalogViewModel : PageViewModel
     [RelayCommand]
     private async Task RequestAsync()
     {
-        if (SelectedSubject is null || SelectedAdvisor is null || SelectedSlot is null)
+        if (SelectedSubject is null || SelectedAdvisor is null || SelectedSlot is null || SelectedDate is null)
         {
-            Status.Error("Elige materia, asesor y horario.");
+            Status.Error("Elige materia, asesor, horario y fecha.");
             return;
         }
 
@@ -177,10 +248,12 @@ public partial class CatalogViewModel : PageViewModel
             return;
         }
 
+        var start = SelectedDate.Value.Date + (TimeSpan.TryParse(SelectedSlot.StartTime, out var t) ? t : TimeSpan.Zero);
         var body = new CreateSessionBody(_session.PersonId, SelectedAdvisor.Id, SelectedSubject.Id, SelectedSlot.Id,
-            SelectedSlot.NextOccurrence(DateTime.Today), string.IsNullOrWhiteSpace(Topic) ? "Dudas de la materia" : Topic.Trim());
+            start, string.IsNullOrWhiteSpace(Topic) ? "Dudas de la materia" : Topic.Trim());
 
-        if (await RunAsync(() => _api.CreateSessionAsync(body), "Solicitud enviada. Queda pendiente hasta que el asesor la confirme."))
+        if (await RunAsync(() => _api.CreateSessionAsync(body),
+                $"Solicitud enviada para el {start:dd/MM/yyyy} a las {start:HH:mm}. Queda pendiente hasta que el asesor la confirme."))
         {
             Topic = string.Empty;
             SelectedSlot = null;
@@ -217,28 +290,48 @@ public partial class CatalogViewModel : PageViewModel
         }
     }
 
-    private void Filter()
+    /// <summary>
+    /// Aplica los filtros a la lista del paso visible. Solo esa: vaciar la lista
+    /// de un paso anterior haría que su ListBox borrara la selección (la materia
+    /// o el asesor elegidos) y la búsqueda regresaría sola al paso 1.
+    /// </summary>
+    private void ApplyFilters()
     {
-        var q = Query.Trim();
-        Subjects.Clear();
-        foreach (var s in _allSubjects.Where(s => q.Length == 0
-                                                  || s.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
-                                                  || s.Code.Contains(q, StringComparison.OrdinalIgnoreCase)))
+        var days = Days.Where(d => d.IsChecked).Select(d => d.Value).ToList();
+
+        switch (Step)
         {
-            Subjects.Add(s);
+            case CatalogStep.Subject:
+                Replace(Subjects, _allSubjects.Where(s =>
+                    CatalogFilters.Contains(Query, s.Name, s.Code) &&
+                    (Program == CatalogFilters.All || s.Programs.Contains(Program)) &&
+                    (!OnlyWithAdvisors || s.AdvisorCount > 0)));
+                break;
+            case CatalogStep.Advisor:
+                Replace(Advisors, _allAdvisors.Where(a =>
+                    CatalogFilters.Matches(Kind, a.Kind) &&
+                    CatalogFilters.Matches(Modality, a.DefaultModality) &&
+                    CatalogFilters.Matches(days, a.Days)));
+                break;
+            default:
+                Replace(Slots, _allSlots.Where(s =>
+                    CatalogFilters.Matches(Modality, s.Modality) &&
+                    CatalogFilters.Matches(TimeBand.Value, s.StartHour) &&
+                    CatalogFilters.Matches(days, [s.DayOfWeek])));
+                break;
         }
 
+        OnPropertyChanged(nameof(ResultText));
+        OnPropertyChanged(nameof(EmptyText));
         OnPropertyChanged(nameof(IsEmpty));
     }
 
     /// <summary>
-    /// Carga una lista del paso actual. No usa <see cref="PageViewModel.RunAsync"/>:
-    /// su bloqueo descartaría la carga si el alumno cambia de materia mientras
-    /// la anterior sigue en curso. En su lugar, la respuesta se descarta si la
-    /// selección ya cambió (<paramref name="stillCurrent"/>), para no mezclar
-    /// los asesores de una materia con los de otra.
+    /// Carga una lista del paso actual. La respuesta se descarta si la selección
+    /// ya cambió (<paramref name="stillCurrent"/>), para no mezclar asesores de
+    /// una materia con los de otra.
     /// </summary>
-    internal async Task LoadAsync<T>(ObservableCollection<T> target, Func<Task<List<T>>> fetch, Func<bool> stillCurrent)
+    internal async Task LoadAsync<T>(Func<Task<List<T>>> fetch, Action<List<T>> store, Func<bool> stillCurrent)
     {
         try
         {
@@ -248,11 +341,8 @@ public partial class CatalogViewModel : PageViewModel
                 return;
             }
 
-            target.Clear();
-            foreach (var item in items)
-            {
-                target.Add(item);
-            }
+            store(items);
+            ApplyFilters();
         }
         catch (Exception ex) when (stillCurrent())
         {
@@ -262,15 +352,21 @@ public partial class CatalogViewModel : PageViewModel
         {
             // Falló una consulta que ya nadie mira; se ignora.
         }
+    }
 
-        OnPropertyChanged(nameof(IsEmpty));
+    private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
+    {
+        target.Clear();
+        foreach (var item in items) target.Add(item);
     }
 
     private void NotifyStep()
     {
+        ApplyFilters();
         OnPropertyChanged(nameof(IsSubjectStep));
         OnPropertyChanged(nameof(IsAdvisorStep));
         OnPropertyChanged(nameof(IsSlotStep));
+        OnPropertyChanged(nameof(ResultText));
         OnPropertyChanged(nameof(EmptyText));
         OnPropertyChanged(nameof(IsEmpty));
     }

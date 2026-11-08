@@ -8,14 +8,16 @@ namespace FCQI.Web.ViewModels;
 
 /// <summary>
 /// "Mis asesorías" del alumno y bandeja del asesor: próximas (BPMN 19) e
-/// historial (BPMN 14). Desde aquí se confirma, rechaza, cancela, reprograma,
-/// registra bitácora y se agrega la cita al calendario.
+/// historial (BPMN 14), con calendario y filtros. Desde aquí se confirma,
+/// rechaza, cancela, reprograma, registra bitácora, se agrega la cita al
+/// calendario y se descarga su reporte individual.
 /// </summary>
-public partial class SessionsViewModel : PageViewModel
+public partial class SessionsViewModel : PageViewModel, IResettable
 {
     private readonly IFcqiApi _api;
     private readonly ICatalogApi _catalog;
     private readonly IPlatformServices _platform;
+    private List<SessionItem> _all = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ScopeTitle))]
@@ -25,8 +27,16 @@ public partial class SessionsViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(CanConfirm), nameof(CanCancel), nameof(CanReschedule), nameof(CanLog))]
     private SessionItem? _selected;
 
+    [ObservableProperty] private DateTime? _day;
+    [ObservableProperty] private string _statusFilter = CatalogFilters.All;
+
     [ObservableProperty] private bool _isRescheduling;
-    [ObservableProperty] private AvailabilityItem? _rescheduleSlot;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RescheduleDates))]
+    private AvailabilityItem? _rescheduleSlot;
+
+    [ObservableProperty] private DateTime? _rescheduleDate;
     [ObservableProperty] private bool _isLogging;
     [ObservableProperty] private bool _attended = true;
     [ObservableProperty] private string _notes = string.Empty;
@@ -40,12 +50,32 @@ public partial class SessionsViewModel : PageViewModel
         Session = session;
     }
 
+    /// <summary>Límites del calendario de reprogramación.</summary>
+    public static DateTime Tomorrow => DateTime.Today.AddDays(1);
+    public static DateTime Horizon => DateTime.Today.AddMonths(4);
+
     public override string Title => Session.IsAdvisor ? "Solicitudes" : "Mis asesorías";
     public SessionContext Session { get; }
     public ObservableCollection<SessionItem> Sessions { get; } = [];
     public ObservableCollection<AvailabilityItem> RescheduleSlots { get; } = [];
 
+    public IReadOnlyList<string> Statuses { get; } =
+    [
+        CatalogFilters.All, SessionStatuses.Pending, SessionStatuses.Confirmed, SessionStatuses.Completed,
+        SessionStatuses.Cancelled, SessionStatuses.Rejected
+    ];
+
+    /// <summary>Días con asesorías: el calendario solo deja elegir esos.</summary>
+    public IReadOnlyList<DateTime> SessionDays => _all.Select(s => s.ScheduledAt.Date).Distinct().ToList();
+    public DateTime CalendarStart => SessionDays.Count == 0 ? DateTime.Today : SessionDays.Min();
+    public DateTime CalendarEnd => SessionDays.Count == 0 ? DateTime.Today : SessionDays.Max();
+
+    public IReadOnlyList<DateTime>? RescheduleDates => RescheduleSlot is null
+        ? null
+        : CatalogFilters.DatesOn(RescheduleSlot.DayOfWeek, Tomorrow, Horizon).ToList();
+
     public string ScopeTitle => ShowHistory ? "Historial" : "Próximas";
+    public string ResultText => $"{Sessions.Count} de {_all.Count} asesorías";
     public bool IsEmpty => Sessions.Count == 0 && !IsBusy;
     public bool HasSelection => Selected is not null;
     public bool CanConfirm => Session.IsAdvisor && Selected?.IsPending == true;
@@ -59,7 +89,16 @@ public partial class SessionsViewModel : PageViewModel
         return RefreshAsync();
     }
 
+    public void Reset()
+    {
+        (_all, Selected, Day, StatusFilter, ShowHistory) = ([], null, null, CatalogFilters.All, false);
+        Sessions.Clear();
+        RescheduleSlots.Clear();
+    }
+
     partial void OnShowHistoryChanged(bool value) => _ = RefreshAsync();
+    partial void OnDayChanged(DateTime? value) => ApplyFilters();
+    partial void OnStatusFilterChanged(string value) => ApplyFilters();
 
     partial void OnSelectedChanged(SessionItem? value)
     {
@@ -67,22 +106,25 @@ public partial class SessionsViewModel : PageViewModel
         IsLogging = false;
     }
 
+    partial void OnRescheduleSlotChanged(AvailabilityItem? value)
+        => RescheduleDate = value?.NextOccurrence(DateTime.Today, Selected?.ScheduledAt).Date;
+
     [RelayCommand]
     private void ShowScope(string history) => ShowHistory = history == "history";
+
+    [RelayCommand]
+    private void ClearFilters() => (Day, StatusFilter) = (null, CatalogFilters.All);
 
     [RelayCommand]
     private async Task RefreshAsync()
     {
         Selected = null;
-        await RunAsync(async () =>
-        {
-            Sessions.Clear();
-            foreach (var s in await _api.GetSessionsAsync(ShowHistory ? "history" : "upcoming"))
-            {
-                Sessions.Add(s);
-            }
-        });
-        OnPropertyChanged(nameof(IsEmpty));
+        await RunAsync(async () => _all = await _api.GetSessionsAsync(ShowHistory ? "history" : "upcoming"));
+        Day = null;
+        OnPropertyChanged(nameof(SessionDays));
+        OnPropertyChanged(nameof(CalendarStart));
+        OnPropertyChanged(nameof(CalendarEnd));
+        ApplyFilters();
     }
 
     [RelayCommand] private Task ConfirmAsync() => ChangeStatusAsync(SessionStatuses.Confirmed, "Asesoría confirmada. Avisamos al alumno.");
@@ -112,14 +154,15 @@ public partial class SessionsViewModel : PageViewModel
     [RelayCommand]
     private async Task RescheduleAsync()
     {
-        if (Selected is null || RescheduleSlot is null)
+        if (Selected is null || RescheduleSlot is null || RescheduleDate is null)
         {
-            Status.Error("Elige el nuevo horario.");
+            Status.Error("Elige el nuevo horario y la fecha en el calendario.");
             return;
         }
 
-        var body = new RescheduleBody(RescheduleSlot.Id, RescheduleSlot.NextOccurrence(DateTime.Today, Selected.ScheduledAt));
-        if (await RunAsync(() => _api.RescheduleAsync(Selected.Id, body), "Asesoría reprogramada. El asesor debe confirmar el nuevo horario."))
+        var start = RescheduleDate.Value.Date + (TimeSpan.TryParse(RescheduleSlot.StartTime, out var t) ? t : TimeSpan.Zero);
+        if (await RunAsync(() => _api.RescheduleAsync(Selected.Id, new RescheduleBody(RescheduleSlot.Id, start)),
+                $"Asesoría reprogramada al {start:dd/MM/yyyy HH:mm}. El asesor debe confirmar el nuevo horario."))
         {
             await RefreshAsync();
         }
@@ -145,23 +188,31 @@ public partial class SessionsViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private async Task AddToCalendarAsync()
+    private Task AddToCalendarAsync() => DownloadAsync(
+        id => _api.GetCalendarAsync(id), "asesoria-{0}.ics", "text/calendar",
+        "Archivo de calendario descargado. Ábrelo para agregar la cita a tu calendario.");
+
+    /// <summary>Reporte individual (PDF): lo descargan el alumno, el asesor y dirección.</summary>
+    [RelayCommand]
+    private Task DownloadReportAsync() => DownloadAsync(
+        id => _api.GetSessionReportAsync(id), "asesoria-{0}.pdf", "application/pdf", "Reporte de la asesoría descargado.");
+
+    [RelayCommand]
+    private Task OpenMeetingAsync() => Selected?.MeetingLink is { } link ? _platform.OpenUrlAsync(link) : Task.CompletedTask;
+
+    private async Task DownloadAsync(Func<int, Task<byte[]>> fetch, string nameFormat, string mime, string done)
     {
         if (Selected is null) return;
 
         var id = Selected.Id;
         await RunAsync(async () =>
         {
-            var ics = await _api.GetCalendarAsync(id);
-            if (await _platform.SaveTextAsync($"asesoria-{id}.ics", ics))
+            if (await _platform.SaveFileAsync(string.Format(nameFormat, id), mime, await fetch(id)))
             {
-                Status.Info("Archivo guardado. Ábrelo para agregar la cita a tu calendario.");
+                Status.Info(done);
             }
         });
     }
-
-    [RelayCommand]
-    private Task OpenMeetingAsync() => Selected?.MeetingLink is { } link ? _platform.OpenUrlAsync(link) : Task.CompletedTask;
 
     private async Task ChangeStatusAsync(string status, string done)
     {
@@ -171,5 +222,19 @@ public partial class SessionsViewModel : PageViewModel
         {
             await RefreshAsync();
         }
+    }
+
+    private void ApplyFilters()
+    {
+        Sessions.Clear();
+        foreach (var s in _all.Where(s =>
+                     (Day is null || s.ScheduledAt.Date == Day.Value.Date) &&
+                     CatalogFilters.Matches(StatusFilter, s.Status)))
+        {
+            Sessions.Add(s);
+        }
+
+        OnPropertyChanged(nameof(ResultText));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 }
