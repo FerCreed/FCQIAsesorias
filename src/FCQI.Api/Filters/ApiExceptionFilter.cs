@@ -17,11 +17,12 @@ public class ApiExceptionFilter : IExceptionFilter
         {
             ForbiddenOperationException => StatusCodes.Status403Forbidden,
             NotFoundException => StatusCodes.Status404NotFound,
-            InvalidOperationException => StatusCodes.Status400BadRequest,
+            BusinessRuleException => StatusCodes.Status400BadRequest,
             _ => (int?)null
         };
 
-        // Lo inesperado sigue su camino: 500 y traza en el log, sin filtrar
+        // Lo inesperado (incluidas las InvalidOperationException de EF Core o
+        // del framework) sigue su camino: 500 y traza en el log, sin enseñar
         // detalles internos al cliente.
         if (status is null)
         {

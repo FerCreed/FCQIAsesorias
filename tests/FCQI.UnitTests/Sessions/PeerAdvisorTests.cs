@@ -49,7 +49,7 @@ public class PeerAdvisorTests
     {
         await using var db = await SeedAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => Create(db).HandleAsync(
                 Solicitud(advisorId: Par, subjectId: MateriaDelPar, availabilityId: BloqueDelPar),
                 ComoAsesorPar()));

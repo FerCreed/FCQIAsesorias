@@ -33,7 +33,7 @@ public class UpdateSessionStatusCommandHandler
     {
         if (!SessionStatuses.All.Contains(status))
         {
-            throw new InvalidOperationException("Estado no válido.");
+            throw new BusinessRuleException("Estado no válido.");
         }
 
         var session = await _context.AdvisorySessions
@@ -68,14 +68,14 @@ public class UpdateSessionStatusCommandHandler
 
         if (state.IsFinal)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Esta asesoría está {state.Name.ToLowerInvariant()} y ya no puede cambiar de estado. " +
                 "Si se necesita la cita, hay que solicitarla de nuevo.");
         }
 
         if (target == SessionStatusIds.Completed)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Para marcar la asesoría como realizada, registra su bitácora.");
         }
 
@@ -83,7 +83,7 @@ public class UpdateSessionStatusCommandHandler
 
         if (!state.CanMoveTo(target))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Una asesoría {state.Name.ToLowerInvariant()} no puede pasar a {status.ToLowerInvariant()}.");
         }
 
@@ -112,7 +112,7 @@ public class UpdateSessionStatusCommandHandler
         {
             // Los índices únicos sobre ActiveAt tienen la última palabra sobre
             // el cupo. Si saltan aquí, el mensaje debe poder enseñarse.
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "No se pudo cambiar el estado de la asesoría; es posible que " +
                 "ese lugar ya esté ocupado. Vuelve a intentarlo.", ex);
         }

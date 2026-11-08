@@ -58,13 +58,13 @@ public class AvailabilityCommandHandler
 
         if (activeSeats > 0 && movesTime)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Hay citas activas en este bloque; cancélalas o espera a que pasen antes de cambiar el día o la hora.");
         }
 
         if (request.MaxCapacity < activeSeats)
         {
-            throw new InvalidOperationException($"El bloque ya tiene {activeSeats} lugares ocupados; el cupo no puede ser menor.");
+            throw new BusinessRuleException($"El bloque ya tiene {activeSeats} lugares ocupados; el cupo no puede ser menor.");
         }
 
         Apply(block, request);
@@ -78,7 +78,7 @@ public class AvailabilityCommandHandler
 
         if (await ActiveSeatsAsync(id, cancellationToken) > 0)
         {
-            throw new InvalidOperationException("El bloque tiene citas activas; no se puede retirar todavía.");
+            throw new BusinessRuleException("El bloque tiene citas activas; no se puede retirar todavía.");
         }
 
         block.IsActive = false;
@@ -109,22 +109,22 @@ public class AvailabilityCommandHandler
     {
         if (!Enum.IsDefined(r.DayOfWeek))
         {
-            throw new InvalidOperationException("Día de la semana no válido.");
+            throw new BusinessRuleException("Día de la semana no válido.");
         }
 
         if (r.EndTime <= r.StartTime)
         {
-            throw new InvalidOperationException("La hora de fin debe ser posterior a la de inicio.");
+            throw new BusinessRuleException("La hora de fin debe ser posterior a la de inicio.");
         }
 
         if (r.MaxCapacity is < 1 or > MaxCapacityLimit)
         {
-            throw new InvalidOperationException($"El cupo debe estar entre 1 y {MaxCapacityLimit}.");
+            throw new BusinessRuleException($"El cupo debe estar entre 1 y {MaxCapacityLimit}.");
         }
 
         if (!await _context.Locations.AnyAsync(l => l.Id == r.LocationId && l.IsActive, cancellationToken))
         {
-            throw new InvalidOperationException("El lugar elegido no existe.");
+            throw new BusinessRuleException("El lugar elegido no existe.");
         }
 
         var overlaps = await _context.Availabilities.AnyAsync(a =>
@@ -132,7 +132,7 @@ public class AvailabilityCommandHandler
             a.DayOfWeek == r.DayOfWeek && a.StartTime < r.EndTime && r.StartTime < a.EndTime, cancellationToken);
         if (overlaps)
         {
-            throw new InvalidOperationException("Ese horario se traslapa con otro de tus bloques.");
+            throw new BusinessRuleException("Ese horario se traslapa con otro de tus bloques.");
         }
     }
 

@@ -22,7 +22,7 @@ public class AdvisorSubjectsTests
     {
         await using var db = await SeedAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).HandleAsync(Tutor, [1, 9999]));
 
         Assert.Contains("9999", ex.Message);
@@ -35,7 +35,7 @@ public class AdvisorSubjectsTests
     {
         await using var db = await SeedAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).HandleAsync(Tutor, [3]));
 
         Assert.Contains("baja", ex.Message);
@@ -46,7 +46,7 @@ public class AdvisorSubjectsTests
     {
         await using var db = await SeedAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).HandleAsync(404, [1]));
     }
 

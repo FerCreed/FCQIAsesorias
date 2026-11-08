@@ -32,7 +32,7 @@ public class StatusTransitionTests
     {
         await using var db = await SeedAsync(final);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServices.UpdateStatus(db)
                 .HandleAsync(1, SessionStatuses.Confirmed, ElAsesor()));
 
@@ -45,7 +45,7 @@ public class StatusTransitionTests
     {
         await using var db = await SeedAsync(SessionStatusIds.Cancelled);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServices.UpdateStatus(db)
                 .HandleAsync(1, SessionStatuses.Pending, Direccion()));
     }

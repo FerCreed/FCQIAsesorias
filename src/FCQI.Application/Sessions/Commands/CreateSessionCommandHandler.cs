@@ -54,7 +54,7 @@ public class CreateSessionCommandHandler
             .AnyAsync(s => s.PersonId == studentId && s.IsActive, cancellationToken);
         if (!studentExists)
         {
-            throw new InvalidOperationException("El alumno no está dado de alta en el programa.");
+            throw new BusinessRuleException("El alumno no está dado de alta en el programa.");
         }
 
         // Los asesores pares son alumnos que asesoran, así que una misma
@@ -63,22 +63,22 @@ public class CreateSessionCommandHandler
         // asesor par podía ocupar su propio bloque de horario como alumno.
         if (studentId == request.AdvisorId)
         {
-            throw new InvalidOperationException("No puedes agendar una asesoría contigo mismo.");
+            throw new BusinessRuleException("No puedes agendar una asesoría contigo mismo.");
         }
 
         var slot = await _context.Availabilities
                        .AsNoTracking()
                        .SingleOrDefaultAsync(a => a.Id == request.AvailabilityId, cancellationToken)
-                   ?? throw new InvalidOperationException("El horario no existe.");
+                   ?? throw new BusinessRuleException("El horario no existe.");
 
         if (!slot.IsActive)
         {
-            throw new InvalidOperationException("Ese horario ya no está disponible.");
+            throw new BusinessRuleException("Ese horario ya no está disponible.");
         }
 
         if (slot.TermId != termId)
         {
-            throw new InvalidOperationException("Ese horario pertenece a un ciclo escolar anterior.");
+            throw new BusinessRuleException("Ese horario pertenece a un ciclo escolar anterior.");
         }
 
         // La base ya impide que el asesor no sea el dueño del bloque, mediante
@@ -86,7 +86,7 @@ public class CreateSessionCommandHandler
         // un mensaje claro en vez de un error de restricción.
         if (slot.AdvisorId != request.AdvisorId)
         {
-            throw new InvalidOperationException("El horario no pertenece a ese tutor.");
+            throw new BusinessRuleException("El horario no pertenece a ese tutor.");
         }
 
         var teaches = await _context.AdvisorSubjects.AnyAsync(
@@ -95,7 +95,7 @@ public class CreateSessionCommandHandler
                  && x.SubjectId == request.SubjectId, cancellationToken);
         if (!teaches)
         {
-            throw new InvalidOperationException("El directivo no ha asignado esta materia a ese tutor.");
+            throw new BusinessRuleException("El directivo no ha asignado esta materia a ese tutor.");
         }
 
         // La fecha llega en hora local del campus. Debe caer en el día y la
@@ -106,13 +106,13 @@ public class CreateSessionCommandHandler
 
         if (local.DayOfWeek != slot.DayOfWeek)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"La fecha elegida es {DayName(local.DayOfWeek)} y ese horario es de {DayName(slot.DayOfWeek)}.");
         }
 
         if (TimeOnly.FromDateTime(local) != slot.StartTime)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Ese horario empieza a las {slot.StartTime:HH\\:mm}.");
         }
 
@@ -120,7 +120,7 @@ public class CreateSessionCommandHandler
 
         if (scheduledUtc <= _clock.UtcNow)
         {
-            throw new InvalidOperationException("No se puede agendar una asesoría en el pasado.");
+            throw new BusinessRuleException("No se puede agendar una asesoría en el pasado.");
         }
 
         // ciclos_escolares define la ventana del ciclo. Sin esta comprobación se
@@ -128,7 +128,7 @@ public class CreateSessionCommandHandler
         var day = DateOnly.FromDateTime(local);
         if (day < term.StartsOn || day > term.EndsOn)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"La fecha está fuera del ciclo {term.Code}, que va del " +
                 $"{term.StartsOn:dd/MM/yyyy} al {term.EndsOn:dd/MM/yyyy}.");
         }
@@ -148,12 +148,12 @@ public class CreateSessionCommandHandler
                  && s.ActiveAt == scheduledUtc, cancellationToken);
         if (mine)
         {
-            throw new InvalidOperationException("Ya tienes una solicitud activa en ese horario.");
+            throw new BusinessRuleException("Ya tienes una solicitud activa en ese horario.");
         }
 
         if (taken.Count >= slot.MaxCapacity)
         {
-            throw new InvalidOperationException("Ese horario ya está lleno.");
+            throw new BusinessRuleException("Ese horario ya está lleno.");
         }
 
         var seat = Enumerable.Range(1, slot.MaxCapacity).First(n => !taken.Contains(n));
@@ -183,7 +183,7 @@ public class CreateSessionCommandHandler
             // cupo y el INSERT se coló otra solicitud, y los índices únicos de
             // la base tuvieron la última palabra. Pero no es la única causa
             // posible, así que el mensaje no la afirma como si lo fuera.
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "No se pudo registrar la asesoría; es posible que ese lugar " +
                 "acabe de ocuparse. Vuelve a intentarlo.", ex);
         }

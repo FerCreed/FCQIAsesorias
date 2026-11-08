@@ -18,7 +18,7 @@ public class AvailabilityProcessTests
     {
         await using var db = await SeedAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).CreateAsync(Block(DayOfWeek.Wednesday, 13, 15), AsAdvisor()));
         Assert.Contains("traslapa", ex.Message);
 
@@ -33,7 +33,7 @@ public class AvailabilityProcessTests
     {
         await using var db = await SeedAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).CreateAsync(Block(DayOfWeek.Monday, from, to, capacity), AsAdvisor()));
     }
 
@@ -51,9 +51,9 @@ public class AvailabilityProcessTests
     {
         await using var db = await SeedAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).UpdateAsync(InPersonBlock, Block(DayOfWeek.Thursday, 12, 14), AsAdvisor()));
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).RetireAsync(InPersonBlock, AsAdvisor()));
 
         await Handler(db).UpdateAsync(InPersonBlock, Block(DayOfWeek.Wednesday, 12, 14, capacity: 3), AsAdvisor());

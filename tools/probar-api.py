@@ -311,6 +311,8 @@ s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "Prueba automát
 check("I13 el alumno escribe al tutor (BPMN 15)", s == 204, (s, b))
 s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "   "})
 check("I14 un mensaje vacío se rechaza", s == 400, (s, b))
+estados = [call("POST", "/api/advisors/1/messages", TA, {"message": f"Ráfaga {i}"})[0] for i in range(5)]
+check("I18 más de 5 mensajes por minuto se frenan (429)", 429 in estados, estados)
 s, reporte = call("GET", "/api/admin/reports", TD)
 check("I15 dirección obtiene métricas del ciclo (BPMN 6)", s == 200 and reporte["requested"] > 0, s)
 s, csv = call("GET", "/api/admin/reports.csv", TD)

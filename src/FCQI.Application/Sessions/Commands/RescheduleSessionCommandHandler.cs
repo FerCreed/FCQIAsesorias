@@ -49,7 +49,7 @@ public class RescheduleSessionCommandHandler
 
         if (!SessionState.From(session.StatusId).OccupiesSeat)
         {
-            throw new InvalidOperationException("Solo se pueden reprogramar asesorías pendientes o confirmadas.");
+            throw new BusinessRuleException("Solo se pueden reprogramar asesorías pendientes o confirmadas.");
         }
 
         if (actor == SessionActor.Student)

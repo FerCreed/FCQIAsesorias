@@ -16,7 +16,7 @@ public record SessionPolicy(int ChangeLimitHours = 24)
     {
         if (scheduledUtc - clock.UtcNow < TimeSpan.FromHours(ChangeLimitHours))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Solo puedes cancelar o reprogramar hasta {ChangeLimitHours} horas antes de la cita.");
         }
     }

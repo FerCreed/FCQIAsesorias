@@ -1,3 +1,4 @@
+using FCQI.Application.Common;
 using FCQI.Application.Auth;
 using FCQI.Domain;
 using FCQI.Domain.Entities;
@@ -55,7 +56,7 @@ public class ResolveProfileHandlerTests
         await using var context = await SeedAsync();
         var handler = new ResolveProfileHandler(context);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => handler.ResolveAsync("alguien@gmail.com", "t"));
     }
 

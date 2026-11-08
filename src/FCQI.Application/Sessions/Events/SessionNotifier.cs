@@ -6,7 +6,8 @@ namespace FCQI.Application.Sessions.Events;
 
 /// <summary>
 /// Notificaciones de BPMN 8, 11, 12 y 18: avisa por correo a la otra parte
-/// de la cita. Si cambió el alumno, se entera el asesor, y al revés.
+/// de la cita. Si cambió el alumno, se entera el asesor, y al revés; si fue
+/// dirección, se enteran los dos. El correo nombra siempre a quien actuó.
 /// </summary>
 public class SessionNotifier : ISessionObserver
 {
@@ -28,6 +29,7 @@ public class SessionNotifier : ISessionObserver
             .Select(x => new
             {
                 x.StudentId,
+                x.AdvisorId,
                 StudentEmail = x.Student.Person.Email,
                 StudentName = x.Student.Person.DisplayName,
                 AdvisorEmail = x.Advisor.Person.Email,
@@ -38,10 +40,16 @@ public class SessionNotifier : ISessionObserver
             })
             .SingleAsync(cancellationToken);
 
-        var fromStudent = change.ChangedBy == s.StudentId;
-        var (to, otherName) = fromStudent ? (s.AdvisorEmail, s.StudentName) : (s.StudentEmail, s.AdvisorName);
-        var when = _clock.ToLocal(s.ScheduledAt).ToString("dddd dd/MM/yyyy HH:mm", Spanish);
+        var actor = await _context.People.AsNoTracking()
+            .Where(p => p.Id == change.ChangedBy)
+            .Select(p => p.DisplayName)
+            .SingleOrDefaultAsync(cancellationToken) ?? "Dirección del programa";
 
+        string[] recipients = change.ChangedBy == s.StudentId ? [s.AdvisorEmail]
+            : change.ChangedBy == s.AdvisorId ? [s.StudentEmail]
+            : [s.StudentEmail, s.AdvisorEmail];
+
+        var when = _clock.ToLocal(s.ScheduledAt).ToString("dddd dd/MM/yyyy HH:mm", Spanish);
         var what = change switch
         {
             { From: null } => "solicitó una nueva asesoría",
@@ -52,13 +60,16 @@ public class SessionNotifier : ISessionObserver
             _ => "actualizó la asesoría"
         };
 
-        var body = $"{otherName} {what} de {s.Subject} del {when}.";
+        var body = $"{actor} {what} de {s.Subject} entre {s.StudentName} y {s.AdvisorName}, del {when}.";
         if (s.MeetingLink is not null)
         {
             body += $"\nEnlace de la reunión: {s.MeetingLink}";
         }
 
-        await _email.SendAsync(new EmailMessage(to, $"Asesoría de {s.Subject}: {what}", body), cancellationToken);
+        foreach (var to in recipients)
+        {
+            await _email.SendAsync(new EmailMessage(to, $"Asesoría de {s.Subject}: {what}", body), cancellationToken);
+        }
     }
 
     private static readonly System.Globalization.CultureInfo Spanish = new("es-MX");

@@ -31,7 +31,7 @@ public class ContactAdvisorCommandHandler
         var text = message?.Trim() ?? string.Empty;
         if (text.Length is 0 or > MaxLength)
         {
-            throw new InvalidOperationException($"Escribe un mensaje de 1 a {MaxLength} caracteres.");
+            throw new BusinessRuleException($"Escribe un mensaje de 1 a {MaxLength} caracteres.");
         }
 
         var advisor = await _context.AdvisorProfiles.AsNoTracking()

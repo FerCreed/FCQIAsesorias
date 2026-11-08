@@ -1,3 +1,4 @@
+using FCQI.Api.Configuration;
 using FCQI.Api.Security;
 using FCQI.Application.Advisors.Commands;
 using FCQI.Application.Advisors.Dtos;
@@ -5,6 +6,7 @@ using FCQI.Application.Advisors.Queries;
 using FCQI.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FCQI.Api.Controllers;
 
@@ -31,8 +33,9 @@ public class AdvisorsController : ControllerBase
         [FromServices] GetAvailabilitiesQueryHandler availabilities, int id, CancellationToken cancellationToken)
         => Ok(await availabilities.HandleAsync(id, cancellationToken));
 
-    /// <summary>Mensaje del alumno al tutor por correo (BPMN 15).</summary>
+    /// <summary>Mensaje del alumno al tutor por correo (BPMN 15). Máximo 5 por minuto por persona.</summary>
     [HttpPost("{id:int}/messages")]
+    [EnableRateLimiting(ApiSetup.ContactPolicy)]
     public async Task<IActionResult> Contact(
         [FromServices] ContactAdvisorCommandHandler contact,
         int id, [FromBody] ContactAdvisorRequest request, CancellationToken cancellationToken)

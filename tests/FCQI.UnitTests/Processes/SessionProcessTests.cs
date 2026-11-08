@@ -28,7 +28,7 @@ public class SessionProcessTests
         await using var db = await SeedAsync(SessionStatusIds.Confirmed);
         var clock = Clock(WednesdaySession.AddHours(-3));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServices.UpdateStatus(db, clock).HandleAsync(1, SessionStatuses.Cancelled, AsStudent()));
         Assert.Contains("24 horas", ex.Message);
 
@@ -66,7 +66,7 @@ public class SessionProcessTests
         await using var db = await SeedAsync(SessionStatusIds.Confirmed);
         var request = new SessionLogRequest(true, "Repasamos límites.");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => Log(db, Now).HandleAsync(1, request, AsAdvisor()));
 
         await Log(db, WednesdaySession.AddHours(1)).HandleAsync(1, request, AsAdvisor());
@@ -79,7 +79,7 @@ public class SessionProcessTests
     public async Task Bitacora_NoLaRegistraElAlumno_NiSobreUnaPendiente()
     {
         await using var pending = await SeedAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => Log(pending, WednesdaySession.AddHours(1)).HandleAsync(1, new SessionLogRequest(true, null), AsAdvisor()));
 
         await using var confirmed = await SeedAsync(SessionStatusIds.Confirmed);

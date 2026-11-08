@@ -126,7 +126,7 @@ public partial class CatalogViewModel : PageViewModel
         Advisors.Clear();
         if (value is not null)
         {
-            _ = Load(Advisors, () => _catalog.GetAdvisorsAsync(value.Id));
+            _ = LoadAsync(Advisors, () => _catalog.GetAdvisorsAsync(value.Id), () => SelectedSubject == value);
         }
 
         NotifyStep();
@@ -139,7 +139,7 @@ public partial class CatalogViewModel : PageViewModel
         Slots.Clear();
         if (value is not null)
         {
-            _ = Load(Slots, () => _catalog.GetAvailabilitiesAsync(value.Id));
+            _ = LoadAsync(Slots, () => _catalog.GetAvailabilitiesAsync(value.Id), () => SelectedAdvisor == value);
         }
 
         NotifyStep();
@@ -231,15 +231,38 @@ public partial class CatalogViewModel : PageViewModel
         OnPropertyChanged(nameof(IsEmpty));
     }
 
-    private async Task Load<T>(ObservableCollection<T> target, Func<Task<List<T>>> fetch)
+    /// <summary>
+    /// Carga una lista del paso actual. No usa <see cref="PageViewModel.RunAsync"/>:
+    /// su bloqueo descartaría la carga si el alumno cambia de materia mientras
+    /// la anterior sigue en curso. En su lugar, la respuesta se descarta si la
+    /// selección ya cambió (<paramref name="stillCurrent"/>), para no mezclar
+    /// los tutores de una materia con los de otra.
+    /// </summary>
+    internal async Task LoadAsync<T>(ObservableCollection<T> target, Func<Task<List<T>>> fetch, Func<bool> stillCurrent)
     {
-        await RunAsync(async () =>
+        try
         {
-            foreach (var item in await fetch())
+            var items = await fetch();
+            if (!stillCurrent())
+            {
+                return;
+            }
+
+            target.Clear();
+            foreach (var item in items)
             {
                 target.Add(item);
             }
-        });
+        }
+        catch (Exception ex) when (stillCurrent())
+        {
+            Status.Error(ex.Message);
+        }
+        catch
+        {
+            // Falló una consulta que ya nadie mira; se ignora.
+        }
+
         OnPropertyChanged(nameof(IsEmpty));
     }
 

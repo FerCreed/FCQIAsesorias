@@ -39,7 +39,7 @@ public class RecordSessionLogCommandHandler
 
         if (!state.CanMoveTo(SessionStatusIds.Completed))
         {
-            throw new InvalidOperationException("Solo se registra bitácora de asesorías confirmadas.");
+            throw new BusinessRuleException("Solo se registra bitácora de asesorías confirmadas.");
         }
 
         if (!state.Allows(SessionStatusIds.Completed, actor))
@@ -49,13 +49,13 @@ public class RecordSessionLogCommandHandler
 
         if (session.ScheduledAt > _clock.UtcNow)
         {
-            throw new InvalidOperationException("La asesoría todavía no empieza; registra la bitácora al impartirla.");
+            throw new BusinessRuleException("La asesoría todavía no empieza; registra la bitácora al impartirla.");
         }
 
         var notes = request.Notes?.Trim();
         if (notes?.Length > MaxNotesLength)
         {
-            throw new InvalidOperationException($"Las notas admiten hasta {MaxNotesLength} caracteres.");
+            throw new BusinessRuleException($"Las notas admiten hasta {MaxNotesLength} caracteres.");
         }
 
         _context.SessionLogs.Add(new SessionLog

@@ -64,7 +64,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             .AnyAsync(a => a.PersonId == advisorId, cancellationToken);
         if (!exists)
         {
-            throw new InvalidOperationException("El tutor no existe.");
+            throw new BusinessRuleException("El tutor no existe.");
         }
 
         var wanted = subjectIds.Distinct().ToHashSet();
@@ -84,7 +84,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             var unknown = wanted.Except(valid).ToList();
             if (unknown.Count > 0)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Hay materias que no existen o están dadas de baja: "
                     + string.Join(", ", unknown.OrderBy(id => id)) + ".");
             }
@@ -115,7 +115,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
 
             if (inUse.Count > 0)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "No se pueden quitar materias con asesorías registradas en este ciclo: "
                     + string.Join(", ", inUse.OrderBy(n => n)) + ".");
             }

@@ -44,6 +44,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapControllers();
 
 app.Run();

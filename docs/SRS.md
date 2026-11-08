@@ -130,7 +130,7 @@ Prioridad: **A** imprescindible, **M** importante. Estado: **✔** implementado,
 | RF-11 | Al elegir materia, se muestran solo los tutores que dirección asignó a esa materia en el ciclo vigente; si no hay, se indica. | 4, 5 | A | ✔ |
 | RF-12 | Al elegir tutor, se muestran sus bloques activos con día, hora, modalidad y sede; si no hay, se indica. | 3 | A | ✔ |
 | RF-13 | El alumno solicita un bloque con un tema. El sistema valida: alumno activo, tutor asignado a la materia, bloque activo del tutor y del ciclo, fecha futura dentro del ciclo y en el día y hora del bloque, cupo libre, sin duplicado, y que no sea consigo mismo. La cita queda **Pendiente**. | 8 | A | ✔ |
-| RF-14 | El alumno puede escribir al tutor; el mensaje (1–2000 caracteres) llega a su correo institucional con respuesta directa al alumno. | 15 | M | ◐ |
+| RF-14 | El alumno puede escribir al tutor; el mensaje (1–2000 caracteres) llega a su correo institucional con respuesta directa al alumno. Máximo 5 mensajes por minuto por persona (HTTP 429 al exceder). | 15 | M | ◐ |
 
 ### 3.3 Ciclo de vida de la asesoría
 
@@ -148,7 +148,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RF-22 | El alumno puede reprogramar a otro bloque del mismo tutor con el mismo límite; la cita nueva queda Pendiente y la anterior Cancelada. | 11 | M | ✔ |
 | RF-23 | Un estado final no puede cambiar; se informa que hay que solicitar de nuevo. | 11, 12, 18 | A | ✔ |
 | RF-24 | Cada cambio de estado se registra en `historial_estados_sesion` (por trigger) y libera el cupo cuando corresponde. | 11, 12, 18 | A | ✔ |
-| RF-25 | En cada cambio de estado se notifica por correo a la otra parte de la cita. | 8, 11, 12, 18 | M | ◐ |
+| RF-25 | En cada cambio de estado se notifica por correo a la otra parte de la cita, nombrando a quien actuó; si actuó dirección, se notifica a alumno y asesor. | 8, 11, 12, 18 | M | ◐ |
 | RF-26 | Al confirmar una cita virtual se genera y guarda su enlace de reunión; las presenciales no llevan enlace. | 10 | M | ◐ |
 | RF-27 | Cualquier participante puede descargar la cita como archivo iCalendar (`.ics`) para su calendario personal o institucional. | 12 | M | ✔ |
 | RF-28 | El asesor registra bitácora (asistencia y notas, ≤ 2000 caracteres) de una cita confirmada que ya empezó; la cita queda **Realizada**. | 9 | A | ✔ |
@@ -192,7 +192,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RNF-06 | Integridad | La base impide sobrecupo, citas con un asesor que no es dueño del bloque y estados inválidos, aunque falle la aplicación. | Llaves compuestas, índices únicos y triggers en `01-schema.sql`. |
 | RNF-07 | Exactitud temporal | Las citas no se corren con el horario de verano. | UTC en la base; `CampusClock` convierte con las reglas de America/Tijuana. |
 | RNF-08 | Disponibilidad | Un fallo de correo o de enlace no debe impedir el cambio de estado. | Los observadores corren después de guardar y sus errores se registran sin propagarse. |
-| RNF-09 | Usabilidad | Todo error se muestra en español, con la causa y qué hacer. | `ApiExceptionFilter` devuelve `{ message }`; el cliente lo muestra en la barra de estado. |
+| RNF-09 | Usabilidad | Todo error de negocio se muestra en español, con la causa y qué hacer; los fallos internos no exponen detalles. | Las reglas lanzan `BusinessRuleException`; `ApiExceptionFilter` la traduce a 400 con `{ message }` y deja el resto como 500 en el log. |
 | RNF-10 | Mantenibilidad | Capas desacopladas, patrones de diseño donde aportan y pruebas automáticas de las reglas de negocio. | Ver §6 y §8. |
 | RNF-11 | Rendimiento | Respuesta < 1 s para el catálogo y las consultas con los volúmenes de un ciclo (miles de citas). | Índices por asesor, alumno, ciclo y estado; caché de materias y sedes en el cliente. |
 
@@ -288,7 +288,9 @@ aplicada al arrancar el contenedor): estado 5 *Realizada*, columna
 | RF-51, RF-52 | `Processes/ReportProcessTests` |
 | RNF-06 | `Persistence/ModelMappingTests` + checklist §1 |
 | RNF-07 | `Time/CampusClockTests` |
-| RF-14, RF-25, RNF-01, RNF-02, RNF-03 | Manual: `docs/checklist-validacion.md` y `tools/probar-api.py` |
+| RF-14, RF-25 | `Processes/ContactAndNoticeTests` (límite de mensajes: `tools/probar-api.py` I18) |
+| RF-11 (respuestas tardías) | `Client/CatalogRaceTests` |
+| RNF-01, RNF-02, RNF-03 | Manual: `docs/checklist-validacion.md` y `tools/probar-api.py` |
 
 Criterio de aceptación de una entrega: `dotnet test` en verde dentro del
 contenedor, `tools/probar-api.py` sin fallas y el recorrido manual del
