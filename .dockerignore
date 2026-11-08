@@ -38,3 +38,8 @@ docker-compose*.yml
 # Recursos del cliente HTTP del IDE
 *.http
 http-client.env.json
+
+# Documentación y diagramas que no forman parte de la imagen
+AsesoriasBizagi/
+graphify-out/
+docs/

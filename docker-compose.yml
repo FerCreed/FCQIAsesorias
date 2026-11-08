@@ -17,11 +17,8 @@ services:
       dockerfile: Dockerfile
       target: runtime
       args:
-        # La URL de la API se compila DENTRO del .wasm, así que debe coincidir
-        # con la dirección por la que abres la aplicación en el navegador.
-        # Para publicar en el servidor académico, cámbiala por su dirección real
-        # (p. ej. http://asesorias.fcqi.uabc.mx).
-        API_BASE_URL: http://localhost:8080
+        # El frontend usa como API el mismo origen desde el que se abre, así
+        # que la imagen sirve igual en localhost que en el servidor académico.
         RUN_TESTS: "true"
     image: fcqi-asesorias:prod
     container_name: fcqi-prod

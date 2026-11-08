@@ -6,14 +6,6 @@
         <option name="buildOnly" value="true" />
         <option name="sourceFilePath" value="Dockerfile" />
         <option name="contextFolderPath" value="." />
-        <option name="buildArgs">
-          <list>
-            <DockerBuildArgImpl>
-              <option name="name" value="API_BASE_URL" />
-              <option name="value" value="http://localhost:8080" />
-            </DockerBuildArgImpl>
-          </list>
-        </option>
       </settings>
     </deployment>
     <method v="2" />

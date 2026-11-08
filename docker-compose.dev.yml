@@ -18,8 +18,6 @@ services:
       dockerfile: Dockerfile
       target: debug
       args:
-        # Debe coincidir con el puerto publicado más abajo.
-        API_BASE_URL: http://localhost:5080
         RUN_TESTS: "false"
         INSTALL_VSDBG: "true"
         # Ponlo en "true" si además quieres recompilar el frontend Avalonia
