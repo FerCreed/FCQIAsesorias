@@ -4,7 +4,7 @@
 | Campo | Valor |
 |-------|-------|
 | Organización | Facultad de Ciencias Químicas e Ingeniería (FCQI), UABC Tijuana |
-| Versión del documento | 1.0 |
+| Versión del documento | 1.1 |
 | Fecha | 7 de noviembre de 2026 |
 | Estándar de referencia | ISO/IEC/IEEE 29148:2018 (sucesor de IEEE 830) |
 | Fuente de los procesos | Diagramas BPMN en `AsesoriasBizagi/` (Diagrama 1 a 19) |
@@ -32,6 +32,9 @@ El sistema digitaliza el programa de asesorías del ciclo escolar vigente:
   constancias de horas.
 - El **sistema** valida reglas, notifica por correo, genera enlaces de reunión
   virtual y archivos de calendario.
+
+Pendiente de esta versión: ampliar el catálogo con los horarios reales de la
+facultad (dos PDF en Google Drive), a la espera de autorizar su descarga.
 
 Fuera de alcance de esta versión: conexión con el directorio de cuentas UABC
 (la contraseña no se verifica todavía, ver RNF-05), generación de reuniones de
@@ -130,6 +133,8 @@ Prioridad: **A** imprescindible, **M** importante. Estado: **✔** implementado,
 | RF-11 | Al elegir materia, se muestran solo los asesores que dirección asignó a esa materia en el ciclo vigente; si no hay, se indica. | 4, 5 | A | ✔ |
 | RF-12 | Al elegir asesor, se muestran sus bloques activos con día, hora, modalidad y sede; si no hay, se indica. | 3 | A | ✔ |
 | RF-13 | El alumno solicita un bloque con un tema. El sistema valida: alumno activo, asesor asignado a la materia, bloque activo del asesor y del ciclo, fecha futura dentro del ciclo y en el día y hora del bloque, cupo libre, sin duplicado, y que no sea consigo mismo. La cita queda **Pendiente**. | 8 | A | ✔ |
+| RF-15 | Las listas se pueden filtrar: materias por texto, programa educativo y "solo con asesores"; asesores por tipo (profesor o estudiante), modalidad y días con horario; horarios por día, franja del día (mañana, tarde, noche) y modalidad. Cada lista indica "N de M" resultados y ofrece "Limpiar filtros". | 8 | A | ✔ |
+| RF-16 | La fecha de la cita se elige en un calendario que solo habilita las fechas del ciclo que caen en el día del bloque elegido. | 8, 11 | A | ✔ |
 | RF-14 | El alumno puede escribir al asesor; el mensaje (1–2000 caracteres) llega a su correo institucional con respuesta directa al alumno. Máximo 5 mensajes por minuto por persona (HTTP 429 al exceder). | 15 | M | ◐ |
 
 ### 3.3 Ciclo de vida de la asesoría
@@ -148,7 +153,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RF-22 | El alumno puede reprogramar a otro bloque del mismo asesor con el mismo límite; la cita nueva queda Pendiente y la anterior Cancelada. | 11 | M | ✔ |
 | RF-23 | Un estado final no puede cambiar; se informa que hay que solicitar de nuevo. | 11, 12, 18 | A | ✔ |
 | RF-24 | Cada cambio de estado se registra en `historial_estados_sesion` (por trigger) y libera el cupo cuando corresponde. | 11, 12, 18 | A | ✔ |
-| RF-25 | En cada cambio de estado se notifica por correo a la otra parte de la cita, nombrando a quien actuó; si actuó dirección, se notifica a alumno y asesor. | 8, 11, 12, 18 | M | ◐ |
+| RF-25 | En cada cambio de estado se notifica por correo, en paralelo, al alumno y al asesor de la cita, nombrando a quien actuó. | 8, 11, 12, 18 | M | ◐ |
 | RF-26 | Al confirmar una cita virtual se genera y guarda su enlace de reunión; las presenciales no llevan enlace. | 10 | M | ◐ |
 | RF-27 | Cualquier participante puede descargar la cita como archivo iCalendar (`.ics`) para su calendario personal o institucional. | 12 | M | ✔ |
 | RF-28 | El asesor registra bitácora (asistencia y notas, ≤ 2000 caracteres) de una cita confirmada que ya empezó; la cita queda **Realizada**. | 9 | A | ✔ |
@@ -175,8 +180,10 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | ID | Requisito | BPMN | Prioridad | Estado |
 |----|-----------|------|-----------|--------|
 | RF-50 | Dirección asigna las materias que cubre cada asesor en el ciclo; se validan materias existentes y no se retira una materia con asesorías registradas. | 2 | A | ✔ |
-| RF-51 | Dirección consulta métricas del ciclo: solicitudes, realizadas, canceladas, rechazadas, % de asistencia, horas impartidas, horas por asesor y demanda por materia. Sin datos, se indica. | 6 | M | ✔ |
-| RF-52 | Dirección descarga la constancia de horas por asesor en CSV (abre en Excel). Las horas cuentan solo asesorías realizadas con asistencia. | 6 | M | ✔ |
+| RF-51 | Dirección consulta un tablero de las asesorías creadas en un periodo (fechas en calendario, filtros por asesor, materia y estado): totales por estado, % de asistencia e inasistencia, % de cancelación y rechazo, horas trabajadas, anticipación promedio de la solicitud, y desgloses por asesor, materia, día de la semana y modalidad. Sin datos, se indica. | 6 | A | ✔ |
+| RF-52 | Cada participante de una asesoría (alumno y asesor) y dirección pueden descargar su **reporte individual** en PDF: datos completos, historial de estados y bitácora. Nadie más puede. | 6, 14, 19 | A | ✔ |
+| RF-53 | El asesor descarga su **resumen de asesorías y horas trabajadas** del periodo (PDF y CSV); dirección puede descargar el de cualquier asesor. Las horas cuentan solo asesorías realizadas con asistencia. | 6 | A | ✔ |
+| RF-54 | Dirección descarga **todas las asesorías creadas a partir de una fecha** (y hasta otra opcional) en CSV (25 columnas por asesoría) y en PDF (métricas, desgloses y anexo con cada asesoría). Los reportes se calculan sobre las asesorías, su bitácora y su historial, no sobre bitácoras técnicas del programa. | 6 | A | ✔ |
 
 ---
 
@@ -194,6 +201,9 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RNF-08 | Disponibilidad | Un fallo de correo o de enlace no debe impedir el cambio de estado. | Los observadores corren después de guardar y sus errores se registran sin propagarse. |
 | RNF-09 | Usabilidad | Todo error de negocio se muestra en español, con la causa y qué hacer; los fallos internos no exponen detalles. | Las reglas lanzan `BusinessRuleException`; `ApiExceptionFilter` la traduce a 400 con `{ message }` y deja el resto como 500 en el log. |
 | RNF-10 | Mantenibilidad | Capas desacopladas, patrones de diseño donde aportan y pruebas automáticas de las reglas de negocio. | Ver §6 y §8. |
+| RNF-12 | Accesibilidad | Zoom de la interfaz de 80 % a 200 % (botones A− / A+ y Ctrl/Cmd + − 0); foco de teclado visible; contraste AA; objetivos táctiles de 44 px o más; nombres accesibles en los botones con ícono; cada elemento pulsable cambia al pasar el cursor y al presionarse. | Zoom con `LayoutTransformControl`; estilos globales en `App.axaml`; control `IconText`. |
+| RNF-13 | Usabilidad | Íconos Fluent System Icons de Microsoft en menú, botones y listas; aspecto institucional (encabezado blanco, banda verde, fondo papel). | `Themes/Icons.axaml` (trazos oficiales, licencia MIT). |
+| RNF-14 | Vocabulario | El rol se llama **asesor** en todo el sistema ("tutor" es otro rol en la facultad). El tipo de asesor es "Profesor" o "Estudiante". | Textos, API, correos, reportes y documentación. |
 | RNF-11 | Rendimiento | Respuesta < 1 s para el catálogo y las consultas con los volúmenes de un ciclo (miles de citas). | Índices por asesor, alumno, ciclo y estado; caché de materias y sedes en el cliente. |
 
 ---
@@ -206,11 +216,11 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 |----------|-----|------------|
 | Inicio | Todos | Accesos según rol |
 | Entrar | Visitante | RF-01–RF-05 |
-| Catálogo (Materia → Asesor → Horario) | Todos | RF-10–RF-14 |
+| Buscar (Materia → Asesor → Horario y fecha) | Todos | RF-10–RF-16 |
 | Mis asesorías / Solicitudes (Próximas, Historial) | Alumno, Asesor | RF-20–RF-33 |
-| Mis horarios | Asesor | RF-40–RF-42 |
+| Mis horarios (y resumen de horas) | Asesor | RF-40–RF-42, RF-53 |
 | Dirección | Directivo | RF-50 |
-| Reportes | Directivo | RF-51, RF-52 |
+| Reportes | Directivo | RF-51–RF-54 |
 
 ### 5.2 API REST (resumen; detalle en `/swagger`)
 
@@ -226,7 +236,10 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | `POST /api/sessions/{id}/log` | RF-28 |
 | `GET /api/sessions/{id}/calendar.ics` | RF-27 |
 | `GET /api/admin/advisors`, `PUT /api/admin/advisors/{id}/subjects` | RF-50 |
-| `GET /api/admin/reports`, `GET /api/admin/reports.csv` | RF-51, RF-52 |
+| `GET /api/terms/current` | RF-16 |
+| `GET /api/sessions/{id}/report.pdf` | RF-52 |
+| `GET /api/advisors/me/report.pdf\|.csv?from&to`, `GET /api/admin/advisors/{id}/report.pdf\|.csv?from&to` | RF-53 |
+| `GET /api/admin/reports?from&to&…`, `GET /api/admin/sessions.csv\|.pdf?from&to&…` | RF-51, RF-54 |
 
 Códigos: 400 regla de negocio incumplida, 401 sin sesión, 403 sin permiso,
 404 recurso inexistente. El cuerpo de error es siempre `{ "message": "…" }`.
@@ -238,6 +251,7 @@ Códigos: 400 regla de negocio incumplida, 401 sin sesión, 403 sin permiso,
 | `IEmailSender` | `LogEmailSender`: escribe el correo en el log de la API. | Definir `Smtp:Host` (y `Smtp:Port`, `Smtp:User`, `Smtp:Password`, `Smtp:From`); se usa `SmtpEmailSender`. |
 | `IMeetingLinkProvider` | `LocationMeetingLinkProvider`: usa el enlace HTTPS fijo de la sala virtual (`lugares.Detalles`). | Implementar un adaptador de Google Meet con la misma interfaz y registrarlo en `FCQI.Infrastructure/DependencyInjection.cs`. |
 | Calendario | Archivo iCalendar estándar (RF-27): no requiere credenciales. | — |
+| `IReportRenderer` | `QuestPdfReportRenderer` (QuestPDF, licencia Community para uso académico). | — |
 
 ---
 
@@ -248,7 +262,7 @@ Códigos: 400 regla de negocio incumplida, 401 sin sesión, 403 sin permiso,
 | Estado | `Domain/Sessions/SessionState.cs` | Cada estado conoce sus transiciones y quién puede hacerlas. |
 | Comando | Handlers de `FCQI.Application`; `RelayCommand` en los ViewModels | Cada caso de uso o acción de pantalla es un objeto ejecutable. |
 | Observador | `ISessionObserver` + `SessionEventPublisher`; `SessionContext` observable en el cliente | Notificar y generar enlaces sin acoplar el handler; la UI reacciona a la sesión. |
-| Adaptador | `IEmailSender`, `IMeetingLinkProvider`, `IPlatformServices` | Servicios externos o de plataforma intercambiables. |
+| Adaptador | `IEmailSender`, `IMeetingLinkProvider`, `IReportRenderer`, `IPlatformServices` | Servicios externos o de plataforma intercambiables. |
 | Fachada | `FcqiApiClient` (`IFcqiApi`, `ICatalogApi`) | Un único punto de acceso a la API REST para el cliente. |
 | Proxy | `AuthTokenHandler` | Añade el token a cada petición HTTP. |
 | Decorador | `CachedCatalogApi` | Cachea materias y sedes sin tocar la fachada. |
@@ -285,10 +299,12 @@ aplicada al arrancar el contenedor): estado 5 *Realizada*, columna
 | RF-21, RF-22, RF-26–RF-28, RF-30, RF-31 | `Processes/SessionProcessTests` |
 | RF-40–RF-42 | `Processes/AvailabilityProcessTests` |
 | RF-50 | `Admin/AdvisorSubjectsTests` |
-| RF-51, RF-52 | `Processes/ReportProcessTests` |
+| RF-15, RF-16 | `Client/FilterAndLogoutTests`, `Client/CatalogRaceTests` |
+| RF-51–RF-54 | `Processes/ReportTests` (permisos, horas, filtro "desde", 25 columnas, PDF) y `tools/probar-api.py` I15–I26 |
+| RF-04 (limpiar al salir) | `Client/FilterAndLogoutTests` |
 | RNF-06 | `Persistence/ModelMappingTests` + checklist §1 |
 | RNF-07 | `Time/CampusClockTests` |
-| RF-14, RF-25 | `Processes/ContactAndNoticeTests` (límite de mensajes: `tools/probar-api.py` I18) |
+| RF-14, RF-25 | `Processes/ContactAndNoticeTests` (límite de mensajes: `tools/probar-api.py` I27) |
 | RF-11 (respuestas tardías) | `Client/CatalogRaceTests` |
 | RNF-01, RNF-02, RNF-03 | Manual: `docs/checklist-validacion.md` y `tools/probar-api.py` |
 

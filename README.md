@@ -167,7 +167,9 @@ al iniciar sesión y el cliente lo manda en `Authorization: Bearer`.
 | `GET /api/sessions/{id}/calendar.ics` | Participantes de la cita |
 | `/api/advisors/me/availabilities` | El asesor administra sus horarios |
 | `POST /api/advisors/{id}/messages` | Alumno: mensaje al asesor por correo |
-| `/api/admin/*` | Solo rol Directivo (asignación y reportes) |
+| `GET /api/sessions/{id}/report.pdf` | Reporte individual: alumno y asesor de la cita, y dirección |
+| `/api/advisors/me/report.pdf\|.csv` | El asesor: su resumen de asesorías y horas trabajadas |
+| `/api/admin/*` | Solo rol Directivo: asignación, tablero, todas las asesorías desde una fecha (CSV/PDF) y resumen de cualquier asesor |
 
 **Correo y reuniones.** Sin `Smtp:Host` configurado, los avisos y mensajes se
 escriben en el log de la API (`docker logs fcqi-prod`). Las citas virtuales
@@ -231,7 +233,7 @@ El recorrido completo, paso a paso, está en
 **[docs/checklist-validacion.md](docs/checklist-validacion.md)**. En resumen:
 
 ```bash
-dotnet test tests/FCQI.UnitTests          # 99 pruebas de reglas, procesos y cliente, sin base ni red
+dotnet test tests/FCQI.UnitTests          # 120 pruebas de reglas, procesos, reportes y cliente, sin base ni red
 python3 tools/probar-api.py               # 58 pruebas contra la API en :5080
 ```
 
