@@ -11,7 +11,7 @@ namespace FCQI.Api.Configuration;
 /// <summary>Configuración web de la API: controladores, JWT y CORS.</summary>
 public static class ApiSetup
 {
-    /// <summary>Política del limitador para los mensajes al tutor (BPMN 15).</summary>
+    /// <summary>Política del limitador para los mensajes al asesor (BPMN 15).</summary>
     public const string ContactPolicy = "contacto";
 
     /// <summary>Mensajes por persona y minuto. Evita usar el sistema para saturar el correo de un profesor.</summary>

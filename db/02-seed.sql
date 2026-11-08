@@ -474,7 +474,7 @@ INSERT INTO `asesorias` (`Id`, `CicloId`, `HorarioId`, `AsesorId`, `AlumnoId`, `
     (3, 1, 21, 4, 15, 10, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((3 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '17:00:00') + INTERVAL @utc_offset HOUR, 1, 2, 'Presente perfecto'),
     (4, 1, 21, 4, 17, 10, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((4 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '18:00:00') + INTERVAL @utc_offset HOUR, 1, 3, 'Ensayo cancelado'),
     -- Jimena (12) es asesora, y aquí aparece como ALUMNA pidiendo asesoría a
-    -- otro tutor. Es la fila que demuestra que los dos roles conviven.
+    -- otro asesor. Es la fila que demuestra que los dos roles conviven.
     (5, 1, 2, 1, 12, 2, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL ((3 - DAYOFWEEK(CURDATE()) + 7) % 7) + 1 DAY), '12:00:00') + INTERVAL @utc_offset HOUR, 1, 1, 'Regla de la cadena — voy como alumna'),
     -- Y aquí la MISMA Jimena del otro lado del mostrador: alguien le pide
     -- asesoría a ella. Con las dos filas, al cambiar de rol en la interfaz

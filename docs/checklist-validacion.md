@@ -92,8 +92,8 @@ Lo que cubre, por si hay que revisarlo a mano:
 | Bloque | Qué comprueba |
 |--------|----------------|
 | A | Todo endpoint fuera de `/api/auth` exige token; correos no institucionales y no registrados se rechazan; el token del asesor par trae sus dos roles |
-| B | Catálogo de materias, tutores por materia y bloques con sede y modalidad |
-| C | Alta de una solicitud y sus doce formas de estar mal: duplicada, día o hora equivocados, bloque de otro tutor, materia no asignada, fuera del ciclo, en el pasado, suplantando a otro alumno |
+| B | Catálogo de materias, asesores por materia y bloques con sede y modalidad |
+| C | Alta de una solicitud y sus doce formas de estar mal: duplicada, día o hora equivocados, bloque de otro asesor, materia no asignada, fuera del ciclo, en el pasado, suplantando a otro alumno |
 | D | El asesor par: sus dos bandejas por separado, sin mezclarse, sin poder agendarse consigo mismo y sin ver lo ajeno |
 | E | El cupo del bloque se respeta: el segundo alumno recibe «lleno», no una sobreventa |
 | F | Cada quien ve lo suyo; dirección lo ve todo; pedir lo de otro da 403, no una lista vacía |
@@ -110,8 +110,8 @@ Abre `http://localhost:5080`. El acceso de demostración solo existe mientras
 - [ ] Entra como **Alumno: Yesua Fernando Díaz Hernández**.
 - [ ] El encabezado ofrece Inicio · Buscar · Mis asesorías · Salir, y **no**
       muestra Dirección.
-- [ ] Buscar → *Cálculo Diferencial* → sale la lista de tutores que dirección
-      le asignó → elige tutor → salen sus bloques de horario.
+- [ ] Buscar → *Cálculo Diferencial* → sale la lista de asesores que dirección
+      le asignó → elige asesor → salen sus bloques de horario.
 - [ ] «Solicitar asesoría» → **la pantalla salta sola a Mis asesorías** y la
       nueva aparece como Pendiente.
 - [ ] Pedir dos veces el mismo bloque deja un mensaje que lo explica, no un
@@ -144,8 +144,8 @@ Este es el caso que motivó el selector. **Entra como `j2207105@uabc.edu.mx`
 - [ ] Entra como **Directivo: Lizeth Carolina Aguilar Dodier**.
 - [ ] El encabezado ofrece Citas y Dirección; no ofrece Buscar.
 - [ ] Citas muestra **todas** las asesorías del programa.
-- [ ] Dirección → elige un tutor → marca una materia → Guardar: el mensaje
-      confirma y **el panel se queda en el mismo tutor**, no salta al primero.
+- [ ] Dirección → elige un asesor → marca una materia → Guardar: el mensaje
+      confirma y **el panel se queda en el mismo asesor**, no salta al primero.
 - [ ] Esa materia aparece luego al alumno cuando la busca.
 - [ ] Desmarcar una materia con asesorías vivas se rechaza **con el motivo en
       pantalla**, no en silencio.

@@ -9,7 +9,7 @@ namespace FCQI.Api.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-// Solo dirección: asignación de tutores y reportes del programa.
+// Solo dirección: asignación de asesores y reportes del programa.
 [Authorize(Roles = UserRoles.Admin)]
 public class AdminController : ControllerBase
 {
@@ -18,7 +18,7 @@ public class AdminController : ControllerBase
         [FromServices] GetAdminAdvisorsQueryHandler list, CancellationToken cancellationToken)
         => Ok(await list.HandleAsync(cancellationToken));
 
-    /// <summary>Asignar tutores a materias (BPMN 2).</summary>
+    /// <summary>Asignar asesores a materias (BPMN 2).</summary>
     [HttpPut("advisors/{id:int}/subjects")]
     public async Task<IActionResult> PutSubjects(
         [FromServices] ReplaceAdvisorSubjectsCommandHandler replace,

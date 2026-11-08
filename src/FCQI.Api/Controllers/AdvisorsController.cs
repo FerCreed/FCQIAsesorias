@@ -19,21 +19,21 @@ public class AdvisorsController : ControllerBase
 
     public AdvisorsController(CurrentUser user) => _user = user;
 
-    /// <summary>Catálogo público: tutores asignados a una materia (BPMN 4).</summary>
+    /// <summary>Catálogo público: asesores asignados a una materia (BPMN 4).</summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<AdvisorDto>>> Get(
         [FromServices] GetAdvisorsQueryHandler advisors, [FromQuery] int? subjectId, CancellationToken cancellationToken)
         => Ok(await advisors.HandleAsync(subjectId, cancellationToken));
 
-    /// <summary>Catálogo público: horarios activos de un tutor (BPMN 3).</summary>
+    /// <summary>Catálogo público: horarios activos de un asesor (BPMN 3).</summary>
     [HttpGet("{id:int}/availabilities")]
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<AvailabilityDto>>> GetAvailabilities(
         [FromServices] GetAvailabilitiesQueryHandler availabilities, int id, CancellationToken cancellationToken)
         => Ok(await availabilities.HandleAsync(id, cancellationToken));
 
-    /// <summary>Mensaje del alumno al tutor por correo (BPMN 15). Máximo 5 por minuto por persona.</summary>
+    /// <summary>Mensaje del alumno al asesor por correo (BPMN 15). Máximo 5 por minuto por persona.</summary>
     [HttpPost("{id:int}/messages")]
     [EnableRateLimiting(ApiSetup.ContactPolicy)]
     public async Task<IActionResult> Contact(

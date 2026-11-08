@@ -39,7 +39,7 @@
 
             <Border Classes="card">
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="h3" Text="Horas por tutor" />
+                    <TextBlock Classes="h3" Text="Horas por asesor" />
                     <ItemsControl ItemsSource="{Binding Report.ByAdvisor}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:AdvisorReportItem">

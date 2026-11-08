@@ -2,7 +2,7 @@ using FCQI.Web.Models;
 
 namespace FCQI.Web.Services;
 
-/// <summary>Lecturas públicas del catálogo: materias, tutores, horarios y sedes.</summary>
+/// <summary>Lecturas públicas del catálogo: materias, asesores, horarios y sedes.</summary>
 public interface ICatalogApi
 {
     Task<List<SubjectItem>> GetSubjectsAsync();

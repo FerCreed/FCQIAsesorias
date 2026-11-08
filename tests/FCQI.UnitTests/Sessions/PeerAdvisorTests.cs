@@ -30,7 +30,7 @@ public class PeerAdvisorTests
     private static Caller ComoAsesorPar() => new(Par, false, true, true);
 
     [Fact]
-    public async Task AsesorPar_PuedeAgendarComoAlumno_ConOtroTutor()
+    public async Task AsesorPar_PuedeAgendarComoAlumno_ConOtroAsesor()
     {
         await using var db = await SeedAsync();
 

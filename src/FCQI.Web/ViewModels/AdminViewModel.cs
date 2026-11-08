@@ -16,7 +16,7 @@ public partial class AssignableSubject : ObservableObject
     [ObservableProperty] private bool _isAssigned;
 }
 
-/// <summary>Dirección asigna qué materias cubre cada tutor en el ciclo (BPMN 2).</summary>
+/// <summary>Dirección asigna qué materias cubre cada asesor en el ciclo (BPMN 2).</summary>
 public partial class AdminViewModel : PageViewModel
 {
     private readonly IFcqiApi _api;

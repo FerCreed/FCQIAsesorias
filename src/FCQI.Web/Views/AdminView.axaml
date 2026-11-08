@@ -6,8 +6,8 @@
              x:DataType="vm:AdminViewModel">
     <StackPanel Classes="page">
         <StackPanel Spacing="4">
-            <TextBlock Classes="h1" Text="Tutores y materias" />
-            <TextBlock Classes="muted" FontSize="15" Text="Elige un tutor y marca las materias que cubre este ciclo." />
+            <TextBlock Classes="h1" Text="Asesores y materias" />
+            <TextBlock Classes="muted" FontSize="15" Text="Elige un asesor y marca las materias que cubre este ciclo." />
         </StackPanel>
 
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
@@ -26,7 +26,7 @@
 
             <Border Classes="card side" VerticalAlignment="Top">
                 <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="{Binding SelectedAdvisor.FullName, FallbackValue='Elige un tutor'}" />
+                    <TextBlock Classes="h3" Text="{Binding SelectedAdvisor.FullName, FallbackValue='Elige un asesor'}" />
                     <ItemsControl ItemsSource="{Binding Subjects}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:AssignableSubject">

@@ -14,8 +14,8 @@ public enum CatalogStep
 }
 
 /// <summary>
-/// Catálogo público en tres pasos: materia (BPMN 5), tutor (BPMN 4) y horario
-/// (BPMN 3); al final, solicitar (BPMN 8) o escribir al tutor (BPMN 15).
+/// Catálogo público en tres pasos: materia (BPMN 5), asesor (BPMN 4) y horario
+/// (BPMN 3); al final, solicitar (BPMN 8) o escribir al asesor (BPMN 15).
 /// Se consulta sin cuenta; solicitar pide entrar y retoma la solicitud.
 /// </summary>
 public partial class CatalogViewModel : PageViewModel
@@ -73,7 +73,7 @@ public partial class CatalogViewModel : PageViewModel
     public string Heading => Step switch
     {
         CatalogStep.Subject => "Elige una materia",
-        CatalogStep.Advisor => "Elige un tutor",
+        CatalogStep.Advisor => "Elige un asesor",
         _ => "Elige un horario"
     };
 
@@ -87,8 +87,8 @@ public partial class CatalogViewModel : PageViewModel
     public string EmptyText => Step switch
     {
         CatalogStep.Subject => "Ninguna materia coincide con la búsqueda.",
-        CatalogStep.Advisor => "Dirección aún no asigna tutores a esta materia. Prueba con otra.",
-        _ => "Este tutor no tiene horarios publicados. Escríbele o elige otro tutor."
+        CatalogStep.Advisor => "Dirección aún no asigna asesores a esta materia. Prueba con otra.",
+        _ => "Este asesor no tiene horarios publicados. Escríbele o elige otro asesor."
     };
 
     public bool IsEmpty => !IsBusy && Step switch
@@ -160,7 +160,7 @@ public partial class CatalogViewModel : PageViewModel
     {
         if (SelectedSubject is null || SelectedAdvisor is null || SelectedSlot is null)
         {
-            Status.Error("Elige materia, tutor y horario.");
+            Status.Error("Elige materia, asesor y horario.");
             return;
         }
 
@@ -180,7 +180,7 @@ public partial class CatalogViewModel : PageViewModel
         var body = new CreateSessionBody(_session.PersonId, SelectedAdvisor.Id, SelectedSubject.Id, SelectedSlot.Id,
             SelectedSlot.NextOccurrence(DateTime.Today), string.IsNullOrWhiteSpace(Topic) ? "Dudas de la materia" : Topic.Trim());
 
-        if (await RunAsync(() => _api.CreateSessionAsync(body), "Solicitud enviada. Queda pendiente hasta que el tutor la confirme."))
+        if (await RunAsync(() => _api.CreateSessionAsync(body), "Solicitud enviada. Queda pendiente hasta que el asesor la confirme."))
         {
             Topic = string.Empty;
             SelectedSlot = null;
@@ -193,7 +193,7 @@ public partial class CatalogViewModel : PageViewModel
     {
         if (!_session.IsLoggedIn)
         {
-            _navigator.RequireLogin(AppPage.Catalog, "Entra para escribirle al tutor.");
+            _navigator.RequireLogin(AppPage.Catalog, "Entra para escribirle al asesor.");
             return;
         }
 
@@ -205,7 +205,7 @@ public partial class CatalogViewModel : PageViewModel
     {
         if (SelectedAdvisor is null || string.IsNullOrWhiteSpace(Message))
         {
-            Status.Error("Escribe tu mensaje para el tutor.");
+            Status.Error("Escribe tu mensaje para el asesor.");
             return;
         }
 
@@ -236,7 +236,7 @@ public partial class CatalogViewModel : PageViewModel
     /// su bloqueo descartaría la carga si el alumno cambia de materia mientras
     /// la anterior sigue en curso. En su lugar, la respuesta se descarta si la
     /// selección ya cambió (<paramref name="stillCurrent"/>), para no mezclar
-    /// los tutores de una materia con los de otra.
+    /// los asesores de una materia con los de otra.
     /// </summary>
     internal async Task LoadAsync<T>(ObservableCollection<T> target, Func<Task<List<T>>> fetch, Func<bool> stillCurrent)
     {

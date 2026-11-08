@@ -24,15 +24,15 @@ import urllib.request
 API = os.environ.get("API", "http://localhost:5080")
 OK, FALLAS = [], []
 
-# Bloques de horario del tutor 1 que el seed deja libres. Los que usa
+# Bloques de horario del asesor 1 que el seed deja libres. Los que usa
 # 02-seed.sql (1 y 2) se evitan a propósito: ocuparlos daría "lleno" y la
 # prueba fallaría por el dato, no por el código.
 MARTES, JUEVES, VIERNES = 4, 3, 5          # ids de availabilities
 DIA_MARTES, DIA_JUEVES, DIA_VIERNES = 2, 4, 5   # 0=domingo, como System.DayOfWeek
 HORA_MARTES, HORA_JUEVES, HORA_VIERNES = "13:00:00", "12:00:00", "10:00:00"
 
-CALCULO = 2          # materia asignada al tutor 1
-SIN_ASIGNAR = 44     # materia que el tutor 1 no imparte
+CALCULO = 2          # materia asignada al asesor 1
+SIN_ASIGNAR = 44     # materia que el asesor 1 no imparte
 
 
 def call(method, path, token=None, body=None):
@@ -125,13 +125,13 @@ print("\n== B. CATÁLOGO ==")
 s, materias = call("GET", "/api/subjects", TA)
 check("B1 el alumno ve el catálogo de materias", s == 200 and len(materias) == 44,
       (s, len(materias) if materias else None))
-s, tutores = call("GET", f"/api/advisors?subjectId={CALCULO}", TA)
-check("B2 filtra tutores por materia", s == 200 and len(tutores) > 0, s)
+s, asesores = call("GET", f"/api/advisors?subjectId={CALCULO}", TA)
+check("B2 filtra asesores por materia", s == 200 and len(asesores) > 0, s)
 s, bloques = call("GET", "/api/advisors/1/availabilities", TA)
-check("B3 devuelve los bloques del tutor", s == 200 and len(bloques) > 0, s)
+check("B3 devuelve los bloques del asesor", s == 200 and len(bloques) > 0, s)
 check("B4 cada bloque trae sede y modalidad", all(b["modality"] and b["location"] for b in bloques))
 s, vacio = call("GET", "/api/advisors/9999/availabilities", TA)
-check("B5 tutor inexistente devuelve lista vacía, no error", s == 200 and vacio == [], (s, vacio))
+check("B5 asesor inexistente devuelve lista vacía, no error", s == 200 and vacio == [], (s, vacio))
 
 print("\n== C. EL ALUMNO SOLICITA ==")
 s, b = solicitar(TA, studentId=alumno["profileId"], advisorId=1, subjectId=CALCULO,
@@ -158,9 +158,9 @@ casos = [
      dict(availabilityId=MARTES, scheduledAt=cuando(DIA_JUEVES, HORA_MARTES))),
     ("C7 hora distinta a la de inicio del bloque", "empieza",
      dict(availabilityId=MARTES, scheduledAt=cuando(DIA_MARTES, "09:00:00"))),
-    ("C8 bloque que no pertenece a ese tutor", "no pertenece",
+    ("C8 bloque que no pertenece a ese asesor", "no pertenece",
      dict(advisorId=2, availabilityId=MARTES, scheduledAt=cuando(DIA_MARTES, HORA_MARTES))),
-    ("C9 materia que dirección no asignó a ese tutor", "asignad",
+    ("C9 materia que dirección no asignó a ese asesor", "asignad",
      dict(subjectId=SIN_ASIGNAR, availabilityId=MARTES, scheduledAt=cuando(DIA_MARTES, HORA_MARTES))),
     ("C10 fecha fuera del ciclo escolar", "ciclo",
      dict(availabilityId=MARTES, scheduledAt=cuando(DIA_MARTES, HORA_MARTES, 120))),
@@ -208,7 +208,7 @@ check("E2 el bloque lleno rechaza a un tercero", s == 400 and "lleno" in str(b),
 print("\n== F. VISIBILIDAD ==")
 check("F1 pedir las asesorías de otro alumno da 403",
       call("GET", f"/api/sessions?studentId={otro_alumno['profileId']}", TA)[0] == 403)
-check("F2 un alumno no puede listar la agenda de un tutor",
+check("F2 un alumno no puede listar la agenda de un asesor",
       call("GET", "/api/sessions?advisorId=1", TA)[0] == 403)
 s, mias = call("GET", "/api/sessions", TA)
 check("F3 sin filtro, el alumno ve solo las suyas",
@@ -226,9 +226,9 @@ print("\n== G. CAMBIOS DE ESTADO ==")
 objetivo = creadas[0]
 check("G1 el alumno no puede confirmar su propia asesoría (403)",
       call("PATCH", f"/api/sessions/{objetivo}/status", TA, {"status": "Confirmada"})[0] == 403)
-check("G2 un tutor ajeno no puede tocarla (403)",
+check("G2 un asesor ajeno no puede tocarla (403)",
       call("PATCH", f"/api/sessions/{objetivo}/status", TO, {"status": "Confirmada"})[0] == 403)
-check("G3 el tutor dueño confirma (204)",
+check("G3 el asesor dueño confirma (204)",
       call("PATCH", f"/api/sessions/{objetivo}/status", TS, {"status": "Confirmada"})[0] == 204)
 check("G4 el alumno dueño cancela (204)",
       call("PATCH", f"/api/sessions/{objetivo}/status", TA, {"status": "Cancelada"})[0] == 204)
@@ -247,12 +247,12 @@ check("H1 un alumno no entra al panel de dirección (403)",
       call("GET", "/api/admin/advisors", TA)[0] == 403)
 check("H2 un asesor tampoco (403)", call("GET", "/api/admin/advisors", TS)[0] == 403)
 s, panel = call("GET", "/api/admin/advisors", TD)
-check("H3 dirección lista a los 14 tutores", s == 200 and len(panel) == 14,
+check("H3 dirección lista a los 14 asesores", s == 200 and len(panel) == 14,
       (s, len(panel) if panel else None))
 
-tutor = next(t for t in panel if t["id"] == 14)
-antes = [m["id"] for m in materias if m["name"] in tutor["subjects"]]
-check("H4 dirección asigna una materia a un tutor (204)",
+asesor = next(t for t in panel if t["id"] == 14)
+antes = [m["id"] for m in materias if m["name"] in asesor["subjects"]]
+check("H4 dirección asigna una materia a un asesor (204)",
       call("PUT", "/api/admin/advisors/14/subjects", TD, antes + [1])[0] == 204)
 s, despues = call("GET", "/api/advisors?subjectId=1", TA)
 check("H5 la materia asignada aparece al alumno",
@@ -260,7 +260,7 @@ check("H5 la materia asignada aparece al alumno",
 check("H6 dirección retira la materia (204)",
       call("PUT", "/api/admin/advisors/14/subjects", TD, antes)[0] == 204)
 s, b = call("PUT", "/api/admin/advisors/9999/subjects", TD, [1])
-check("H7 tutor inexistente se rechaza (400)", s == 400, (s, b))
+check("H7 asesor inexistente se rechaza (400)", s == 400, (s, b))
 s, b = call("PUT", "/api/admin/advisors/14/subjects", TD, [9999])
 check("H8 materia inexistente se rechaza (400, sin 500)",
       s == 400 and "9999" in str(b), (s, str(b)[:120]))
@@ -308,7 +308,7 @@ if viva:
         creadas.append(b["id"])
 
 s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "Prueba automática de contacto"})
-check("I13 el alumno escribe al tutor (BPMN 15)", s == 204, (s, b))
+check("I13 el alumno escribe al asesor (BPMN 15)", s == 204, (s, b))
 s, b = call("POST", "/api/advisors/1/messages", TA, {"message": "   "})
 check("I14 un mensaje vacío se rechaza", s == 400, (s, b))
 estados = [call("POST", "/api/advisors/1/messages", TA, {"message": f"Ráfaga {i}"})[0] for i in range(5)]

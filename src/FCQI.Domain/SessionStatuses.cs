@@ -52,8 +52,8 @@ public static class Modalities
     public const string Virtual = "Virtual";
 }
 
-public static class TutorKinds
+public static class AdvisorKinds
 {
-    public const string Professor = "Profesor tutor";
-    public const string Student = "Alumno tutor";
+    public const string Professor = "Profesor";
+    public const string Student = "Estudiante";
 }

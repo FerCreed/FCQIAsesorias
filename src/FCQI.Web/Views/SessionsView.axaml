@@ -22,7 +22,7 @@
 
         <TextBlock Classes="muted" Text="Cargando…" IsVisible="{Binding IsBusy}" />
         <Border Classes="card" IsVisible="{Binding IsEmpty}">
-            <TextBlock Classes="muted" Text="No hay asesorías aquí. Busca un tutor en el catálogo para solicitar una." />
+            <TextBlock Classes="muted" Text="No hay asesorías aquí. Busca un asesor en el catálogo para solicitar una." />
         </Border>
 
         <ListBox Classes="picker" ItemsSource="{Binding Sessions}" SelectedItem="{Binding Selected}">
@@ -63,7 +63,7 @@
 
                                 <!-- Reprogramar -->
                                 <StackPanel Spacing="8" IsVisible="{Binding IsRescheduling}">
-                                    <TextBlock Classes="label" Text="Nuevo horario con el mismo tutor" />
+                                    <TextBlock Classes="label" Text="Nuevo horario con el mismo asesor" />
                                     <ComboBox ItemsSource="{Binding RescheduleSlots}" SelectedItem="{Binding RescheduleSlot}"
                                               PlaceholderText="Elige un horario">
                                         <ComboBox.ItemTemplate>

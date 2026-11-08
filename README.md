@@ -1,8 +1,8 @@
 # Sistema de Asesorías FCQI
 
-Plataforma para digitalizar las asesorías académicas de la Facultad de Ciencias Químicas e Ingeniería (UABC). El alumno busca materia y solicita cita, el tutor atiende solicitudes y **dirección asigna qué tutores cubren cada materia**.
+Plataforma para digitalizar las asesorías académicas de la Facultad de Ciencias Químicas e Ingeniería (UABC). El alumno busca materia y solicita cita, el asesor atiende solicitudes y **dirección asigna qué asesores cubren cada materia**.
 
-Catálogo dummy 2026-2 tomado de los horarios oficiales (14 tutores, materias y bloques). Cliente Avalonia con paleta institucional (verde `#00723F`, oro `#DD971A`) que corre **en el navegador (WebAssembly) y en escritorio** (Windows, macOS, Linux), y se adapta a teléfonos en vertical: por debajo de 640 px el menú pasa a pestañas inferiores.
+Catálogo dummy 2026-2 tomado de los horarios oficiales (14 asesores, materias y bloques). Cliente Avalonia con paleta institucional (verde `#00723F`, oro `#DD971A`) que corre **en el navegador (WebAssembly) y en escritorio** (Windows, macOS, Linux), y se adapta a teléfonos en vertical: por debajo de 640 px el menú pasa a pestañas inferiores.
 
 Los requisitos, la trazabilidad con los 19 diagramas BPMN de `AsesoriasBizagi/` y los patrones de diseño están en la **[SRS](docs/SRS.md)**.
 
@@ -86,7 +86,7 @@ verano, no con un desplazamiento fijo. La API recibe y devuelve hora local;
      no podía representar, y con ellos se prueba el selector de rol
    - `materias` — materias
    - `programas` — carreras · `ciclos_escolares` — ciclos escolares
-   - `asesores_materias` — qué materias asignó dirección a cada tutor, por ciclo
+   - `asesores_materias` — qué materias asignó dirección a cada asesor, por ciclo
    - `horarios` — bloques de horario · `lugares` — sedes
    - `asesorias` — solicitudes / citas
    - `historial_estados_sesion` — auditoría de cambios de estado
@@ -132,7 +132,7 @@ SELECT * FROM v_ocupacion_horarios WHERE LugaresDisponibles > 0;
 ### Cómo ver los datos (consola)
 
 ```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -e "USE fcqi_asesorias; SHOW TABLES; SELECT COUNT(*) AS materias FROM materias; SELECT COUNT(*) AS tutores FROM perfiles_asesor;"
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -e "USE fcqi_asesorias; SHOW TABLES; SELECT COUNT(*) AS materias FROM materias; SELECT COUNT(*) AS asesores FROM perfiles_asesor;"
 ```
 
 (`-p` pide la contraseña.)
@@ -141,7 +141,7 @@ SELECT * FROM v_ocupacion_horarios WHERE LugaresDisponibles > 0;
 
 La web pide correo y contraseña. **Solo entra un correo `@uabc.edu.mx` dado de alta** en `personas`. Todavía no hay API de UABC para validar la contraseña: cualquier contraseña no vacía basta.
 
-`POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `personas` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno. El catálogo (materias, tutores y horarios) se puede consultar sin sesión; pedir o gestionar citas sí exige JWT.
+`POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `personas` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno. El catálogo (materias, asesores y horarios) se puede consultar sin sesión; pedir o gestionar citas sí exige JWT.
 
 ```powershell
 dotnet user-secrets set "Authentication:Google:ClientId" "TU_CLIENT_ID.apps.googleusercontent.com" --project src/FCQI.Api
@@ -166,7 +166,7 @@ al iniciar sesión y el cliente lo manda en `Authorization: Bearer`.
 | `POST /api/sessions/{id}/log` | El asesor dueño registra bitácora; la cita queda Realizada |
 | `GET /api/sessions/{id}/calendar.ics` | Participantes de la cita |
 | `/api/advisors/me/availabilities` | El asesor administra sus horarios |
-| `POST /api/advisors/{id}/messages` | Alumno: mensaje al tutor por correo |
+| `POST /api/advisors/{id}/messages` | Alumno: mensaje al asesor por correo |
 | `/api/admin/*` | Solo rol Directivo (asignación y reportes) |
 
 **Correo y reuniones.** Sin `Smtp:Host` configurado, los avisos y mensajes se
@@ -192,7 +192,7 @@ tomado, la API respondía 500. Ahora se rechaza con un mensaje: si hace falta la
 cita, se solicita de nuevo.
 
 **Nadie se asesora a sí mismo.** Un asesor par aparece en su propia lista de
-tutores; agendarse consigo mismo se rechaza.
+asesores; agendarse consigo mismo se rechaza.
 
 El **login de demostración** (`/api/auth/demo*`) expone el directorio de
 personas del programa, así que solo existe mientras `Authentication:Google:ClientId`

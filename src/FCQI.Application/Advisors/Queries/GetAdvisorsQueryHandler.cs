@@ -40,8 +40,8 @@ public class GetAdvisorsQueryHandler
                 a.Person.Email,
                 a.Program.Name,
                 a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive
-                    ? TutorKinds.Student
-                    : TutorKinds.Professor,
+                    ? AdvisorKinds.Student
+                    : AdvisorKinds.Professor,
                 a.DefaultModality.Name,
                 a.IsActive,
                 a.AdvisorSubjects

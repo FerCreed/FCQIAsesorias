@@ -7,7 +7,7 @@
         <StackPanel Spacing="6" Margin="0,8,0,8">
             <TextBlock Classes="h1" Text="{Binding Greeting}" />
             <TextBlock Classes="muted" FontSize="15" MaxWidth="620" HorizontalAlignment="Left"
-                       Text="Encuentra un tutor para tu materia, elige un horario y solicita tu asesoría del periodo 2026-2." />
+                       Text="Encuentra un asesor para tu materia, elige un horario y solicita tu asesoría del periodo 2026-2." />
         </StackPanel>
 
         <!-- Accesos según el rol activo: 3 columnas en ancho, 1 en móvil (ver ShellView). -->
@@ -21,7 +21,7 @@
             <Border Classes="card">
                 <StackPanel Spacing="10">
                     <TextBlock Classes="h3" Text="Buscar asesoría" />
-                    <TextBlock Classes="muted" Text="Materias, tutores autorizados y horarios. No necesitas cuenta para consultar." />
+                    <TextBlock Classes="muted" Text="Materias, asesores autorizados y horarios. No necesitas cuenta para consultar." />
                     <Button Classes="primary" Content="Abrir catálogo" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Catalog}" />
                 </StackPanel>
             </Border>
@@ -60,8 +60,8 @@
 
             <Border Classes="card" IsVisible="{Binding Session.IsAdmin}">
                 <StackPanel Spacing="10">
-                    <TextBlock Classes="h3" Text="Tutores y materias" />
-                    <TextBlock Classes="muted" Text="Decide qué materias cubre cada tutor en el ciclo." />
+                    <TextBlock Classes="h3" Text="Asesores y materias" />
+                    <TextBlock Classes="muted" Text="Decide qué materias cubre cada asesor en el ciclo." />
                     <Button Classes="secondary" Content="Asignar materias" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:AppPage.Admin}" />
                 </StackPanel>
             </Border>

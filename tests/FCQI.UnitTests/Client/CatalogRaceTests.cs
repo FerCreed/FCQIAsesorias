@@ -29,8 +29,8 @@ public class CatalogRaceTests
 
         vm.SelectedSubject = algebra;
         vm.SelectedSubject = calculo;
-        catalog.Pending[2].SetResult([new AdvisorItem { Id = 20, FullName = "Tutora de cálculo" }]);
-        catalog.Pending[1].SetResult([new AdvisorItem { Id = 10, FullName = "Tutor de álgebra" }]);
+        catalog.Pending[2].SetResult([new AdvisorItem { Id = 20, FullName = "Asesora de cálculo" }]);
+        catalog.Pending[1].SetResult([new AdvisorItem { Id = 10, FullName = "Asesor de álgebra" }]);
 
         Assert.Equal([20], vm.Advisors.Select(a => a.Id));
     }

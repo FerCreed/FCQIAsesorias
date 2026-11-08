@@ -7,7 +7,7 @@ using static FCQI.UnitTests.Processes.ProcessWorld;
 
 namespace FCQI.UnitTests.Processes;
 
-/// <summary>Correo saliente: BPMN 15 (contactar al tutor) y avisos de cambio de estado.</summary>
+/// <summary>Correo saliente: BPMN 15 (contactar al asesor) y avisos de cambio de estado.</summary>
 public class ContactAndNoticeTests
 {
     private sealed class Outbox : IEmailSender
@@ -22,7 +22,7 @@ public class ContactAndNoticeTests
     }
 
     [Fact]
-    public async Task Alumno_EscribeAlTutor_YLaRespuestaVaASuCorreo()
+    public async Task Alumno_EscribeAlAsesor_YLaRespuestaVaASuCorreo()
     {
         await using var db = await SeedAsync();
         var outbox = new Outbox();
@@ -36,7 +36,7 @@ public class ContactAndNoticeTests
     }
 
     [Fact]
-    public async Task Contacto_RechazaAlQueNoEsAlumno_MensajesVacios_YTutoresInexistentes()
+    public async Task Contacto_RechazaAlQueNoEsAlumno_MensajesVacios_YAsesoresInexistentes()
     {
         await using var db = await SeedAsync();
         var outbox = new Outbox();

@@ -5,7 +5,7 @@ namespace FCQI.Web.Services;
 /// <summary>
 /// Decorador de <see cref="ICatalogApi"/>: materias y sedes no cambian durante
 /// el uso de la app, así que se piden una sola vez aunque varias pantallas
-/// (catálogo, dirección, horarios) las necesiten. Tutores y horarios sí cambian
+/// (catálogo, dirección, horarios) las necesiten. Asesores y horarios sí cambian
 /// y pasan directo.
 /// </summary>
 public class CachedCatalogApi : ICatalogApi

@@ -16,13 +16,13 @@ public class AdvisorItem
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Area { get; set; } = string.Empty;
-    public string TutorKind { get; set; } = "Alumno tutor";
+    public string Kind { get; set; } = "Estudiante";
     public string DefaultModality { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public List<string> Subjects { get; set; } = [];
 
     [JsonIgnore]
-    public string Summary => $"{TutorKind}, {Area}";
+    public string Summary => $"{Kind}, {Area}";
 }
 
 public class AvailabilityItem

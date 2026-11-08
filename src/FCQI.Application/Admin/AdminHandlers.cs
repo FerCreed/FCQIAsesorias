@@ -32,8 +32,8 @@ public class GetAdminAdvisorsQueryHandler
                 a.Person.Email,
                 a.Program.Name,
                 a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive
-                    ? TutorKinds.Student
-                    : TutorKinds.Professor,
+                    ? AdvisorKinds.Student
+                    : AdvisorKinds.Professor,
                 a.DefaultModality.Name,
                 a.IsActive,
                 a.AdvisorSubjects
@@ -64,7 +64,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             .AnyAsync(a => a.PersonId == advisorId, cancellationToken);
         if (!exists)
         {
-            throw new BusinessRuleException("El tutor no existe.");
+            throw new BusinessRuleException("El asesor no existe.");
         }
 
         var wanted = subjectIds.Distinct().ToHashSet();

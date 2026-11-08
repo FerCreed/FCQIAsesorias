@@ -119,7 +119,7 @@ public partial class SessionsViewModel : PageViewModel
         }
 
         var body = new RescheduleBody(RescheduleSlot.Id, RescheduleSlot.NextOccurrence(DateTime.Today, Selected.ScheduledAt));
-        if (await RunAsync(() => _api.RescheduleAsync(Selected.Id, body), "Asesoría reprogramada. El tutor debe confirmar el nuevo horario."))
+        if (await RunAsync(() => _api.RescheduleAsync(Selected.Id, body), "Asesoría reprogramada. El asesor debe confirmar el nuevo horario."))
         {
             await RefreshAsync();
         }

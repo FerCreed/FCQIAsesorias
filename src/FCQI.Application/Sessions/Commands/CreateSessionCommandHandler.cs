@@ -86,7 +86,7 @@ public class CreateSessionCommandHandler
         // un mensaje claro en vez de un error de restricción.
         if (slot.AdvisorId != request.AdvisorId)
         {
-            throw new BusinessRuleException("El horario no pertenece a ese tutor.");
+            throw new BusinessRuleException("El horario no pertenece a ese asesor.");
         }
 
         var teaches = await _context.AdvisorSubjects.AnyAsync(
@@ -95,7 +95,7 @@ public class CreateSessionCommandHandler
                  && x.SubjectId == request.SubjectId, cancellationToken);
         if (!teaches)
         {
-            throw new BusinessRuleException("El directivo no ha asignado esta materia a ese tutor.");
+            throw new BusinessRuleException("El directivo no ha asignado esta materia a ese asesor.");
         }
 
         // La fecha llega en hora local del campus. Debe caer en el día y la

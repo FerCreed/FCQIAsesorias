@@ -42,7 +42,7 @@
                 <TextBlock Text="1  Materia" />
             </Border>
             <Border Classes="step" Classes.now="{Binding IsAdvisorStep}" Classes.done="{Binding IsSlotStep}">
-                <TextBlock Text="2  Tutor" />
+                <TextBlock Text="2  Asesor" />
             </Border>
             <Border Classes="step" Classes.now="{Binding IsSlotStep}">
                 <TextBlock Text="3  Horario" />
@@ -78,7 +78,7 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <!-- Paso 2: tutores -->
+        <!-- Paso 2: asesores -->
         <ListBox Classes="picker" ItemsSource="{Binding Advisors}" SelectedItem="{Binding SelectedAdvisor}"
                  IsVisible="{Binding IsAdvisorStep}">
             <ListBox.ItemTemplate>
@@ -124,11 +124,11 @@
                     <Button Classes="primary stretchCompact" Content="{Binding RequestLabel}" HorizontalAlignment="Left"
                             Command="{Binding RequestCommand}" IsEnabled="{Binding !IsBusy}" />
                     <TextBlock Classes="muted" FontSize="12"
-                               Text="Se agenda en la próxima fecha de ese día. El tutor confirma y te avisamos por correo." />
+                               Text="Se agenda en la próxima fecha de ese día. El asesor confirma y te avisamos por correo." />
                 </StackPanel>
             </Border>
 
-            <Button Classes="quiet stretchCompact" HorizontalAlignment="Left" Content="Escribir al tutor"
+            <Button Classes="quiet stretchCompact" HorizontalAlignment="Left" Content="Escribir al asesor"
                     Command="{Binding ToggleContactCommand}" />
             <Border Classes="card" IsVisible="{Binding IsContactOpen}">
                 <StackPanel Spacing="10">

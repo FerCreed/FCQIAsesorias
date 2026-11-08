@@ -8,7 +8,7 @@
             <StackPanel Spacing="12">
                 <TextBlock Classes="h2" Text="Entrar" />
                 <TextBlock Classes="muted"
-                           Text="Usa tu cuenta @uabc.edu.mx para solicitar asesorías, atender solicitudes como tutor o entrar como dirección." />
+                           Text="Usa tu cuenta @uabc.edu.mx para solicitar asesorías, atender solicitudes como asesor o entrar como dirección." />
 
                 <TextBlock Classes="label" Text="Correo institucional" />
                 <TextBox Text="{Binding Email}" Watermark="nombre.apellido@uabc.edu.mx" />

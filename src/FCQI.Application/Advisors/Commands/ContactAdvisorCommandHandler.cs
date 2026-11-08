@@ -25,7 +25,7 @@ public class ContactAdvisorCommandHandler
     {
         if (!caller.IsStudent)
         {
-            throw new ForbiddenOperationException("Solo un alumno puede escribir a un tutor desde aquí.");
+            throw new ForbiddenOperationException("Solo un alumno puede escribir a un asesor desde aquí.");
         }
 
         var text = message?.Trim() ?? string.Empty;
@@ -38,7 +38,7 @@ public class ContactAdvisorCommandHandler
                           .Where(a => a.PersonId == advisorId && a.IsActive)
                           .Select(a => new { a.Person.Email, a.Person.DisplayName })
                           .SingleOrDefaultAsync(cancellationToken)
-                      ?? throw new NotFoundException("El tutor no existe o no está activo.");
+                      ?? throw new NotFoundException("El asesor no existe o no está activo.");
 
         var student = await _context.People.AsNoTracking()
             .Where(p => p.Id == caller.PersonId)

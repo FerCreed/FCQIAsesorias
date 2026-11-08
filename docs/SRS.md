@@ -24,11 +24,11 @@ procesos, y quien mantenga el sistema después.
 
 El sistema digitaliza el programa de asesorías del ciclo escolar vigente:
 
-- El **alumno** consulta materias, tutores y horarios sin cuenta; con su correo
+- El **alumno** consulta materias, asesores y horarios sin cuenta; con su correo
   `@uabc.edu.mx` solicita, cancela o reprograma citas y consulta su historial.
-- El **asesor** (profesor o alumno tutor) publica sus horarios semanales,
+- El **asesor** (profesor o asesor estudiante) publica sus horarios semanales,
   confirma o rechaza solicitudes y registra asistencia y bitácora.
-- **Dirección** asigna qué materias cubre cada tutor y obtiene reportes y
+- **Dirección** asigna qué materias cubre cada asesor y obtiene reportes y
   constancias de horas.
 - El **sistema** valida reglas, notifica por correo, genera enlaces de reunión
   virtual y archivos de calendario.
@@ -85,8 +85,8 @@ Sistema web autónomo en cuatro capas, desplegado como un solo contenedor:
 | Actor | Descripción | Acceso |
 |-------|-------------|--------|
 | Visitante | Cualquier persona sin sesión. | Catálogo de solo lectura. |
-| Alumno | Estudiante dado de alta en el programa. | Solicitar, cancelar, reprogramar, historial, contactar tutor. |
-| Asesor | Profesor tutor o alumno tutor. | Horarios propios, bandeja de solicitudes, bitácora. |
+| Alumno | Estudiante dado de alta en el programa. | Solicitar, cancelar, reprogramar, historial, contactar asesor. |
+| Asesor | Asesor profesor o asesor estudiante. | Horarios propios, bandeja de solicitudes, bitácora. |
 | Directivo | Dirección o coordinación del programa. | Asignación de materias, reportes; puede actuar sobre cualquier asesoría. |
 | Sistema | Procesos automáticos. | Validaciones, notificaciones, enlaces, historial de estados. |
 
@@ -127,10 +127,10 @@ Prioridad: **A** imprescindible, **M** importante. Estado: **✔** implementado,
 | ID | Requisito | BPMN | Prioridad | Estado |
 |----|-----------|------|-----------|--------|
 | RF-10 | Cualquier visitante debe poder buscar materias por nombre o clave. | 5 | A | ✔ |
-| RF-11 | Al elegir materia, se muestran solo los tutores que dirección asignó a esa materia en el ciclo vigente; si no hay, se indica. | 4, 5 | A | ✔ |
-| RF-12 | Al elegir tutor, se muestran sus bloques activos con día, hora, modalidad y sede; si no hay, se indica. | 3 | A | ✔ |
-| RF-13 | El alumno solicita un bloque con un tema. El sistema valida: alumno activo, tutor asignado a la materia, bloque activo del tutor y del ciclo, fecha futura dentro del ciclo y en el día y hora del bloque, cupo libre, sin duplicado, y que no sea consigo mismo. La cita queda **Pendiente**. | 8 | A | ✔ |
-| RF-14 | El alumno puede escribir al tutor; el mensaje (1–2000 caracteres) llega a su correo institucional con respuesta directa al alumno. Máximo 5 mensajes por minuto por persona (HTTP 429 al exceder). | 15 | M | ◐ |
+| RF-11 | Al elegir materia, se muestran solo los asesores que dirección asignó a esa materia en el ciclo vigente; si no hay, se indica. | 4, 5 | A | ✔ |
+| RF-12 | Al elegir asesor, se muestran sus bloques activos con día, hora, modalidad y sede; si no hay, se indica. | 3 | A | ✔ |
+| RF-13 | El alumno solicita un bloque con un tema. El sistema valida: alumno activo, asesor asignado a la materia, bloque activo del asesor y del ciclo, fecha futura dentro del ciclo y en el día y hora del bloque, cupo libre, sin duplicado, y que no sea consigo mismo. La cita queda **Pendiente**. | 8 | A | ✔ |
+| RF-14 | El alumno puede escribir al asesor; el mensaje (1–2000 caracteres) llega a su correo institucional con respuesta directa al alumno. Máximo 5 mensajes por minuto por persona (HTTP 429 al exceder). | 15 | M | ◐ |
 
 ### 3.3 Ciclo de vida de la asesoría
 
@@ -145,7 +145,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 |----|-----------|------|-----------|--------|
 | RF-20 | El asesor dueño puede confirmar o rechazar una solicitud pendiente; el alumno no. | 12, 18 | A | ✔ |
 | RF-21 | El alumno puede cancelar su asesoría pendiente o confirmada hasta *N* horas antes (`Sessions:ChangeLimitHours`, 24 por omisión). El asesor puede cancelar sin ese límite. | 11 | A | ✔ |
-| RF-22 | El alumno puede reprogramar a otro bloque del mismo tutor con el mismo límite; la cita nueva queda Pendiente y la anterior Cancelada. | 11 | M | ✔ |
+| RF-22 | El alumno puede reprogramar a otro bloque del mismo asesor con el mismo límite; la cita nueva queda Pendiente y la anterior Cancelada. | 11 | M | ✔ |
 | RF-23 | Un estado final no puede cambiar; se informa que hay que solicitar de nuevo. | 11, 12, 18 | A | ✔ |
 | RF-24 | Cada cambio de estado se registra en `historial_estados_sesion` (por trigger) y libera el cupo cuando corresponde. | 11, 12, 18 | A | ✔ |
 | RF-25 | En cada cambio de estado se notifica por correo a la otra parte de la cita, nombrando a quien actuó; si actuó dirección, se notifica a alumno y asesor. | 8, 11, 12, 18 | M | ◐ |
@@ -174,9 +174,9 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 
 | ID | Requisito | BPMN | Prioridad | Estado |
 |----|-----------|------|-----------|--------|
-| RF-50 | Dirección asigna las materias que cubre cada tutor en el ciclo; se validan materias existentes y no se retira una materia con asesorías registradas. | 2 | A | ✔ |
-| RF-51 | Dirección consulta métricas del ciclo: solicitudes, realizadas, canceladas, rechazadas, % de asistencia, horas impartidas, horas por tutor y demanda por materia. Sin datos, se indica. | 6 | M | ✔ |
-| RF-52 | Dirección descarga la constancia de horas por tutor en CSV (abre en Excel). Las horas cuentan solo asesorías realizadas con asistencia. | 6 | M | ✔ |
+| RF-50 | Dirección asigna las materias que cubre cada asesor en el ciclo; se validan materias existentes y no se retira una materia con asesorías registradas. | 2 | A | ✔ |
+| RF-51 | Dirección consulta métricas del ciclo: solicitudes, realizadas, canceladas, rechazadas, % de asistencia, horas impartidas, horas por asesor y demanda por materia. Sin datos, se indica. | 6 | M | ✔ |
+| RF-52 | Dirección descarga la constancia de horas por asesor en CSV (abre en Excel). Las horas cuentan solo asesorías realizadas con asistencia. | 6 | M | ✔ |
 
 ---
 
@@ -206,7 +206,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 |----------|-----|------------|
 | Inicio | Todos | Accesos según rol |
 | Entrar | Visitante | RF-01–RF-05 |
-| Catálogo (Materia → Tutor → Horario) | Todos | RF-10–RF-14 |
+| Catálogo (Materia → Asesor → Horario) | Todos | RF-10–RF-14 |
 | Mis asesorías / Solicitudes (Próximas, Historial) | Alumno, Asesor | RF-20–RF-33 |
 | Mis horarios | Asesor | RF-40–RF-42 |
 | Dirección | Directivo | RF-50 |
