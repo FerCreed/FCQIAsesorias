@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:models="using:FCQI.Web.Models"
+             x:Class="FCQI.Web.Views.ReportsView"
+             x:DataType="vm:ReportsViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.metric">
+            <Setter Property="MinWidth" Value="150" />
+        </Style>
+        <Style Selector="Border.metric TextBlock.value">
+            <Setter Property="FontSize" Value="28" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource GreenDeep}" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Classes="page">
+        <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="h1" Text="Reportes del ciclo" />
+                <TextBlock Classes="muted" FontSize="15" Text="{Binding Report.Term, StringFormat='Periodo {0}', FallbackValue=''}" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="primary" Content="Descargar constancia" VerticalAlignment="Top"
+                    Command="{Binding ExportCommand}" IsEnabled="{Binding HasData}" />
+        </Grid>
+
+        <Border Classes="card" IsVisible="{Binding !HasData}">
+            <TextBlock Classes="muted" Text="Todavía no hay asesorías en este periodo; el reporte se llena conforme se soliciten." />
+        </Border>
+
+        <StackPanel Spacing="16" IsVisible="{Binding HasData}">
+            <WrapPanel ItemSpacing="12" LineSpacing="12">
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.Requested}" /><TextBlock Classes="muted" Text="solicitudes" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.Completed}" /><TextBlock Classes="muted" Text="realizadas" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.Hours}" /><TextBlock Classes="muted" Text="horas con asistencia" /></StackPanel></Border>
+                <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Report.AttendanceRate, StringFormat='{}{0}%'}" /><TextBlock Classes="muted" Text="asistencia" /></StackPanel></Border>
+            </WrapPanel>
+
+            <Border Classes="card">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="h3" Text="Horas por tutor" />
+                    <ItemsControl ItemsSource="{Binding Report.ByAdvisor}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:AdvisorReportItem">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,6">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding AdvisorName}" FontWeight="SemiBold" />
+                                        <TextBlock Classes="muted">
+                                            <Run Text="{Binding Requested}" /> solicitadas, <Run Text="{Binding Completed}" /> realizadas, <Run Text="{Binding Attended}" /> con asistencia
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding Hours, StringFormat='{}{0} h'}" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="h3" Text="Demanda por materia" />
+                    <ItemsControl ItemsSource="{Binding Report.BySubject}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:SubjectDemandItem">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                    <TextBlock Text="{Binding SubjectName}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Requested}" FontWeight="SemiBold" Margin="12,0,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

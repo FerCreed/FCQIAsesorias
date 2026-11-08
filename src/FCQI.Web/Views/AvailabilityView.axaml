@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:models="using:FCQI.Web.Models"
+             x:Class="FCQI.Web.Views.AvailabilityView"
+             x:DataType="vm:AvailabilityViewModel">
+    <StackPanel Classes="page">
+        <StackPanel Spacing="4">
+            <TextBlock Classes="h1" Text="Mis horarios" />
+            <TextBlock Classes="muted" FontSize="15" Text="Bloques semanales del ciclo vigente. Los alumnos los ven en el catálogo." />
+        </StackPanel>
+
+        <!-- Ancho: lista y formulario lado a lado. Angosto: el formulario baja (.side). -->
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+            <StackPanel Spacing="8">
+                <Border Classes="card" IsVisible="{Binding IsEmpty}">
+                    <TextBlock Classes="muted" Text="Aún no publicas horarios. Agrega tu primer bloque con el formulario." />
+                </Border>
+                <ItemsControl ItemsSource="{Binding Blocks}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:AvailabilityItem">
+                            <Border Classes="pick">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock FontWeight="SemiBold">
+                                            <Run Text="{Binding DayName}" /> <Run Text="{Binding TimeRange}" />
+                                        </TextBlock>
+                                        <TextBlock Classes="muted" Text="{Binding Where}" />
+                                        <TextBlock Classes="muted" Text="{Binding MaxCapacity, StringFormat='Cupo: {0}'}" />
+                                    </StackPanel>
+                                    <WrapPanel Grid.Column="1" ItemSpacing="8" VerticalAlignment="Center">
+                                        <Button Classes="quiet" Content="Editar"
+                                                Command="{Binding $parent[UserControl].((vm:AvailabilityViewModel)DataContext).EditCommand}"
+                                                CommandParameter="{Binding}" />
+                                        <Button Classes="danger" Content="Retirar"
+                                                Command="{Binding $parent[UserControl].((vm:AvailabilityViewModel)DataContext).RetireCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </WrapPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <Border Classes="card side" VerticalAlignment="Top">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="h3" Text="{Binding FormTitle}" />
+                    <TextBlock Classes="label" Text="Día" />
+                    <ComboBox ItemsSource="{Binding Days}" SelectedItem="{Binding Day}" />
+                    <Grid ColumnDefinitions="*,12,*">
+                        <StackPanel Spacing="10">
+                            <TextBlock Classes="label" Text="Inicio" />
+                            <TextBox Text="{Binding Start}" Watermark="12:00" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="10">
+                            <TextBlock Classes="label" Text="Fin" />
+                            <TextBox Text="{Binding End}" Watermark="13:00" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Classes="label" Text="Cupo por sesión" />
+                    <NumericUpDown Value="{Binding Capacity}" Minimum="1" Maximum="30" Increment="1" FormatString="0" />
+                    <TextBlock Classes="label" Text="Lugar" />
+                    <ComboBox ItemsSource="{Binding Locations}" SelectedItem="{Binding Location}" />
+                    <Button Classes="primary" Content="Guardar horario" Command="{Binding SaveCommand}"
+                            IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch" />
+                    <Button Classes="quiet" Content="Cancelar edición" Command="{Binding NewCommand}"
+                            IsVisible="{Binding IsEditing}" HorizontalAlignment="Stretch" />
+                    <TextBlock Classes="muted" FontSize="12"
+                               Text="No se puede mover ni retirar un bloque con citas por venir; cancélalas primero." />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </StackPanel>
+</UserControl>

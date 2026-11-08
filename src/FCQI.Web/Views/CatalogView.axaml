@@ -1,0 +1,145 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:models="using:FCQI.Web.Models"
+             x:Class="FCQI.Web.Views.CatalogView"
+             x:DataType="vm:CatalogViewModel">
+    <UserControl.Styles>
+        <!-- Indicador de pasos: el paso actual en oro, los cumplidos en verde. -->
+        <Style Selector="Border.step">
+            <Setter Property="Background" Value="{StaticResource Surface}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="12,6" />
+        </Style>
+        <Style Selector="Border.step.done">
+            <Setter Property="Background" Value="{StaticResource GreenMist}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Green}" />
+        </Style>
+        <Style Selector="Border.step.now">
+            <Setter Property="Background" Value="{StaticResource Gold}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Gold}" />
+        </Style>
+        <Style Selector="Border.step.now TextBlock">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <!-- Con un horario elegido, la lista se contrae a ese bloque: así el
+             formulario de solicitud queda a la vista también en el teléfono. -->
+        <Style Selector="ListBox.collapsed ListBoxItem:not(:selected)">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Border.step TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Classes="page">
+        <!-- Tres pasos en secuencia; la numeración refleja ese orden real. -->
+        <WrapPanel ItemSpacing="8" LineSpacing="8">
+            <Border Classes="step" Classes.now="{Binding IsSubjectStep}" Classes.done="{Binding !IsSubjectStep}">
+                <TextBlock Text="1  Materia" />
+            </Border>
+            <Border Classes="step" Classes.now="{Binding IsAdvisorStep}" Classes.done="{Binding IsSlotStep}">
+                <TextBlock Text="2  Tutor" />
+            </Border>
+            <Border Classes="step" Classes.now="{Binding IsSlotStep}">
+                <TextBlock Text="3  Horario" />
+            </Border>
+        </WrapPanel>
+
+        <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2">
+                <TextBlock Classes="h1" Text="{Binding Heading}" />
+                <TextBlock Classes="muted" FontSize="15" Text="{Binding Context}" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="quiet" Content="Atrás" VerticalAlignment="Top"
+                    Command="{Binding BackCommand}" IsVisible="{Binding CanGoBack}" />
+        </Grid>
+
+        <TextBox Text="{Binding Query}" Watermark="Buscar por nombre o clave" IsVisible="{Binding IsSubjectStep}" />
+
+        <TextBlock Classes="muted" Text="Cargando…" IsVisible="{Binding IsBusy}" />
+        <TextBlock Classes="muted" Text="{Binding EmptyText}" IsVisible="{Binding IsEmpty}" />
+
+        <!-- Paso 1: materias -->
+        <ListBox Classes="picker" ItemsSource="{Binding Subjects}" SelectedItem="{Binding SelectedSubject}"
+                 IsVisible="{Binding IsSubjectStep}">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:SubjectItem">
+                    <Border Classes="pick">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Code}" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Paso 2: tutores -->
+        <ListBox Classes="picker" ItemsSource="{Binding Advisors}" SelectedItem="{Binding SelectedAdvisor}"
+                 IsVisible="{Binding IsAdvisorStep}">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:AdvisorItem">
+                    <Border Classes="pick">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" />
+                            <TextBlock Classes="muted" Text="{Binding Summary}" />
+                            <TextBlock Classes="muted" Text="{Binding DefaultModality, StringFormat='Modalidad habitual: {0}'}" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Paso 3: horarios -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsSlotStep}">
+            <ListBox Classes="picker" Classes.collapsed="{Binding HasSlotSelected}"
+                     ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:AvailabilityItem">
+                        <Border Classes="pick">
+                            <StackPanel Spacing="2">
+                                <TextBlock FontWeight="SemiBold">
+                                    <Run Text="{Binding DayName}" />
+                                    <Run Text="{Binding TimeRange}" />
+                                </TextBlock>
+                                <TextBlock Classes="muted" Text="{Binding Where}" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Classes="card" IsVisible="{Binding HasSlotSelected}">
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="h3" Text="Solicitar este horario" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="quiet" Content="Cambiar horario" Command="{Binding ClearSlotCommand}" />
+                    </Grid>
+                    <TextBlock Classes="label" Text="¿Qué quieres repasar?" />
+                    <TextBox Text="{Binding Topic}" Watermark="Ej. ejercicios de derivadas del parcial" MaxLength="500" />
+                    <Button Classes="primary stretchCompact" Content="{Binding RequestLabel}" HorizontalAlignment="Left"
+                            Command="{Binding RequestCommand}" IsEnabled="{Binding !IsBusy}" />
+                    <TextBlock Classes="muted" FontSize="12"
+                               Text="Se agenda en la próxima fecha de ese día. El tutor confirma y te avisamos por correo." />
+                </StackPanel>
+            </Border>
+
+            <Button Classes="quiet stretchCompact" HorizontalAlignment="Left" Content="Escribir al tutor"
+                    Command="{Binding ToggleContactCommand}" />
+            <Border Classes="card" IsVisible="{Binding IsContactOpen}">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="label" Text="Mensaje" />
+                    <TextBox Text="{Binding Message}" AcceptsReturn="True" MinHeight="100" TextWrapping="Wrap" MaxLength="2000"
+                             Watermark="Tu duda o propuesta de horario" />
+                    <Button Classes="secondary stretchCompact" Content="Enviar mensaje" HorizontalAlignment="Left"
+                            Command="{Binding SendMessageCommand}" IsEnabled="{Binding !IsBusy}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="Le llega a su correo institucional; responde directo al tuyo." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

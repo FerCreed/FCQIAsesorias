@@ -3,49 +3,27 @@ using FCQI.Web.Models;
 
 namespace FCQI.Web.Serialization;
 
+/// <summary>
+/// Serialización generada en compilación: en WebAssembly el recorte de código
+/// elimina la reflexión que usaría System.Text.Json en tiempo de ejecución.
+/// </summary>
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-[JsonSerializable(typeof(SubjectItem))]
 [JsonSerializable(typeof(List<SubjectItem>))]
-[JsonSerializable(typeof(AdvisorItem))]
 [JsonSerializable(typeof(List<AdvisorItem>))]
-[JsonSerializable(typeof(AvailabilityItem))]
 [JsonSerializable(typeof(List<AvailabilityItem>))]
-[JsonSerializable(typeof(SessionItem))]
+[JsonSerializable(typeof(List<LocationItem>))]
 [JsonSerializable(typeof(List<SessionItem>))]
-[JsonSerializable(typeof(DemoProfileItem))]
-[JsonSerializable(typeof(List<DemoProfileItem>))]
+[JsonSerializable(typeof(SessionItem))]
+[JsonSerializable(typeof(ReportItem))]
 [JsonSerializable(typeof(AuthResultItem))]
 [JsonSerializable(typeof(AuthConfigItem))]
 [JsonSerializable(typeof(ErrorMessage))]
+[JsonSerializable(typeof(LoginBody))]
 [JsonSerializable(typeof(CreateSessionBody))]
 [JsonSerializable(typeof(UpdateStatusBody))]
-[JsonSerializable(typeof(DemoLoginBody))]
-[JsonSerializable(typeof(GoogleLoginBody))]
+[JsonSerializable(typeof(RescheduleBody))]
+[JsonSerializable(typeof(SessionLogBody))]
+[JsonSerializable(typeof(ContactBody))]
+[JsonSerializable(typeof(AvailabilityBody))]
 [JsonSerializable(typeof(List<int>))]
 internal partial class AppJsonContext : JsonSerializerContext;
-
-public class CreateSessionBody
-{
-    public int StudentId { get; set; }
-    public int AdvisorId { get; set; }
-    public int SubjectId { get; set; }
-    public int AvailabilityId { get; set; }
-    public DateTime ScheduledAt { get; set; }
-    public string Topic { get; set; } = string.Empty;
-}
-
-public class UpdateStatusBody
-{
-    public string Status { get; set; } = string.Empty;
-}
-
-public class DemoLoginBody
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-public class GoogleLoginBody
-{
-    public string IdToken { get; set; } = string.Empty;
-}

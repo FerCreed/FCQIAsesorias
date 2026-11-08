@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:models="using:FCQI.Web.Models"
+             x:Class="FCQI.Web.Views.SessionsView"
+             x:DataType="vm:SessionsViewModel">
+    <!--
+        Una sola columna en todos los tamaños: al elegir una asesoría, sus
+        acciones se abren dentro de la misma tarjeta. En el teléfono no hay que
+        desplazarse a otro panel para encontrar "Cancelar" o "Reprogramar".
+    -->
+    <StackPanel Classes="page" MaxWidth="760">
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h1" Text="{Binding Title}" />
+            <Button Grid.Column="1" Classes="quiet" Content="Actualizar" Command="{Binding RefreshCommand}" VerticalAlignment="Top" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <ToggleButton Content="Próximas" IsChecked="{Binding !ShowHistory}" Command="{Binding ShowScopeCommand}" CommandParameter="upcoming" MinHeight="40" />
+            <ToggleButton Content="Historial" IsChecked="{Binding ShowHistory}" Command="{Binding ShowScopeCommand}" CommandParameter="history" MinHeight="40" />
+        </StackPanel>
+
+        <TextBlock Classes="muted" Text="Cargando…" IsVisible="{Binding IsBusy}" />
+        <Border Classes="card" IsVisible="{Binding IsEmpty}">
+            <TextBlock Classes="muted" Text="No hay asesorías aquí. Busca un tutor en el catálogo para solicitar una." />
+        </Border>
+
+        <ListBox Classes="picker" ItemsSource="{Binding Sessions}" SelectedItem="{Binding Selected}">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:SessionItem">
+                    <Border Classes="pick">
+                        <StackPanel Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="{Binding SubjectName}" FontWeight="SemiBold" FontSize="15" />
+                                <Border Grid.Column="1" Classes="badge" Margin="8,0,0,0" VerticalAlignment="Top">
+                                    <TextBlock Text="{Binding Status}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource GreenDeep}" />
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding When}" />
+                            <TextBlock Classes="muted" Text="{Binding People}" />
+                            <TextBlock Classes="muted">
+                                <Run Text="{Binding Modality}" /><Run Text=", " /><Run Text="{Binding Location}" />
+                            </TextBlock>
+                            <TextBlock Classes="muted" Text="{Binding Topic, StringFormat='Tema: {0}'}" />
+
+                            <!-- Acciones: solo en la tarjeta elegida -->
+                            <StackPanel Spacing="10" Margin="0,6,0,0"
+                                        IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
+                                        DataContext="{Binding $parent[UserControl].DataContext}"
+                                        x:DataType="vm:SessionsViewModel">
+                                <WrapPanel ItemSpacing="8" LineSpacing="8">
+                                    <Button Classes="primary" Content="Confirmar" Command="{Binding ConfirmCommand}" IsVisible="{Binding CanConfirm}" />
+                                    <Button Classes="danger" Content="Rechazar" Command="{Binding RejectCommand}" IsVisible="{Binding CanConfirm}" />
+                                    <Button Classes="secondary" Content="Registrar bitácora" Command="{Binding StartLogCommand}" IsVisible="{Binding CanLog}" />
+                                    <Button Classes="quiet" Content="Reprogramar" Command="{Binding StartRescheduleCommand}" IsVisible="{Binding CanReschedule}" />
+                                    <Button Classes="secondary" Content="Unirme a la reunión" Command="{Binding OpenMeetingCommand}"
+                                            IsVisible="{Binding Selected.HasMeetingLink, FallbackValue=False}" />
+                                    <Button Classes="quiet" Content="Agregar a mi calendario" Command="{Binding AddToCalendarCommand}" IsVisible="{Binding CanCancel}" />
+                                    <Button Classes="danger" Content="Cancelar asesoría" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}" />
+                                </WrapPanel>
+                                <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding CanReschedule}"
+                                           Text="Puedes cancelar o reprogramar hasta 24 horas antes de la cita." />
+
+                                <!-- Reprogramar -->
+                                <StackPanel Spacing="8" IsVisible="{Binding IsRescheduling}">
+                                    <TextBlock Classes="label" Text="Nuevo horario con el mismo tutor" />
+                                    <ComboBox ItemsSource="{Binding RescheduleSlots}" SelectedItem="{Binding RescheduleSlot}"
+                                              PlaceholderText="Elige un horario">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="models:AvailabilityItem">
+                                                <TextBlock>
+                                                    <Run Text="{Binding DayName}" /> <Run Text="{Binding TimeRange}" /><Run Text=", " /><Run Text="{Binding Where}" />
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Button Classes="primary" Content="Reprogramar asesoría" Command="{Binding RescheduleCommand}" HorizontalAlignment="Left" />
+                                </StackPanel>
+
+                                <!-- Bitácora -->
+                                <StackPanel Spacing="8" IsVisible="{Binding IsLogging}">
+                                    <CheckBox Content="El alumno asistió" IsChecked="{Binding Attended}" />
+                                    <TextBox Text="{Binding Notes}" AcceptsReturn="True" MinHeight="90" TextWrapping="Wrap" MaxLength="2000"
+                                             Watermark="Avance del estudiante, temas vistos, pendientes" />
+                                    <Button Classes="primary" Content="Guardar bitácora" Command="{Binding SaveLogCommand}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </StackPanel>
+</UserControl>

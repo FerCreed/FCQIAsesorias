@@ -2,128 +2,207 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="FCQI.Web.App"
              RequestedThemeVariant="Light">
+    <!--
+        Tokens del tema. Paleta institucional UABC fija (verde y oro); el fondo
+        es un gris con tinte verde para que el oro quede reservado a la acción
+        principal de cada pantalla.
+    -->
     <Application.Resources>
-        <Color x:Key="UabcGreen">#00723F</Color>
-        <Color x:Key="UabcGreenDark">#024731</Color>
-        <Color x:Key="UabcGold">#DD971A</Color>
-        <Color x:Key="UabcGoldSoft">#FEBE10</Color>
-        <Color x:Key="UabcLime">#50B848</Color>
-        <SolidColorBrush x:Key="BrushGreen" Color="#00723F" />
-        <SolidColorBrush x:Key="BrushGreenDark" Color="#024731" />
-        <SolidColorBrush x:Key="BrushGold" Color="#DD971A" />
-        <SolidColorBrush x:Key="BrushGoldSoft" Color="#FEBE10" />
-        <SolidColorBrush x:Key="BrushPaper" Color="#F7F4EE" />
-        <SolidColorBrush x:Key="BrushInk" Color="#1A1A1A" />
+        <SolidColorBrush x:Key="Green" Color="#00723F" />
+        <SolidColorBrush x:Key="GreenDeep" Color="#024731" />
+        <SolidColorBrush x:Key="GreenMist" Color="#E3EFE8" />
+        <SolidColorBrush x:Key="Gold" Color="#DD971A" />
+        <SolidColorBrush x:Key="GoldDeep" Color="#B97C10" />
+        <SolidColorBrush x:Key="GoldSoft" Color="#FEBE10" />
+        <SolidColorBrush x:Key="GoldMist" Color="#FFF6E2" />
+        <SolidColorBrush x:Key="Paper" Color="#F2F5F3" />
+        <SolidColorBrush x:Key="Surface" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="Ink" Color="#1F2A24" />
+        <SolidColorBrush x:Key="InkSoft" Color="#56635B" />
+        <SolidColorBrush x:Key="Line" Color="#D5DED8" />
+        <SolidColorBrush x:Key="Danger" Color="#B42318" />
+        <CornerRadius x:Key="Radius">10</CornerRadius>
     </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
-        <Style Selector="Button.nav">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#024731" />
-            <Setter Property="BorderThickness" Value="0,0,0,2" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="Padding" Value="12,8" />
+
+        <!-- Tipografía: jerarquía por peso y tamaño, una sola familia (Inter). -->
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Ink}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.h1">
+            <Setter Property="FontSize" Value="30" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource GreenDeep}" />
+        </Style>
+        <Style Selector="TextBlock.h2">
+            <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource GreenDeep}" />
+        </Style>
+        <Style Selector="TextBlock.h3">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource GreenDeep}" />
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{StaticResource InkSoft}" />
             <Setter Property="FontSize" Value="13" />
         </Style>
-        <Style Selector="Button.nav:pointerover">
-            <Setter Property="Foreground" Value="#DD971A" />
-            <Setter Property="BorderBrush" Value="#DD971A" />
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{StaticResource GreenDeep}" />
+            <Setter Property="Margin" Value="0,4,0,-4" />
         </Style>
-        <Style Selector="Button.cta">
-            <Setter Property="Background" Value="#DD971A" />
+
+        <!-- Superficies -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Surface}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+
+        <!-- Botones. Objetivo táctil mínimo de 44 px. -->
+        <Style Selector="Button">
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{StaticResource Gold}" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="22,10" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="CornerRadius" Value="2" />
         </Style>
-        <Style Selector="Button.cta:pointerover">
-            <Setter Property="Background" Value="#B08208" />
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource GoldDeep}" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
-        <Style Selector="Button.ghost">
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="{StaticResource Green}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="18,10" />
+        </Style>
+        <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource GreenDeep}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.quiet">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#00723F" />
-            <Setter Property="BorderBrush" Value="#00723F" />
+            <Setter Property="Foreground" Value="{StaticResource Green}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Green}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="16,8" />
         </Style>
-        <Style Selector="ListBox">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#E4DDD0" />
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Danger}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Danger}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="16,8" />
         </Style>
-        <Style Selector="ScrollViewer">
-            <Setter Property="IsScrollInertiaEnabled" Value="True" />
+
+        <!-- Menú superior (pantallas anchas) -->
+        <Style Selector="Button.nav">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#D7E9DE" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="BorderThickness" Value="0,0,0,3" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="14,10" />
         </Style>
-        <Style Selector="ScrollBar">
-            <Setter Property="AllowAutoHide" Value="False" />
+        <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
-        <Style Selector="ScrollBar:vertical">
-            <Setter Property="Width" Value="10" />
-            <Setter Property="MinWidth" Value="10" />
+        <Style Selector="Button.nav.current">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldSoft}" />
         </Style>
-        <Style Selector="ScrollBar:horizontal">
-            <Setter Property="Height" Value="10" />
-            <Setter Property="MinHeight" Value="10" />
+
+        <!-- Pestañas inferiores (móvil) -->
+        <Style Selector="Button.tab">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource InkSoft}" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="MinHeight" Value="56" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="BorderThickness" Value="0,3,0,0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
-        <Style Selector="ScrollBar /template/ Thumb">
-            <Setter Property="Background" Value="#00723F" />
+        <Style Selector="Button.tab:pointerover /template/ ContentPresenter, Button.tab:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource GreenMist}" />
+        </Style>
+        <Style Selector="Button.tab.current">
+            <Setter Property="Foreground" Value="{StaticResource GreenDeep}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Gold}" />
+        </Style>
+
+        <!-- Campos -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{StaticResource Surface}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="MinHeight" Value="44" />
             <Setter Property="CornerRadius" Value="8" />
         </Style>
-        <Style Selector="ScrollBar /template/ Thumb:pointerover">
-            <Setter Property="Background" Value="#DD971A" />
+        <Style Selector="ComboBox, NumericUpDown">
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="8" />
         </Style>
-        <Style Selector="ScrollBar /template/ RepeatButton.LineButton">
-            <Setter Property="IsVisible" Value="False" />
+        <Style Selector="CheckBox">
+            <Setter Property="MinHeight" Value="40" />
         </Style>
-        <Style Selector="ListBox.catalog">
+
+        <!-- Listas de selección: cada elemento es una tarjeta; la elegida se marca en oro. -->
+        <Style Selector="ListBox.picker">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-            <Setter Property="ScrollViewer.BringIntoViewOnFocusChange" Value="False" />
             <Setter Property="ItemsPanel">
                 <ItemsPanelTemplate>
-                    <StackPanel />
+                    <StackPanel Spacing="8" />
                 </ItemsPanelTemplate>
             </Setter>
         </Style>
-        <Style Selector="ListBox.catalog ListBoxItem">
+        <Style Selector="ListBox.picker ListBoxItem">
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,0,8" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
-        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#FEF4D8" />
-        </Style>
-        <Style Selector="ListBox.catalog ListBoxItem:selected /template/ ContentPresenter">
+        <Style Selector="ListBox.picker ListBoxItem /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="Border.pick">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#E4DDD0" />
+            <Setter Property="Background" Value="{StaticResource Surface}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+            <Setter Property="Padding" Value="14,12" />
         </Style>
-        <Style Selector="ListBox.catalog ListBoxItem:selected Border.pick">
-            <Setter Property="BorderBrush" Value="#DD971A" />
+        <Style Selector="ListBox.picker ListBoxItem:pointerover Border.pick">
+            <Setter Property="BorderBrush" Value="{StaticResource Green}" />
+        </Style>
+        <Style Selector="ListBox.picker ListBoxItem:selected Border.pick">
+            <Setter Property="BorderBrush" Value="{StaticResource Gold}" />
             <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="Background" Value="#FFF8E8" />
+            <Setter Property="Background" Value="{StaticResource GoldMist}" />
         </Style>
-        <Style Selector="TextBox">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#D8D0C4" />
-            <Setter Property="Padding" Value="10,8" />
-            <Setter Property="MinHeight" Value="40" />
-        </Style>
-        <Style Selector="Button.cardAction">
-            <Setter Property="Background" Value="#00723F" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="16,8" />
+
+        <!-- Indicador de estado de una asesoría -->
+        <Style Selector="Border.badge">
+            <Setter Property="Background" Value="{StaticResource GreenMist}" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="10,3" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
     </Application.Styles>
