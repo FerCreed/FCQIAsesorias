@@ -45,13 +45,6 @@
         <Style Selector="Grid.compact ItemsControl.topMenu, Grid.compact TextBlock.wideOnly">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <!-- En el teléfono la fila de zoom y cuenta baja debajo del título; queda en la columna 0 para que la columna automática no reserve ancho. -->
-        <Style Selector="Grid.compact WrapPanel.account">
-            <Setter Property="Grid.Row" Value="1" />
-            <Setter Property="Grid.Column" Value="0" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="Margin" Value="0,0,0,10" />
-        </Style>
         <Style Selector="Grid.compact UniformGrid.cards">
             <Setter Property="Columns" Value="1" />
         </Style>
@@ -116,29 +109,45 @@
                         <TextBlock Text="Sistema de Asesorías Académicas" FontSize="13" Foreground="{StaticResource BrushGoldText}" />
                     </StackPanel>
 
-                    <!-- Accesibilidad y cuenta -->
+                    <!-- Cuenta: "Entrar" a la vista; zoom, rol y salir dentro del menú ☰. -->
                     <WrapPanel Classes="account" ItemSpacing="6" LineSpacing="6" VerticalAlignment="Top">
-                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-                            <Button Classes="quiet" Padding="10,6" Command="{Binding ZoomOutCommand}"
-                                    AutomationProperties.Name="Reducir tamaño" ToolTip.Tip="Reducir tamaño (Ctrl −)">
-                                <PathIcon Data="{StaticResource Icon.ZoomOut}" />
-                            </Button>
-                            <Button Classes="quiet" Padding="8,6" MinWidth="58" Command="{Binding ZoomResetCommand}"
-                                    Content="{Binding ZoomText}" FontSize="12"
-                                    AutomationProperties.Name="Restablecer tamaño" ToolTip.Tip="Tamaño normal (Ctrl 0)" />
-                            <Button Classes="quiet" Padding="10,6" Command="{Binding ZoomInCommand}"
-                                    AutomationProperties.Name="Aumentar tamaño" ToolTip.Tip="Aumentar tamaño (Ctrl +)">
-                                <PathIcon Data="{StaticResource Icon.ZoomIn}" />
-                            </Button>
-                        </StackPanel>
-                        <ComboBox ItemsSource="{Binding Session.Roles}" SelectedItem="{Binding Session.ActiveRole}"
-                                  IsVisible="{Binding Session.HasSeveralRoles}" MinWidth="120"
-                                  AutomationProperties.Name="Entrar como" ToolTip.Tip="Rol con el que usas el sistema" />
                         <Button Classes="primary" Command="{Binding OpenLoginCommand}" IsVisible="{Binding !Session.IsLoggedIn}">
                             <views:IconText Icon="{StaticResource Icon.SignIn}" Text="Entrar" />
                         </Button>
-                        <Button Classes="quiet" Command="{Binding LogoutCommand}" IsVisible="{Binding Session.IsLoggedIn}">
-                            <views:IconText Icon="{StaticResource Icon.SignOut}" Text="Salir" />
+                        <Button x:Name="OptionsButton" Classes="quiet" Padding="10,8"
+                                AutomationProperties.Name="Menú de opciones: tamaño de letra, rol y salir"
+                                ToolTip.Tip="Tamaño de letra, rol y salir">
+                            <PathIcon Data="{StaticResource Icon.Navigation}" />
+                            <Button.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedRight">
+                                    <StackPanel Spacing="10" MinWidth="220">
+                                        <TextBlock Classes="label" Text="Tamaño de letra" />
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <Button Classes="quiet" Padding="10,6" Command="{Binding ZoomOutCommand}"
+                                                    AutomationProperties.Name="Reducir tamaño" ToolTip.Tip="Reducir tamaño (Ctrl −)">
+                                                <PathIcon Data="{StaticResource Icon.ZoomOut}" />
+                                            </Button>
+                                            <Button Classes="quiet" Padding="8,6" MinWidth="58" Command="{Binding ZoomResetCommand}"
+                                                    Content="{Binding ZoomText}" FontSize="12"
+                                                    AutomationProperties.Name="Restablecer tamaño" ToolTip.Tip="Tamaño normal (Ctrl 0)" />
+                                            <Button Classes="quiet" Padding="10,6" Command="{Binding ZoomInCommand}"
+                                                    AutomationProperties.Name="Aumentar tamaño" ToolTip.Tip="Aumentar tamaño (Ctrl +)">
+                                                <PathIcon Data="{StaticResource Icon.ZoomIn}" />
+                                            </Button>
+                                        </StackPanel>
+                                        <StackPanel Spacing="4" IsVisible="{Binding Session.HasSeveralRoles}">
+                                            <TextBlock Classes="label" Text="Entrar como" />
+                                            <ComboBox ItemsSource="{Binding Session.Roles}" SelectedItem="{Binding Session.ActiveRole}"
+                                                      HorizontalAlignment="Stretch"
+                                                      AutomationProperties.Name="Entrar como" ToolTip.Tip="Rol con el que usas el sistema" />
+                                        </StackPanel>
+                                        <Button Classes="quiet" Command="{Binding LogoutCommand}" IsVisible="{Binding Session.IsLoggedIn}"
+                                                HorizontalAlignment="Stretch" Click="CloseOptions">
+                                            <views:IconText Icon="{StaticResource Icon.SignOut}" Text="Salir" />
+                                        </Button>
+                                    </StackPanel>
+                                </Flyout>
+                            </Button.Flyout>
                         </Button>
                     </WrapPanel>
 
