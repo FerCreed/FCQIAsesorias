@@ -110,7 +110,7 @@ public partial class LoginViewModel : PageViewModel, IResettable
             return;
         }
 
-        Status.Info($"Entraste como {_session.ActiveRole}.");
+        Status.Clear(); // quién está conectado se ve en el menú ☰, no en la franja de avisos
         await _navigator.CompleteLoginAsync();
     }
 }

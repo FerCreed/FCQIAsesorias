@@ -115,12 +115,18 @@
                             <views:IconText Icon="{StaticResource Icon.SignIn}" Text="Entrar" />
                         </Button>
                         <Button x:Name="OptionsButton" Classes="quiet" Padding="10,8"
-                                AutomationProperties.Name="Menú de opciones: tamaño de letra, rol y salir"
-                                ToolTip.Tip="Tamaño de letra, rol y salir">
+                                AutomationProperties.Name="Menú de opciones: cuenta, tamaño de letra, rol y salir"
+                                ToolTip.Tip="Cuenta, tamaño de letra, rol y salir">
                             <PathIcon Data="{StaticResource Icon.Navigation}" />
                             <Button.Flyout>
                                 <Flyout Placement="BottomEdgeAlignedRight">
-                                    <StackPanel Spacing="10" MinWidth="220">
+                                    <StackPanel Spacing="10" MinWidth="220" MaxWidth="300">
+                                        <StackPanel Spacing="2" IsVisible="{Binding Session.IsLoggedIn}">
+                                            <TextBlock Classes="label" Text="Conectado como" />
+                                            <TextBlock Text="{Binding Session.DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                       Foreground="{StaticResource BrushGreenDark}" />
+                                            <TextBlock Text="{Binding Session.ActiveRole}" FontSize="13" Foreground="{StaticResource BrushGoldText}" />
+                                        </StackPanel>
                                         <TextBlock Classes="label" Text="Tamaño de letra" />
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <Button Classes="quiet" Padding="10,6" Command="{Binding ZoomOutCommand}"
@@ -180,12 +186,7 @@
                 </Border.Styles>
                 <Grid ColumnDefinitions="Auto,*" MaxWidth="1040" HorizontalAlignment="Stretch">
                     <PathIcon Data="{StaticResource Icon.Info}" Foreground="{StaticResource BrushGreenDark}" VerticalAlignment="Top" Margin="0,1,8,0" />
-                    <StackPanel Grid.Column="1" Spacing="2">
-                        <TextBlock IsVisible="{Binding Session.IsLoggedIn}" FontSize="12" FontWeight="Bold"
-                                   Foreground="{StaticResource BrushGreenDark}"
-                                   Text="{Binding Session.ActiveRole, StringFormat='Estás como {0}'}" />
-                        <TextBlock Text="{Binding Status.Message}" Foreground="{StaticResource BrushInk}" FontSize="14" />
-                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Status.Message}" Foreground="{StaticResource BrushInk}" FontSize="14" />
                 </Grid>
             </Border>
 
