@@ -61,5 +61,19 @@ services:
       start_period: 120s
       retries: 5
 
+  # Publica la app en tu dominio con un Cloudflare Tunnel (sin abrir puertos).
+  # Arranca siempre junto con la app.
+  # Requiere CLOUDFLARE_TUNNEL_TOKEN en .env (Zero Trust → Networks → Tunnels)
+  # y en el túnel un "Public Hostname" apuntando a  http://fcqi:80
+  cloudflared:
+    image: cloudflare/cloudflared:2025.10.0
+    container_name: fcqi-tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - fcqi
+    restart: unless-stopped
+
 volumes:
   fcqi-mysql-prod:
