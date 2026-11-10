@@ -56,6 +56,30 @@ Dentro del contenedor esto es automático: `start-api.sh` los ejecuta contra
 MySQL antes de arrancar la API, y solo la primera vez. Para rehacer la base
 desde cero sin destruir el volumen, arranca con `FCQI_DB_RESET=1`.
 
+### Base de prueba amplia (opcional)
+
+`db/03-datos-prueba.sql` agrega un año de actividad para probar la app como
+dirección: unas 130 personas (120 alumnos, 10 profesores, 4 estudiantes que
+asesoran y una cuenta de dirección `demo.direccion@uabc.edu.mx`), los ciclos
+2025-2 y 2026-1 y 650 asesorías en todos los estados, con historial
+(quién y cuándo) y bitácoras. Los correos empiezan con `demo.`.
+
+No se carga solo: las fechas son relativas al día en que se genera. Por eso
+conviene regenerarlo justo antes de cargarlo:
+
+```bash
+python3 tools/generar-datos-prueba.py
+```
+
+```bash
+docker exec -i fcqi-prod sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -u"$MYSQL_USER" -h127.0.0.1 "$MYSQL_DATABASE"' < db/03-datos-prueba.sql
+```
+
+(En desarrollo el contenedor se llama `fcqi-dev`.) Es idempotente: solo borra
+y reescribe sus rangos de Id (personas 5000–5999, horarios 50000–59999,
+asesorías 900000–999999 y ciclos 101–102), así que se puede volver a cargar.
+Para entrar con esas cuentas sin Google hace falta `FCQI_PASSWORDLESS_LOGIN=true`.
+
 El diagrama entidad-relación está en [`db/diagrama-er.md`](db/diagrama-er.md),
 generado por introspección de la base con `python3 tools/generar-er.py`
 (regenéralo tras cambiar el esquema). El

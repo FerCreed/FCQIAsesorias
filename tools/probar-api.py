@@ -249,7 +249,8 @@ check("H1 un alumno no entra al panel de dirección (403)",
       call("GET", "/api/admin/advisors", TA)[0] == 403)
 check("H2 un asesor tampoco (403)", call("GET", "/api/admin/advisors", TS)[0] == 403)
 s, panel = call("GET", "/api/admin/advisors", TD)
-check("H3 dirección lista a los 14 asesores", s == 200 and len(panel) == 14,
+# >= porque db/03-datos-prueba.sql agrega asesores de prueba encima de los 14 del seed.
+check("H3 dirección lista a los asesores del seed", s == 200 and len(panel) >= 14,
       (s, len(panel) if panel else None))
 
 asesor = next(t for t in panel if t["id"] == 14)
