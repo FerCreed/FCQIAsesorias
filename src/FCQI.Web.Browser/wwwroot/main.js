@@ -1,4 +1,9 @@
-import { dotnet } from './_framework/dotnet.js'
+// Versión de esta construcción (?v= que index.html pone a main.js). Se añade a
+// todos los archivos de .NET: se llaman igual en cada versión y, sin esto, el
+// navegador o Cloudflare servirían los de la versión anterior durante horas.
+const version = new URL(import.meta.url).searchParams.get('v') ?? '';
+const withVersion = url => version ? `${url}${url.includes('?') ? '&' : '?'}v=${version}` : url;
+const { dotnet } = await import(withVersion('./_framework/dotnet.js'));
 
 const is_browser = typeof window != "undefined";
 if (!is_browser) throw new Error("Expected to be running in a browser");
@@ -25,6 +30,7 @@ globalThis.fcqiSetSetting = (key, value) => { try { localStorage.setItem(key, va
 try {
     const dotnetRuntime = await dotnet
         .withApplicationArgumentsFromQuery()
+        .withResourceLoader((type, name, defaultUri) => withVersion(defaultUri))
         .create();
 
     const config = dotnetRuntime.getConfig();

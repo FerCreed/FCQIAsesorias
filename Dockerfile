@@ -128,6 +128,7 @@ RUN set -eux; \
         [ -f "/out/web/$f" ] || cp "src/FCQI.Web.Browser/wwwroot/$f" "/out/web/$f"; \
     done; \
     test -f /out/web/index.html; \
+    sed -i "s/__BUILD__/$(date +%s)/g" /out/web/index.html; \
     test -d /out/web/_framework; \
     test -f /out/web/_framework/blazor.boot.json; \
     chmod -R a+rX /out/web; \

@@ -9,14 +9,15 @@
     <meta name="theme-color" content="#024731" />
     <meta name="description" content="Solicita asesorías académicas de la FCQI, UABC." />
     <base href="/" />
-    <link rel="modulepreload" href="./main.js" />
-    <link rel="modulepreload" href="./_framework/dotnet.js" />
+    <!-- El marcador de versión (?v=) lo reemplaza la imagen Docker por un número distinto en cada
+         construcción: así ningún navegador ni Cloudflare reutiliza la app vieja. -->
+    <link rel="modulepreload" href="./main.js?v=__BUILD__" />
     <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
     <div id="out">
         <div class="avalonia-splash">Cargando asesorías…</div>
     </div>
-    <script type="module" src="./main.js"></script>
+    <script type="module" src="./main.js?v=__BUILD__"></script>
 </body>
 </html>
