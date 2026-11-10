@@ -16,7 +16,8 @@ public interface ICatalogApi
 public interface IFcqiApi
 {
     Task<AuthConfigItem> GetAuthConfigAsync();
-    Task<AuthResultItem> LoginAsync(string email, string password);
+    Task<AuthResultItem> LoginAsync(string email);
+    Task<List<DemoProfileItem>> GetDemoProfilesAsync();
 
     Task<List<SessionItem>> GetSessionsAsync(string scope);
     Task CreateSessionAsync(CreateSessionBody body);

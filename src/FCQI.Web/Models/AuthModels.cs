@@ -19,6 +19,19 @@ public class AuthConfigItem
 {
     public string GoogleClientId { get; set; } = string.Empty;
     public bool GoogleConfigured { get; set; }
+
+    /// <summary>El servidor acepta entrar solo con el correo (sin Google).</summary>
+    public bool PasswordlessLogin { get; set; }
+}
+
+/// <summary>Perfil de prueba para entrar sin escribir: una fila por persona y rol.</summary>
+public class DemoProfileItem
+{
+    public string Role { get; set; } = string.Empty;
+    public int ProfileId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Display => $"{Role} · {FullName} ({Email})";
 }
 
 public class ErrorMessage
@@ -28,7 +41,7 @@ public class ErrorMessage
 
 // Cuerpos de las peticiones.
 
-public record LoginBody(string Email, string Password);
+public record LoginBody(string Email);
 
 public record CreateSessionBody(int StudentId, int AdvisorId, int SubjectId, int AvailabilityId, DateTime ScheduledAt, string Topic);
 

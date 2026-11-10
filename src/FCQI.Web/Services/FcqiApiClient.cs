@@ -19,13 +19,17 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
     public async Task<AuthConfigItem> GetAuthConfigAsync()
         => await GetAsync("api/auth/config", Json.AuthConfigItem) ?? new AuthConfigItem();
 
-    public async Task<AuthResultItem> LoginAsync(string email, string password)
+    /// <summary>Entrada con correo institucional, sin contraseña (solo si el servidor lo permite).</summary>
+    public async Task<AuthResultItem> LoginAsync(string email)
     {
-        using var response = await _http.PostAsJsonAsync("api/auth/login", new LoginBody(email, password), Json.LoginBody);
+        using var response = await _http.PostAsJsonAsync("api/auth/demo", new LoginBody(email), Json.LoginBody);
         await ThrowIfFailedAsync(response, unauthorized: null);
         return await response.Content.ReadFromJsonAsync(Json.AuthResultItem)
                ?? throw new InvalidOperationException("Respuesta de inicio de sesión vacía.");
     }
+
+    public async Task<List<DemoProfileItem>> GetDemoProfilesAsync()
+        => await GetAsync("api/auth/demo-profiles", Json.ListDemoProfileItem) ?? [];
 
     // Catálogo
     public async Task<List<SubjectItem>> GetSubjectsAsync() => await GetAsync("api/subjects", Json.ListSubjectItem) ?? [];

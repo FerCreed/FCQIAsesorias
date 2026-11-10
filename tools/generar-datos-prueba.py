@@ -9,7 +9,8 @@ filtros, calendario e historial. No toca 02-seed.sql.
 Rangos de Id reservados (el script borra y reescribe solo estos):
   personas 5000-5999 · horarios 50000-59999 · asesorías 900000-999999
   ciclos 101 (2025-2) y 102 (2026-1)
-Los correos empiezan con "demo." para que nadie los confunda con personas reales.
+Los correos empiezan con "demo." para que nadie los confunda con personas reales,
+salvo las cuatro cuentas de CUENTAS_PRUEBA (admin/asesor/asesor par/alumno .prueba).
 Las fechas son relativas a --hoy: las citas futuras dejan de serlo con el
 tiempo, así que conviene regenerar el archivo antes de cargarlo.
 """
@@ -30,6 +31,12 @@ CAMPUS = ZoneInfo("America/Tijuana")
 PENDIENTE, CONFIRMADA, CANCELADA, RECHAZADA, REALIZADA = 1, 2, 3, 4, 5
 ACTIVOS = {PENDIENTE, CONFIRMADA}
 DIRECTIVO_DEMO = 5000
+CUENTAS_PRUEBA = {  # Id -> (nombre, correo)
+    5000: ("Admin", "admin.prueba@uabc.edu.mx"),                      # directivo
+    5001: ("Asesor", "asesor.prueba@uabc.edu.mx"),                    # profesor
+    5011: ("Asesor Estudiante", "asesor.estudiante.prueba@uabc.edu.mx"),  # asesor par (también alumno)
+    5101: ("Alumno", "alumno.prueba@uabc.edu.mx"),
+}
 
 CICLOS = [  # Id, código, nombre, inicio, fin, actual
     (101, "2025-2", "Otoño 2025", date(2025, 8, 11), date(2025, 12, 12), 0),
@@ -136,6 +143,10 @@ def generar(hoy: date, total: int, rnd: random.Random) -> str:
         persona(pid, rnd.choice(["Dr.", "Dra.", "Mtro.", "Mtra.", None]))
     for pid in pares + alumnos:
         persona(pid)
+    # Cuentas fáciles de recordar, una por rol, para entrar a probar cada apartado.
+    for i, (pid, *_) in enumerate(personas):
+        if pid in CUENTAS_PRUEBA:
+            personas[i] = (pid, None, CUENTAS_PRUEBA[pid][0], "Prueba", None, CUENTAS_PRUEBA[pid][1])
     for pid in pares + alumnos:
         p_alumno.append((pid, f"2{pid:06d}", rnd.randint(1, 5)))
     asesores_demo = {}

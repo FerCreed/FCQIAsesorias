@@ -19,20 +19,17 @@ public class AuthController : ControllerBase
     private readonly ResolveProfileHandler _profiles;
     private readonly JwtTokenFactory _jwt;
     private readonly IConfiguration _configuration;
-    private readonly IHostEnvironment _environment;
 
     public AuthController(
         IGoogleTokenValidator google,
         ResolveProfileHandler profiles,
         JwtTokenFactory jwt,
-        IConfiguration configuration,
-        IHostEnvironment environment)
+        IConfiguration configuration)
     {
         _google = google;
         _profiles = profiles;
         _jwt = jwt;
         _configuration = configuration;
-        _environment = environment;
     }
 
     [HttpGet("config")]
@@ -48,13 +45,12 @@ public class AuthController : ControllerBase
     /// Acceso sin contraseña: /login no verifica la contraseña (aún no hay
     /// directorio UABC) y /demo ni la pide, así que cualquiera que conozca un
     /// correo entraría como esa persona. Solo se permite mientras no haya
-    /// Google configurado y, además, en desarrollo o si se activa a propósito
-    /// con Authentication:PasswordlessLogin=true (FCQI_PASSWORDLESS_LOGIN en
-    /// .env). En producción expuesta a internet debe quedar apagado.
+    /// Google configurado. Activo por omisión (fase de pruebas); se apaga con
+    /// Authentication:PasswordlessLogin=false (FCQI_PASSWORDLESS_LOGIN en .env).
     /// </summary>
     private bool DemoLoginEnabled
         => string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"])
-           && _configuration.GetValue("Authentication:PasswordlessLogin", _environment.IsDevelopment());
+           && _configuration.GetValue("Authentication:PasswordlessLogin", true);
 
     private ObjectResult PasswordlessDisabled()
         => StatusCode(StatusCodes.Status403Forbidden, new

@@ -46,10 +46,11 @@ services:
       # Sin ClientId de Google, la app usa el login de demostración por perfil.
       # Para OAuth real (solo correos @uabc.edu.mx), pon aquí el ClientId.
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
-      # Acceso sin contraseña (solo correo). Apagado por omisión: con el túnel
-      # la app queda en internet y cualquiera entraría como cualquier persona.
-      # Actívalo solo para pruebas cerradas: FCQI_PASSWORDLESS_LOGIN=true en .env.
-      Authentication__PasswordlessLogin: ${FCQI_PASSWORDLESS_LOGIN:-false}
+      # Acceso sin contraseña (solo correo @uabc.edu.mx o perfil de la lista).
+      # Activo por omisión para la fase de pruebas. OJO: con el túnel la app
+      # queda en internet y cualquiera entraría como cualquier persona; para
+      # cerrarlo pon FCQI_PASSWORDLESS_LOGIN=false en .env.
+      Authentication__PasswordlessLogin: ${FCQI_PASSWORDLESS_LOGIN:-true}
       # Si la dejas vacía, el contenedor genera una clave aleatoria y la guarda
       # en el volumen. NO uses la de appsettings.json: está en el repositorio.
       Authentication__Jwt__Key: ${JWT_KEY:-}

@@ -8,14 +8,13 @@ namespace FCQI.UnitTests.Client;
 public class ClientLogicTests
 {
     [Theory]
-    [InlineData("", "x", "Escribe tu correo")]
-    [InlineData("alguien@gmail.com", "x", "Solo se aceptan")]
-    [InlineData("a@uabc.edu.mx", "", "contraseña")]
-    public void Acceso_ValidaElCorreoInstitucional(string email, string password, string expected)
-        => Assert.Contains(expected, LoginViewModel.Validate(email, password));
+    [InlineData("", "Escribe tu correo")]
+    [InlineData("alguien@gmail.com", "Solo se aceptan")]
+    public void Acceso_ValidaElCorreoInstitucional(string email, string expected)
+        => Assert.Contains(expected, LoginViewModel.Validate(email));
 
     [Fact]
-    public void Acceso_AceptaCorreoUabc() => Assert.Null(LoginViewModel.Validate(" Ana@UABC.edu.mx ", "x"));
+    public void Acceso_AceptaCorreoUabc() => Assert.Null(LoginViewModel.Validate(" Ana@UABC.edu.mx "));
 
     [Fact]
     public void ProximaFecha_CaeEnElDiaDelBloque_YSaltaLaCitaActual()

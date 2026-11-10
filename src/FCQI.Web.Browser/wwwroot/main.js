@@ -22,10 +22,19 @@ globalThis.fcqiDownload = (fileName, mimeType, base64) => {
 globalThis.fcqiGetSetting = key => { try { return localStorage.getItem(key); } catch { return null; } };
 globalThis.fcqiSetSetting = (key, value) => { try { localStorage.setItem(key, value); } catch { /* modo privado */ } };
 
-const dotnetRuntime = await dotnet
-    .withApplicationArgumentsFromQuery()
-    .create();
+try {
+    const dotnetRuntime = await dotnet
+        .withApplicationArgumentsFromQuery()
+        .create();
 
-const config = dotnetRuntime.getConfig();
+    const config = dotnetRuntime.getConfig();
 
-await dotnetRuntime.runMain(config.mainAssemblyName, [globalThis.location.href]);
+    await dotnetRuntime.runMain(config.mainAssemblyName, [globalThis.location.href]);
+} catch (error) {
+    // Sin esto, un fallo al arrancar (navegador viejo, red cortada) deja la pantalla vacía.
+    console.error(error);
+    document.getElementById('out').innerHTML =
+        '<div class="avalonia-splash" role="alert" style="flex-direction:column;padding:24px;text-align:center">' +
+        '<p>No se pudo abrir la aplicación en este navegador.</p>' +
+        '<p>Actualiza el navegador (Chrome, Safari o Firefox recientes) y recarga la página.</p></div>';
+}

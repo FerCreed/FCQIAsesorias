@@ -60,7 +60,7 @@ desde cero sin destruir el volumen, arranca con `FCQI_DB_RESET=1`.
 
 `db/03-datos-prueba.sql` agrega un año de actividad para probar la app como
 dirección: unas 130 personas (120 alumnos, 10 profesores, 4 estudiantes que
-asesoran y una cuenta de dirección `demo.direccion@uabc.edu.mx`), los ciclos
+asesoran y una cuenta de dirección), los ciclos
 2025-2 y 2026-1 y 650 asesorías en todos los estados, con historial
 (quién y cuándo) y bitácoras. Los correos empiezan con `demo.`.
 
@@ -78,7 +78,7 @@ docker exec -i fcqi-prod sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -u"$MYSQL_USER
 (En desarrollo el contenedor se llama `fcqi-dev`.) Es idempotente: solo borra
 y reescribe sus rangos de Id (personas 5000–5999, horarios 50000–59999,
 asesorías 900000–999999 y ciclos 101–102), así que se puede volver a cargar.
-Para entrar con esas cuentas sin Google hace falta `FCQI_PASSWORDLESS_LOGIN=true`.
+Las cuentas fáciles de recordar están en la sección «Acceso».
 
 El diagrama entidad-relación está en [`db/diagrama-er.md`](db/diagrama-er.md),
 generado por introspección de la base con `python3 tools/generar-er.py`
@@ -163,15 +163,24 @@ SELECT * FROM v_ocupacion_horarios WHERE LugaresDisponibles > 0;
 
 ## Acceso (`@uabc.edu.mx`)
 
-La web pide correo y contraseña. **Solo entra un correo `@uabc.edu.mx` dado de alta** en `personas`. Todavía no hay API de UABC para validar la contraseña: cualquier contraseña no vacía basta.
+La web deja **elegir un perfil de la lista** (alumno, asesor o directivo; cómodo en el celular) **o escribir un correo `@uabc.edu.mx`** dado de alta en `personas`. No pide contraseña: todavía no hay API de UABC para validarla.
 
-Por eso ese acceso sin contraseña está **apagado por omisión en producción** (con el túnel de Cloudflare la app queda en internet y cualquiera entraría como cualquier persona). Para pruebas cerradas, actívalo en `.env`:
+Este acceso de prueba está **activo por omisión**. Ojo: con el túnel de Cloudflare la app queda en internet y cualquiera podría entrar como cualquier persona. Para cerrarlo, en `.env`:
 
 ```bash
-FCQI_PASSWORDLESS_LOGIN=true
+FCQI_PASSWORDLESS_LOGIN=false
 ```
 
-En el contenedor de desarrollo está activo siempre. `tools/probar-api.py` lo necesita.
+Con un ClientId de Google configurado también se apaga. `tools/probar-api.py` lo necesita activo.
+
+Cuentas de prueba fáciles de recordar (las crea `db/03-datos-prueba.sql`, ver arriba):
+
+| Correo | Rol |
+|--------|-----|
+| `admin.prueba@uabc.edu.mx` | Directivo (dirección) |
+| `asesor.prueba@uabc.edu.mx` | Asesor (profesor) |
+| `asesor.estudiante.prueba@uabc.edu.mx` | Asesor y alumno (asesor par) |
+| `alumno.prueba@uabc.edu.mx` | Alumno |
 
 `POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `personas` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno. El catálogo (materias, asesores y horarios) se puede consultar sin sesión; pedir o gestionar citas sí exige JWT.
 

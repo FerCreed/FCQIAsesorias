@@ -18,6 +18,7 @@ namespace FCQI.Web.Serialization;
 [JsonSerializable(typeof(TermItem))]
 [JsonSerializable(typeof(AuthResultItem))]
 [JsonSerializable(typeof(AuthConfigItem))]
+[JsonSerializable(typeof(List<DemoProfileItem>))]
 [JsonSerializable(typeof(ErrorMessage))]
 [JsonSerializable(typeof(LoginBody))]
 [JsonSerializable(typeof(CreateSessionBody))]
