@@ -3,21 +3,19 @@ using FCQI.Web.Models;
 namespace FCQI.Web.Services;
 
 /// <summary>
-/// Decorador de <see cref="ICatalogApi"/>: materias y sedes no cambian durante
-/// el uso de la app, así que se piden una sola vez aunque varias pantallas
-/// (catálogo, dirección, horarios) las necesiten. Asesores y horarios sí cambian
-/// y pasan directo.
+/// Decorador de <see cref="ICatalogApi"/>: sedes y ciclo no cambian durante el
+/// uso de la app, así que se piden una sola vez. Materias, asesores y horarios
+/// sí cambian (dirección asigna asesores a materias) y pasan directo.
 /// </summary>
 public class CachedCatalogApi : ICatalogApi
 {
     private readonly ICatalogApi _inner;
-    private Task<List<SubjectItem>>? _subjects;
     private Task<List<LocationItem>>? _locations;
     private Task<TermItem>? _term;
 
     public CachedCatalogApi(ICatalogApi inner) => _inner = inner;
 
-    public Task<List<SubjectItem>> GetSubjectsAsync() => _subjects = Retry(_subjects) ?? _inner.GetSubjectsAsync();
+    public Task<List<SubjectItem>> GetSubjectsAsync() => _inner.GetSubjectsAsync();
     public Task<List<LocationItem>> GetLocationsAsync() => _locations = Retry(_locations) ?? _inner.GetLocationsAsync();
     public Task<TermItem> GetTermAsync() => _term = Retry(_term) ?? _inner.GetTermAsync();
     public Task<List<AdvisorItem>> GetAdvisorsAsync(int subjectId) => _inner.GetAdvisorsAsync(subjectId);

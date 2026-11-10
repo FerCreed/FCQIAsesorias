@@ -49,8 +49,10 @@ public class LogEmailSender : IEmailSender
 
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Correo (sin SMTP configurado) para {To}: {Subject}\n{Body}",
-            message.To, message.Subject, message.Body);
+        // El cuerpo lleva datos personales y mensajes de alumnos: solo en nivel
+        // Debug (desarrollo), nunca en el log normal del contenedor.
+        _logger.LogInformation("Correo (sin SMTP configurado) para {To}: {Subject}", message.To, message.Subject);
+        _logger.LogDebug("Cuerpo del correo para {To}:\n{Body}", message.To, message.Body);
         return Task.CompletedTask;
     }
 }

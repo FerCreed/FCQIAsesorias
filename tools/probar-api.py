@@ -9,7 +9,8 @@ catálogo, cupo y cambios de estado— contra la base sembrada por db/02-seed.sq
     python3 tools/probar-api.py                      # contenedor en :5080
     API=http://localhost:5016 python3 tools/probar-api.py   # API nativa
 
-Requiere la base recién sembrada (los conteos y los bloques libres dependen
+Requiere el acceso sin contraseña activo (FCQI_PASSWORDLESS_LOGIN=true, o el
+contenedor de desarrollo) y la base recién sembrada (los conteos y los bloques libres dependen
 de ella). Todo lo que crea lo deja cancelado al terminar.
 
 Devuelve 0 si todo pasa; 1 si algo falla, para poder encadenarlo en CI.
@@ -70,15 +71,16 @@ def login(email):
     return body
 
 
-def proxima(dow, desplazamiento=1):
-    """Próxima fecha, contando desde mañana, con ese día de la semana."""
+def proxima(dow, desplazamiento=2):
+    """Próxima fecha con ese día de la semana, contando desde pasado mañana:
+    así la cita queda fuera del plazo de 24 h y el alumno puede cancelarla."""
     dia = datetime.date.today() + datetime.timedelta(days=desplazamiento)
     while (dia.weekday() + 1) % 7 != dow:
         dia += datetime.timedelta(days=1)
     return dia
 
 
-def cuando(dow, hora, desplazamiento=1):
+def cuando(dow, hora, desplazamiento=2):
     h, m, s = (int(x) for x in hora.split(":"))
     return datetime.datetime.combine(proxima(dow, desplazamiento), datetime.time(h, m, s)).isoformat()
 
@@ -301,6 +303,13 @@ if viva:
     check("I10 un ajeno no descarga la cita (403)", call("GET", f"/api/sessions/{viva}/calendar.ics", TA2)[0] == 403)
     s, b = call("POST", f"/api/sessions/{viva}/log", TS, {"attended": True, "notes": "x"})
     check("I11 no hay bitácora de una cita pendiente (BPMN 9)", s == 400, (s, b))
+    # Reprogramar es todo o nada: con una fecha que no cae en el día del bloque
+    # se rechaza y la cita original sigue viva (rollback de la cancelación).
+    s, b = call("PATCH", f"/api/sessions/{viva}/schedule", TA,
+                {"availabilityId": JUEVES, "scheduledAt": cuando(DIA_MARTES, HORA_JUEVES, 8)})
+    sigue = next((x for x in call("GET", "/api/sessions", TA)[1] if x["id"] == viva), {})
+    check("I11b reprogramar inválido no cancela la cita original", s == 400 and sigue.get("status") == "Pendiente",
+          (s, sigue.get("status")))
     s, b = call("PATCH", f"/api/sessions/{viva}/schedule", TA,
                 {"availabilityId": JUEVES, "scheduledAt": cuando(DIA_JUEVES, HORA_JUEVES, 8)})
     check("I12 el alumno reprograma (BPMN 11)", s == 200 and b["status"] == "Pendiente", (s, b))

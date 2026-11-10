@@ -1,5 +1,6 @@
 using FCQI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FCQI.Application.Interfaces;
 
@@ -25,4 +26,7 @@ public interface IApplicationDbContext
     DbSet<SessionStatusChange> SessionStatusChanges { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Para casos de uso que escriben varias veces y deben quedar todo o nada.</summary>
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 }

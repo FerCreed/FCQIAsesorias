@@ -19,17 +19,20 @@ public class AuthController : ControllerBase
     private readonly ResolveProfileHandler _profiles;
     private readonly JwtTokenFactory _jwt;
     private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment _environment;
 
     public AuthController(
         IGoogleTokenValidator google,
         ResolveProfileHandler profiles,
         JwtTokenFactory jwt,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         _google = google;
         _profiles = profiles;
         _jwt = jwt;
         _configuration = configuration;
+        _environment = environment;
     }
 
     [HttpGet("config")]
@@ -37,16 +40,27 @@ public class AuthController : ControllerBase
         => Ok(new
         {
             googleClientId = _configuration["Authentication:Google:ClientId"] ?? "",
-            googleConfigured = !string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"])
+            googleConfigured = !string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"]),
+            passwordlessLogin = DemoLoginEnabled
         });
 
     /// <summary>
-    /// El selector de perfiles expone el directorio de personas del programa,
-    /// así que solo existe mientras no haya OAuth configurado. En cuanto se
-    /// define un ClientId de Google, estos dos endpoints desaparecen.
+    /// Acceso sin contraseña: /login no verifica la contraseña (aún no hay
+    /// directorio UABC) y /demo ni la pide, así que cualquiera que conozca un
+    /// correo entraría como esa persona. Solo se permite mientras no haya
+    /// Google configurado y, además, en desarrollo o si se activa a propósito
+    /// con Authentication:PasswordlessLogin=true (FCQI_PASSWORDLESS_LOGIN en
+    /// .env). En producción expuesta a internet debe quedar apagado.
     /// </summary>
     private bool DemoLoginEnabled
-        => string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"]);
+        => string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"])
+           && _configuration.GetValue("Authentication:PasswordlessLogin", _environment.IsDevelopment());
+
+    private ObjectResult PasswordlessDisabled()
+        => StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            message = "El acceso sin contraseña está desactivado en este servidor. Entra con tu cuenta de Google @uabc.edu.mx."
+        });
 
     [HttpGet("demo-profiles")]
     public async Task<ActionResult<IEnumerable<DemoProfileDto>>> DemoProfiles(CancellationToken cancellationToken)
@@ -62,6 +76,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResult>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
+        if (!DemoLoginEnabled)
+        {
+            return PasswordlessDisabled();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Password))
         {
             return BadRequest(new { message = "Ingresa una contraseña." });
@@ -75,7 +94,7 @@ public class AuthController : ControllerBase
     {
         if (!DemoLoginEnabled)
         {
-            return NotFound();
+            return PasswordlessDisabled();
         }
 
         return await SignInAsync(request.Email, cancellationToken);

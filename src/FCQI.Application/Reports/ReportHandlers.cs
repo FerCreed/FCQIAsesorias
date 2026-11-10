@@ -129,9 +129,6 @@ public class SessionsExportQueryHandler
 
 internal static class ReportRules
 {
-    /// <summary>Un año basta para cualquier reporte de ciclo y evita consultas sin límite.</summary>
-    public const int MaxDays = 400;
-
     public static ReportPeriod Period(DateOnly from, DateOnly to)
     {
         if (from == default || to == default)
@@ -142,11 +139,6 @@ internal static class ReportRules
         if (to < from)
         {
             throw new BusinessRuleException("La fecha final debe ser igual o posterior a la inicial.");
-        }
-
-        if (to.DayNumber - from.DayNumber > MaxDays)
-        {
-            throw new BusinessRuleException($"El periodo no puede pasar de {MaxDays} días.");
         }
 
         return new ReportPeriod(from, to);

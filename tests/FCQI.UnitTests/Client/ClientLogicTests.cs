@@ -31,15 +31,19 @@ public class ClientLogicTests
     }
 
     [Fact]
-    public async Task CacheDelCatalogo_PideUnaVez_YReintentaSiFallo()
+    public async Task CacheDelCatalogo_SedesUnaVez_YReintentaSiFallo_MateriasSiempreFrescas()
     {
         var inner = new CountingCatalog { FailFirst = true };
         var cached = new CachedCatalogApi(inner);
 
-        await Assert.ThrowsAsync<HttpRequestException>(cached.GetSubjectsAsync);
-        await cached.GetSubjectsAsync();
-        await cached.GetSubjectsAsync();
+        await Assert.ThrowsAsync<HttpRequestException>(cached.GetLocationsAsync);
+        await cached.GetLocationsAsync();
+        await cached.GetLocationsAsync();
+        Assert.Equal(2, inner.LocationCalls);
 
+        // Dirección puede asignar asesores en cualquier momento: las materias no se guardan.
+        await cached.GetSubjectsAsync();
+        await cached.GetSubjectsAsync();
         Assert.Equal(2, inner.SubjectCalls);
     }
 
@@ -47,18 +51,23 @@ public class ClientLogicTests
     {
         public bool FailFirst { get; set; }
         public int SubjectCalls { get; private set; }
+        public int LocationCalls { get; private set; }
 
         public Task<List<SubjectItem>> GetSubjectsAsync()
         {
             SubjectCalls++;
-            return SubjectCalls == 1 && FailFirst
-                ? Task.FromException<List<SubjectItem>>(new HttpRequestException("sin red"))
-                : Task.FromResult(new List<SubjectItem>());
+            return Task.FromResult(new List<SubjectItem>());
         }
 
         public Task<List<AdvisorItem>> GetAdvisorsAsync(int subjectId) => Task.FromResult(new List<AdvisorItem>());
         public Task<List<AvailabilityItem>> GetAvailabilitiesAsync(int advisorId) => Task.FromResult(new List<AvailabilityItem>());
-        public Task<List<LocationItem>> GetLocationsAsync() => Task.FromResult(new List<LocationItem>());
+        public Task<List<LocationItem>> GetLocationsAsync()
+        {
+            LocationCalls++;
+            return LocationCalls == 1 && FailFirst
+                ? Task.FromException<List<LocationItem>>(new HttpRequestException("sin red"))
+                : Task.FromResult(new List<LocationItem>());
+        }
         public Task<TermItem> GetTermAsync() => Task.FromResult(new TermItem());
     }
 }

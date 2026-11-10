@@ -140,21 +140,20 @@ public partial class CatalogViewModel : PageViewModel, IResettable
 
     public override async Task OnNavigatedToAsync()
     {
-        if (_allSubjects.Count == 0)
+        // Se recargan en cada visita: dirección pudo asignar asesores a una
+        // materia desde la última vez, y el filtro "solo con asesores" la ocultaría.
+        await RunAsync(async () =>
         {
-            await RunAsync(async () =>
+            _term = await _catalog.GetTermAsync();
+            _allSubjects = await _catalog.GetSubjectsAsync();
+            foreach (var p in _allSubjects.SelectMany(s => s.Programs).Distinct().Order().Except(Programs))
             {
-                _term = await _catalog.GetTermAsync();
-                _allSubjects = await _catalog.GetSubjectsAsync();
-                foreach (var p in _allSubjects.SelectMany(s => s.Programs).Distinct().Order())
-                {
-                    Programs.Add(p);
-                }
+                Programs.Add(p);
+            }
 
-                OnPropertyChanged(nameof(LastDate));
-                ApplyFilters();
-            });
-        }
+            OnPropertyChanged(nameof(LastDate));
+            ApplyFilters();
+        });
 
         if (_resumeRequest && _session.IsLoggedIn)
         {

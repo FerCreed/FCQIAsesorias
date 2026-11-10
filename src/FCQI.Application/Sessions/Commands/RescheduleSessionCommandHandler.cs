@@ -57,14 +57,22 @@ public class RescheduleSessionCommandHandler
             _policy.EnsureStudentCanChange(session.ScheduledAt, _clock);
         }
 
+        // Todo o nada: se cancela la cita vieja y se crea la nueva en una sola
+        // transacción. Si la nueva no pasa las validaciones (cupo, día, ciclo),
+        // la cancelación se deshace y el alumno conserva su cita. Cancelar
+        // primero libera su lugar, así puede reprogramar dentro del mismo bloque.
+        await using var transaction = await _context.BeginTransactionAsync(cancellationToken);
+
+        var previous = session.StatusId;
+        session.StatusId = SessionStatusIds.Cancelled;
+        await _context.SaveChangesAsync(cancellationToken);
+
         var replacement = await _create.HandleAsync(
             new CreateSessionRequest(session.StudentId, session.AdvisorId, session.SubjectId,
                 request.AvailabilityId, request.ScheduledAt, session.Topic),
             caller, cancellationToken);
 
-        var previous = session.StatusId;
-        session.StatusId = SessionStatusIds.Cancelled;
-        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         await _events.PublishAsync(
             new SessionChanged(session.Id, previous, SessionStatusIds.Cancelled, caller.PersonId), cancellationToken);
 

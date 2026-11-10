@@ -141,6 +141,14 @@ SELECT * FROM v_ocupacion_horarios WHERE LugaresDisponibles > 0;
 
 La web pide correo y contraseña. **Solo entra un correo `@uabc.edu.mx` dado de alta** en `personas`. Todavía no hay API de UABC para validar la contraseña: cualquier contraseña no vacía basta.
 
+Por eso ese acceso sin contraseña está **apagado por omisión en producción** (con el túnel de Cloudflare la app queda en internet y cualquiera entraría como cualquier persona). Para pruebas cerradas, actívalo en `.env`:
+
+```bash
+FCQI_PASSWORDLESS_LOGIN=true
+```
+
+En el contenedor de desarrollo está activo siempre. `tools/probar-api.py` lo necesita.
+
 `POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `personas` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno. El catálogo (materias, asesores y horarios) se puede consultar sin sesión; pedir o gestionar citas sí exige JWT.
 
 ```powershell

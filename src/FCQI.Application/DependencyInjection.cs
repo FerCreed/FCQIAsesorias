@@ -24,8 +24,9 @@ public static class DependencyInjection
         services.AddScoped<CurrentTerm>();
         services.AddScoped<SessionEventPublisher>();
 
-        // El orden importa: el enlace se genera antes de avisar, para que el
-        // correo de confirmación ya lo lleve.
+        // El orden importa: primero se anota el autor en el historial y se
+        // genera el enlace, después se avisa, para que el correo ya lo lleve.
+        services.AddScoped<ISessionObserver, StatusHistoryAuthor>();
         services.AddScoped<ISessionObserver, MeetingLinkObserver>();
         services.AddScoped<ISessionObserver, SessionNotifier>();
 

@@ -140,5 +140,7 @@ internal static class TestContext
     public static AppDbContext Create() => new(
         new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            // shortcut: en memoria no hay transacciones; el rollback de reprogramar lo prueba tools/probar-api.py contra MySQL.
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options);
 }

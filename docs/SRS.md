@@ -152,7 +152,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RF-21 | El alumno puede cancelar su asesoría pendiente o confirmada hasta *N* horas antes (`Sessions:ChangeLimitHours`, 24 por omisión). El asesor puede cancelar sin ese límite. | 11 | A | ✔ |
 | RF-22 | El alumno puede reprogramar a otro bloque del mismo asesor con el mismo límite; la cita nueva queda Pendiente y la anterior Cancelada. | 11 | M | ✔ |
 | RF-23 | Un estado final no puede cambiar; se informa que hay que solicitar de nuevo. | 11, 12, 18 | A | ✔ |
-| RF-24 | Cada cambio de estado se registra en `historial_estados_sesion` (por trigger) y libera el cupo cuando corresponde. | 11, 12, 18 | A | ✔ |
+| RF-24 | Cada cambio de estado se registra en `historial_estados_sesion` (por trigger), con la persona que hizo el cambio, y libera el cupo cuando corresponde. | 11, 12, 18 | A | ✔ |
 | RF-25 | En cada cambio de estado se notifica por correo, en paralelo, al alumno y al asesor de la cita, nombrando a quien actuó. | 8, 11, 12, 18 | M | ◐ |
 | RF-26 | Al confirmar una cita virtual se genera y guarda su enlace de reunión; las presenciales no llevan enlace. | 10 | M | ◐ |
 | RF-27 | Cualquier participante puede descargar la cita como archivo iCalendar (`.ics`) para su calendario personal o institucional. | 12 | M | ✔ |
@@ -195,7 +195,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RNF-02 | Portabilidad | El mismo cliente debe ejecutarse en navegador y en escritorio (Windows, macOS, Linux). | `FCQI.Web` compartido; anfitriones `FCQI.Web.Browser` (WebAssembly) y `FCQI.Desktop`. |
 | RNF-03 | Despliegue | El sistema completo debe levantarse con un solo comando y sin software instalado más allá de Docker. | `docker compose up --build`; imagen multiarquitectura con MySQL, API, nginx y frontend. |
 | RNF-04 | Seguridad | La identidad sale del token firmado, nunca del cuerpo de la petición. Cada operación valida dueño y rol. | `CurrentUser` → `Caller`; reglas en la capa de aplicación con pruebas. |
-| RNF-05 | Seguridad | Solo cuentas `@uabc.edu.mx` dadas de alta. La contraseña se validará contra el directorio UABC u OAuth de Google. | Dominio validado en cliente y API; Google OAuth listo (`Authentication:Google:ClientId`). **Pendiente:** verificación de contraseña. |
+| RNF-05 | Seguridad | Solo cuentas `@uabc.edu.mx` dadas de alta. El acceso sin contraseña (correo solamente) existe para pruebas y está **apagado por omisión fuera de desarrollo**; con la app publicada (Cloudflare Tunnel) el acceso debe ser con Google. | `Authentication:PasswordlessLogin` (`FCQI_PASSWORDLESS_LOGIN` en `.env`, `false` por omisión en producción); sin él `/login` y `/demo` responden 403. **Pendiente:** botón de Google en el cliente y verificación contra el directorio UABC. |
 | RNF-06 | Integridad | La base impide sobrecupo, citas con un asesor que no es dueño del bloque y estados inválidos, aunque falle la aplicación. | Llaves compuestas, índices únicos y triggers en `01-schema.sql`. |
 | RNF-07 | Exactitud temporal | Las citas no se corren con el horario de verano. | UTC en la base; `CampusClock` convierte con las reglas de America/Tijuana. |
 | RNF-08 | Disponibilidad | Un fallo de correo o de enlace no debe impedir el cambio de estado. | Los observadores corren después de guardar y sus errores se registran sin propagarse. |
