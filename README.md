@@ -1,8 +1,10 @@
 # Sistema de Asesorías FCQI
 
-Plataforma para digitalizar las asesorías académicas de la Facultad de Ciencias Químicas e Ingeniería (UABC). El alumno busca materia y solicita cita, el tutor atiende solicitudes y **dirección asigna qué tutores cubren cada materia**.
+Plataforma para digitalizar las asesorías académicas de la Facultad de Ciencias Químicas e Ingeniería (UABC). El alumno busca materia y solicita cita, el asesor atiende solicitudes y **dirección asigna qué asesores cubren cada materia**.
 
-Catálogo dummy 2026-2 tomado de los horarios oficiales (14 tutores, materias y bloques). UI Avalonia WASM con paleta institucional (verde `#00723F`, oro `#DD971A`), menú horizontal y scroll de página.
+Catálogo dummy 2026-2 tomado de los horarios oficiales (14 asesores, materias y bloques). Cliente Avalonia con paleta institucional (verde `#00723F`, oro `#DD971A`) que corre **en el navegador (WebAssembly) y en escritorio** (Windows, macOS, Linux), y se adapta a teléfonos en vertical: por debajo de 640 px el menú pasa a pestañas inferiores.
+
+Los requisitos, la trazabilidad con los 19 diagramas BPMN de `AsesoriasBizagi/` y los patrones de diseño están en la **[SRS](docs/SRS.md)**.
 
 ## Estructura
 
@@ -12,31 +14,30 @@ Catálogo dummy 2026-2 tomado de los horarios oficiales (14 tutores, materias y 
 | `src/FCQI.Application` | Casos de uso y DTOs |
 | `src/FCQI.Infrastructure` | EF Core, MySQL, Google/JWT, zona horaria |
 | `src/FCQI.Api` | REST + Swagger |
-| `src/FCQI.Web` | Pantallas Avalonia |
-| `src/FCQI.Web.Browser` | Host en el navegador (WASM) |
-| `tests/FCQI.UnitTests` | Pruebas de mapeo, identidad, horario y reglas de negocio |
+| `src/FCQI.Web` | Cliente Avalonia compartido (MVVM: shell, una página por pantalla) |
+| `src/FCQI.Web.Browser` | Anfitrión en el navegador (WASM) |
+| `src/FCQI.Desktop` | Anfitrión de escritorio (Windows, macOS, Linux) |
+| `tests/FCQI.UnitTests` | Pruebas de reglas de negocio, procesos BPMN y lógica del cliente |
+| `docker/` | Scripts y configuración del contenedor (MySQL, nginx, supervisor) |
 | `db/` | **Definición de la base: estructura y datos** |
 | `tools/` | Utilidades: diagrama ER y pruebas de la API en ejecución |
-| `docs/` | [Checklist de validación](docs/checklist-validacion.md) |
+| `docs/` | [SRS](docs/SRS.md) y [checklist de validación](docs/checklist-validacion.md) |
 
 GitFlow: `main` (estable), `develop` (integración), `feature/*`.
 
 ## Requisitos
 
-- .NET SDK 8 y workload `wasm-tools`
-- MySQL 8.0 (servicio Windows `MySQL80`)
-- MySQL Workbench (opcional, para ver las tablas a ojo)
+- **Docker** (Docker Desktop en Windows/macOS). Todo lo demás —MySQL, .NET, el
+  workload `wasm-tools`, nginx— viene dentro de la imagen.
+- .NET SDK 8 solo si quieres ejecutar el cliente de escritorio o las pruebas
+  fuera del contenedor.
+- MySQL Workbench (opcional, para ver las tablas a ojo).
 
 ## Base de datos
 
-- **Motor:** MySQL 8 en `localhost:3306`
+- **Motor:** MySQL 8 dentro del contenedor (publicado en `127.0.0.1:3307` en
+  desarrollo y `127.0.0.1:3308` en producción; se evita el 3306 a propósito).
 - **Nombre:** `fcqi_asesorias`
-- **Usuario:** `root`
-- **Contraseña:** la de tu instalación local (User Secrets; no se sube al repo)
-
-```powershell
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Port=3306;Database=fcqi_asesorias;User=root;Password=TU_PASSWORD;" --project src/FCQI.Api
-```
 
 La base la definen **dos scripts SQL**, no el código. La aplicación ya no crea
 ni siembra nada: no hay migraciones de EF Core ni seeder en C#.
@@ -55,11 +56,38 @@ Dentro del contenedor esto es automático: `start-api.sh` los ejecuta contra
 MySQL antes de arrancar la API, y solo la primera vez. Para rehacer la base
 desde cero sin destruir el volumen, arranca con `FCQI_DB_RESET=1`.
 
+### Base de prueba amplia (opcional)
+
+`db/03-datos-prueba.sql` agrega un año de actividad para probar la app como
+dirección: unas 130 personas (120 alumnos, 10 profesores, 4 estudiantes que
+asesoran y una cuenta de dirección), los ciclos
+2025-2 y 2026-1 y 650 asesorías en todos los estados, con historial
+(quién y cuándo) y bitácoras. Los correos empiezan con `demo.`.
+
+No se carga solo: las fechas son relativas al día en que se genera. Por eso
+conviene regenerarlo justo antes de cargarlo:
+
+```bash
+python3 tools/generar-datos-prueba.py
+```
+
+```bash
+docker exec -i fcqi-prod sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -u"$MYSQL_USER" -h127.0.0.1 "$MYSQL_DATABASE"' < db/03-datos-prueba.sql
+```
+
+(En desarrollo el contenedor se llama `fcqi-dev`.) Es idempotente: solo borra
+y reescribe sus rangos de Id (personas 5000–5999, horarios 50000–59999,
+asesorías 900000–999999 y ciclos 101–102), así que se puede volver a cargar.
+Las cuentas fáciles de recordar están en la sección «Acceso».
+
 El diagrama entidad-relación está en [`db/diagrama-er.md`](db/diagrama-er.md),
 generado por introspección de la base con `python3 tools/generar-er.py`
 (regenéralo tras cambiar el esquema). El
 modelo anterior y la migración entre ambos quedan en `db/legacy/` y
-`db/migrations/`, como registro.
+`db/migrations/001_*`, como registro. `db/migrations/002_procesos_bpmn.sql`
+(estado *Realizada*, enlace de reunión y bitácoras) es idempotente y el
+contenedor la aplica en cada arranque, así un volumen existente se actualiza
+sin perder datos.
 
 ### Horario y zona horaria
 
@@ -82,7 +110,7 @@ verano, no con un desplazamiento fijo. La API recibe y devuelve hora local;
      no podía representar, y con ellos se prueba el selector de rol
    - `materias` — materias
    - `programas` — carreras · `ciclos_escolares` — ciclos escolares
-   - `asesores_materias` — qué materias asignó dirección a cada tutor, por ciclo
+   - `asesores_materias` — qué materias asignó dirección a cada asesor, por ciclo
    - `horarios` — bloques de horario · `lugares` — sedes
    - `asesorias` — solicitudes / citas
    - `historial_estados_sesion` — auditoría de cambios de estado
@@ -128,22 +156,39 @@ SELECT * FROM v_ocupacion_horarios WHERE LugaresDisponibles > 0;
 ### Cómo ver los datos (consola)
 
 ```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -e "USE fcqi_asesorias; SHOW TABLES; SELECT COUNT(*) AS materias FROM materias; SELECT COUNT(*) AS tutores FROM perfiles_asesor;"
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -e "USE fcqi_asesorias; SHOW TABLES; SELECT COUNT(*) AS materias FROM materias; SELECT COUNT(*) AS asesores FROM perfiles_asesor;"
 ```
 
 (`-p` pide la contraseña.)
 
 ## Acceso (`@uabc.edu.mx`)
 
-La web pide correo y contraseña. **Solo entra un correo `@uabc.edu.mx` dado de alta** en `personas`. Todavía no hay API de UABC para validar la contraseña: cualquier contraseña no vacía basta.
+La web deja **elegir un perfil de la lista** (alumno, asesor o directivo; cómodo en el celular) **o escribir un correo `@uabc.edu.mx`** dado de alta en `personas`. No pide contraseña: todavía no hay API de UABC para validarla.
 
-`POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `personas` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno. El catálogo (materias, tutores y horarios) se puede consultar sin sesión; pedir o gestionar citas sí exige JWT.
+Este acceso de prueba está **activo por omisión**. Ojo: con el túnel de Cloudflare la app queda en internet y cualquiera podría entrar como cualquier persona. Para cerrarlo, en `.env`:
+
+```bash
+FCQI_PASSWORDLESS_LOGIN=false
+```
+
+Con un ClientId de Google configurado también se apaga. `tools/probar-api.py` lo necesita activo.
+
+Cuentas de prueba fáciles de recordar (las crea `db/03-datos-prueba.sql`, ver arriba):
+
+| Correo | Rol |
+|--------|-----|
+| `admin.prueba@uabc.edu.mx` | Directivo (dirección) |
+| `asesor.prueba@uabc.edu.mx` | Asesor (profesor) |
+| `asesor.estudiante.prueba@uabc.edu.mx` | Asesor y alumno (asesor par) |
+| `alumno.prueba@uabc.edu.mx` | Alumno |
+
+`POST /api/auth/google` valida el token y **rechaza correos que no sean `@uabc.edu.mx`**. Luego busca a la persona en `personas` y devuelve **todos** sus roles en `roles`, no solo el primero: un asesor par puede entrar como asesor o como alumno. El catálogo (materias, asesores y horarios) se puede consultar sin sesión; pedir o gestionar citas sí exige JWT.
 
 ```powershell
 dotnet user-secrets set "Authentication:Google:ClientId" "TU_CLIENT_ID.apps.googleusercontent.com" --project src/FCQI.Api
 ```
 
-Orígenes autorizados en Google Cloud: `http://localhost:5016` y `http://localhost:5235`.  
+Orígenes autorizados en Google Cloud: `http://localhost:8080` (producción) y `http://localhost:5080` (desarrollo).  
 Si el ClientId está vacío, usa el selector de perfiles dummy (`POST /api/auth/demo`).
 
 ## Autorización
@@ -157,8 +202,19 @@ al iniciar sesión y el cliente lo manda en `Authorization: Bearer`.
 | `GET /api/subjects`, `GET /api/advisors` | Público (consulta del catálogo) |
 | `GET /api/sessions` | Alumno ve las suyas, asesor las que le tocan, dirección todas |
 | `POST /api/sessions` | Alumno (o dirección, en ventanilla) |
-| `PATCH /api/sessions/{id}/status` | El asesor dueño confirma o rechaza; el alumno dueño solo cancela **pendientes**; dirección todo. Cancelada y Rechazada son estados finales |
-| `/api/admin/*` | Solo rol Directivo |
+| `PATCH /api/sessions/{id}/status` | El asesor dueño confirma, rechaza o cancela; el alumno dueño cancela hasta 24 h antes (`Sessions:ChangeLimitHours`); dirección todo. Cancelada, Rechazada y Realizada son estados finales |
+| `PATCH /api/sessions/{id}/schedule` | El alumno dueño reprograma con el mismo límite |
+| `POST /api/sessions/{id}/log` | El asesor dueño registra bitácora; la cita queda Realizada |
+| `GET /api/sessions/{id}/calendar.ics` | Participantes de la cita |
+| `/api/advisors/me/availabilities` | El asesor administra sus horarios |
+| `POST /api/advisors/{id}/messages` | Alumno: mensaje al asesor por correo |
+| `GET /api/sessions/{id}/report.pdf` | Reporte individual: alumno y asesor de la cita, y dirección |
+| `/api/advisors/me/report.pdf\|.csv` | El asesor: su resumen de asesorías y horas trabajadas |
+| `/api/admin/*` | Solo rol Directivo: asignación, tablero, todas las asesorías desde una fecha (CSV/PDF) y resumen de cualquier asesor |
+
+**Correo y reuniones.** Sin `Smtp:Host` configurado, los avisos y mensajes se
+escriben en el log de la API (`docker logs fcqi-prod`). Las citas virtuales
+toman el enlace de `lugares.Detalles` si es una URL `https://`.
 
 Cuatro reglas que conviene tener claras:
 
@@ -179,7 +235,7 @@ tomado, la API respondía 500. Ahora se rechaza con un mensaje: si hace falta la
 cita, se solicita de nuevo.
 
 **Nadie se asesora a sí mismo.** Un asesor par aparece en su propia lista de
-tutores; agendarse consigo mismo se rechaza.
+asesores; agendarse consigo mismo se rechaza.
 
 El **login de demostración** (`/api/auth/demo*`) expone el directorio de
 personas del programa, así que solo existe mientras `Authentication:Google:ClientId`
@@ -187,19 +243,30 @@ esté vacío. En cuanto se configura OAuth, esos dos endpoints devuelven 404.
 
 ## Ejecutar
 
-Si sale error de DLL “being used by another process”, ya hay una API corriendo: Ctrl+C en esa terminal o cierra `FCQI.Api` en el Administrador de tareas.
+Producción local (API + web + MySQL en un contenedor):
 
-Terminal 1 — API (Swagger: http://localhost:5016/swagger):
-
-```powershell
-dotnet run --project src/FCQI.Api --launch-profile http
+```bash
+docker compose up --build -d
 ```
 
-Terminal 2 — UI (http://localhost:5235):
+Abre http://localhost:8080. En el teléfono, con el equipo en la misma red,
+abre `http://IP-DEL-EQUIPO:8080`.
 
-```powershell
-dotnet run --project src/FCQI.Web.Browser
+Desarrollo (recarga en caliente de la API, Swagger en http://localhost:5080/swagger):
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
 ```
+
+Cliente de escritorio contra el contenedor (`FCQI_API_URL`, por omisión `http://localhost:8080`):
+
+```bash
+FCQI_API_URL=http://localhost:8080 dotnet run --project src/FCQI.Desktop
+```
+
+El cliente web usa como API el mismo origen desde el que se abre. Para
+apuntarlo a otra (p. ej. la API nativa de Rider en el 5016) añade
+`?api=http://localhost:5016` a la dirección.
 
 ## Comprobar que funciona
 
@@ -207,7 +274,7 @@ El recorrido completo, paso a paso, está en
 **[docs/checklist-validacion.md](docs/checklist-validacion.md)**. En resumen:
 
 ```bash
-dotnet test tests/FCQI.UnitTests          # 56 pruebas de las reglas, sin base ni red
+dotnet test tests/FCQI.UnitTests          # 120 pruebas de reglas, procesos, reportes y cliente, sin base ni red
 python3 tools/probar-api.py               # 58 pruebas contra la API en :5080
 ```
 

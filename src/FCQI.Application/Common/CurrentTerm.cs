@@ -22,7 +22,7 @@ public class CurrentTerm
             .Select(t => new AcademicTermInfo(t.Id, t.Code, t.Name, t.StartsOn, t.EndsOn))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return term ?? throw new InvalidOperationException(
+        return term ?? throw new BusinessRuleException(
             "No hay un ciclo escolar marcado como vigente en ciclos_escolares.");
     }
 

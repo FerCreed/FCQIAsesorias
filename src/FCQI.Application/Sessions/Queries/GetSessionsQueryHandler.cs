@@ -16,9 +16,13 @@ public class GetSessionsQueryHandler
         _clock = clock;
     }
 
+    /// <param name="scope">
+    /// <c>upcoming</c>: citas por venir que siguen vivas (panel "Mis asesorías", BPMN 19).
+    /// <c>history</c>: las pasadas o cerradas (BPMN 14). Cualquier otro valor: todas.
+    /// </param>
     public async Task<IReadOnlyList<SessionDto>> HandleAsync(
         int? studentId, int? advisorId, string? status, Caller caller,
-        CancellationToken cancellationToken = default)
+        string? scope = null, CancellationToken cancellationToken = default)
     {
         // Dirección ve todo. Los demás solo lo suyo: si no piden un filtro, se
         // les impone; si piden el de otra persona, se rechaza en vez de
@@ -34,12 +38,8 @@ public class GetSessionsQueryHandler
                 studentId = caller.PersonId;
             }
 
-            if (studentId is not null && studentId != caller.PersonId)
-            {
-                throw new ForbiddenOperationException("Solo puedes consultar tus propias asesorías.");
-            }
-
-            if (advisorId is not null && advisorId != caller.PersonId)
+            if ((studentId is not null && studentId != caller.PersonId) ||
+                (advisorId is not null && advisorId != caller.PersonId))
             {
                 throw new ForbiddenOperationException("Solo puedes consultar tus propias asesorías.");
             }
@@ -62,33 +62,16 @@ public class GetSessionsQueryHandler
             query = query.Where(s => s.Status.Name == status);
         }
 
-        var rows = await query
-            .OrderByDescending(s => s.ScheduledAt)
-            .Select(s => new
-            {
-                s.Id,
-                s.StudentId,
-                StudentName = s.Student.Person.DisplayName,
-                s.AdvisorId,
-                AdvisorName = s.Advisor.Person.DisplayName,
-                s.SubjectId,
-                SubjectName = s.Subject.Name,
-                s.AvailabilityId,
-                s.ScheduledAt,
-                s.Topic,
-                Status = s.Status.Name
-            })
-            .ToListAsync(cancellationToken);
+        var now = _clock.UtcNow;
+        query = scope switch
+        {
+            "upcoming" => query.Where(s => s.ScheduledAt >= now && s.Status.IsActive)
+                               .OrderBy(s => s.ScheduledAt),
+            "history" => query.Where(s => s.ScheduledAt < now || !s.Status.IsActive)
+                              .OrderByDescending(s => s.ScheduledAt),
+            _ => query.OrderByDescending(s => s.ScheduledAt)
+        };
 
-        // La base guarda UTC; la conversión a hora local se hace aquí, fuera
-        // de la consulta, porque TimeZoneInfo no se traduce a SQL.
-        return rows.Select(r => new SessionDto(
-            (int)r.Id, r.StudentId, r.StudentName,
-            r.AdvisorId, r.AdvisorName,
-            r.SubjectId, r.SubjectName,
-            r.AvailabilityId,
-            _clock.ToLocal(r.ScheduledAt),
-            DateTime.SpecifyKind(r.ScheduledAt, DateTimeKind.Utc),
-            r.Topic, r.Status)).ToList();
+        return await query.ToDtosAsync(_clock, cancellationToken);
     }
 }

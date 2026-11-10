@@ -1,5 +1,7 @@
+using System.Text;
 using FCQI.Api.Security;
-using FCQI.Application.Common;
+using FCQI.Application.Interfaces;
+using FCQI.Application.Reports;
 using FCQI.Application.Sessions.Commands;
 using FCQI.Application.Sessions.Dtos;
 using FCQI.Application.Sessions.Queries;
@@ -8,92 +10,80 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FCQI.Api.Controllers;
 
+/// <summary>
+/// Asesorías. Los handlers se inyectan por acción ([FromServices]) para que el
+/// controlador no cargue con todos en cada petición. Los errores de negocio
+/// los traduce <see cref="Filters.ApiExceptionFilter"/>.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
 public class SessionsController : ControllerBase
 {
-    private readonly GetSessionsQueryHandler _query;
-    private readonly CreateSessionCommandHandler _create;
-    private readonly UpdateSessionStatusCommandHandler _update;
     private readonly CurrentUser _user;
 
-    public SessionsController(
-        GetSessionsQueryHandler query,
-        CreateSessionCommandHandler create,
-        UpdateSessionStatusCommandHandler update,
-        CurrentUser user)
-    {
-        _query = query;
-        _create = create;
-        _update = update;
-        _user = user;
-    }
-
-    private Caller Caller => new(_user.PersonId, _user.IsAdmin, _user.IsAdvisor, _user.IsStudent);
+    public SessionsController(CurrentUser user) => _user = user;
 
     /// <summary>
     /// Un alumno ve sus solicitudes, un asesor las que le tocan y dirección
-    /// todas. Pedir las de otra persona devuelve 403.
+    /// todas. <c>scope</c>: <c>upcoming</c> o <c>history</c>.
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SessionDto>>> Get(
-        [FromQuery] int? studentId,
-        [FromQuery] int? advisorId,
-        [FromQuery] string? status,
+        [FromServices] GetSessionsQueryHandler query,
+        [FromQuery] int? studentId, [FromQuery] int? advisorId,
+        [FromQuery] string? status, [FromQuery] string? scope,
         CancellationToken cancellationToken)
-    {
-        try
-        {
-            return Ok(await _query.HandleAsync(studentId, advisorId, status, Caller, cancellationToken));
-        }
-        catch (ForbiddenOperationException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
-        }
-    }
+        => Ok(await query.HandleAsync(studentId, advisorId, status, _user.ToCaller(), scope, cancellationToken));
 
-    /// <summary>
-    /// El alumno solicita. StudentId del cuerpo se ignora salvo para
-    /// dirección: para todos los demás la identidad sale del token.
-    /// </summary>
+    /// <summary>El alumno solicita (BPMN 8). La identidad sale del token.</summary>
     [HttpPost]
-    public async Task<ActionResult<SessionDto>> Post([FromBody] CreateSessionRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<SessionDto>> Post(
+        [FromServices] CreateSessionCommandHandler create,
+        [FromBody] CreateSessionRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var created = await _create.HandleAsync(request, Caller, cancellationToken);
-            return CreatedAtAction(nameof(Get), new { studentId = created.StudentId }, created);
-        }
-        catch (ForbiddenOperationException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var created = await create.HandleAsync(request, _user.ToCaller(), cancellationToken);
+        return CreatedAtAction(nameof(Get), new { studentId = created.StudentId }, created);
     }
 
-    /// <summary>
-    /// El asesor dueño confirma o rechaza; el alumno dueño solo cancela;
-    /// dirección puede todo.
-    /// </summary>
+    /// <summary>Confirmar, rechazar o cancelar (BPMN 11, 12, 18).</summary>
     [HttpPatch("{id:int}/status")]
-    public async Task<IActionResult> PatchStatus(int id, [FromBody] UpdateSessionStatusRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> PatchStatus(
+        [FromServices] UpdateSessionStatusCommandHandler update,
+        int id, [FromBody] UpdateSessionStatusRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            await _update.HandleAsync(id, request.Status, Caller, cancellationToken);
-            return NoContent();
-        }
-        catch (ForbiddenOperationException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        await update.HandleAsync(id, request.Status, _user.ToCaller(), cancellationToken);
+        return NoContent();
     }
+
+    /// <summary>Reprogramar (BPMN 11). Devuelve la cita nueva.</summary>
+    [HttpPatch("{id:int}/schedule")]
+    public async Task<ActionResult<SessionDto>> Reschedule(
+        [FromServices] RescheduleSessionCommandHandler reschedule,
+        int id, [FromBody] RescheduleSessionRequest request, CancellationToken cancellationToken)
+        => Ok(await reschedule.HandleAsync(id, request, _user.ToCaller(), cancellationToken));
+
+    /// <summary>Bitácora y asistencia (BPMN 9). La asesoría queda Realizada.</summary>
+    [HttpPost("{id:int}/log")]
+    public async Task<IActionResult> Log(
+        [FromServices] RecordSessionLogCommandHandler log,
+        int id, [FromBody] SessionLogRequest request, CancellationToken cancellationToken)
+    {
+        await log.HandleAsync(id, request, _user.ToCaller(), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>La cita en formato iCalendar para agregarla a cualquier calendario (BPMN 12).</summary>
+    [HttpGet("{id:int}/calendar.ics")]
+    public async Task<IActionResult> Calendar(
+        [FromServices] SessionCalendarQueryHandler calendar, int id, CancellationToken cancellationToken)
+        => File(Encoding.UTF8.GetBytes(await calendar.HandleAsync(id, _user.ToCaller(), cancellationToken)),
+            "text/calendar", $"asesoria-{id}.ics");
+
+    /// <summary>Reporte individual en PDF. Lo descargan el alumno, el asesor de la cita y dirección.</summary>
+    [HttpGet("{id:int}/report.pdf")]
+    public async Task<IActionResult> Report(
+        [FromServices] SessionReportQueryHandler report, [FromServices] IReportRenderer pdf,
+        int id, CancellationToken cancellationToken)
+        => this.Pdf(pdf.Session(await report.HandleAsync(id, _user.ToCaller(), cancellationToken)), $"asesoria-{id}");
 }

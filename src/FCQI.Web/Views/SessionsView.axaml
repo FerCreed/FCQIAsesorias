@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:models="using:FCQI.Web.Models"
+             xmlns:views="using:FCQI.Web.Views"
+             x:Class="FCQI.Web.Views.SessionsView"
+             x:DataType="vm:SessionsViewModel">
+    <!--
+        Calendario y filtros a un lado (abajo en el teléfono). Al elegir una
+        asesoría, sus acciones se abren dentro de la misma tarjeta.
+    -->
+    <StackPanel Classes="page">
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h1" Text="{Binding Title}" AutomationProperties.HeadingLevel="1" />
+            <Button Grid.Column="1" Classes="quiet" Command="{Binding RefreshCommand}" VerticalAlignment="Top">
+                <views:IconText Icon="{StaticResource Icon.ArrowSync}" Text="Actualizar" />
+            </Button>
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <ToggleButton Classes="chip" Content="Próximas" IsChecked="{Binding !ShowHistory}" Command="{Binding ShowScopeCommand}" CommandParameter="upcoming" />
+            <ToggleButton Classes="chip" Content="Historial" IsChecked="{Binding ShowHistory}" Command="{Binding ShowScopeCommand}" CommandParameter="history" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="label" Text="{Binding ResultText}" />
+                <TextBlock Classes="muted" Text="Cargando…" IsVisible="{Binding IsBusy}" />
+                <Border Classes="card" IsVisible="{Binding IsEmpty}">
+                    <TextBlock Classes="muted" Text="No hay asesorías aquí. Busca un asesor para solicitar una, o limpia los filtros." />
+                </Border>
+
+                <ListBox Classes="picker" ItemsSource="{Binding Sessions}" SelectedItem="{Binding Selected}" AutomationProperties.Name="Asesorías">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:SessionItem">
+                            <Border Classes="pick">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding SubjectName}" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource BrushGreenDark}" />
+                                        <Border Grid.Column="1" Classes="badge" Margin="8,0,0,0" VerticalAlignment="Top">
+                                            <TextBlock Text="{Binding Status}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource BrushGreenDark}" />
+                                        </Border>
+                                    </Grid>
+                                    <views:IconText Icon="{StaticResource Icon.Calendar}" Text="{Binding When}" HorizontalAlignment="Left" />
+                                    <views:IconText Icon="{StaticResource Icon.People}" Text="{Binding People}" HorizontalAlignment="Left" TextElement.Foreground="{StaticResource BrushMuted}" />
+                                    <TextBlock Classes="muted">
+                                        <Run Text="{Binding Modality}" /><Run Text=", " /><Run Text="{Binding Location}" />
+                                    </TextBlock>
+                                    <TextBlock Classes="muted" Text="{Binding Topic, StringFormat='Tema: {0}'}" />
+
+                                    <!-- Acciones: solo en la tarjeta elegida -->
+                                    <StackPanel Spacing="10" Margin="0,6,0,0"
+                                                IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
+                                                DataContext="{Binding $parent[UserControl].DataContext}"
+                                                x:DataType="vm:SessionsViewModel">
+                                        <WrapPanel ItemSpacing="8" LineSpacing="8">
+                                            <Button Classes="primary" Command="{Binding ConfirmCommand}" IsVisible="{Binding CanConfirm}">
+                                                <views:IconText Icon="{StaticResource Icon.Checkmark}" Text="Confirmar" />
+                                            </Button>
+                                            <Button Classes="danger" Command="{Binding RejectCommand}" IsVisible="{Binding CanConfirm}">
+                                                <views:IconText Icon="{StaticResource Icon.Dismiss}" Text="Rechazar" />
+                                            </Button>
+                                            <Button Classes="primary" Command="{Binding StartLogCommand}" IsVisible="{Binding CanLog}">
+                                                <views:IconText Icon="{StaticResource Icon.Notepad}" Text="Registrar bitácora" />
+                                            </Button>
+                                            <Button Classes="quiet" Command="{Binding StartRescheduleCommand}" IsVisible="{Binding CanReschedule}">
+                                                <views:IconText Icon="{StaticResource Icon.ArrowSync}" Text="Reprogramar" />
+                                            </Button>
+                                            <Button Classes="primary" Command="{Binding OpenMeetingCommand}"
+                                                    IsVisible="{Binding Selected.HasMeetingLink, FallbackValue=False}">
+                                                <views:IconText Icon="{StaticResource Icon.Video}" Text="Unirme a la reunión" />
+                                            </Button>
+                                            <Button Classes="quiet" Command="{Binding AddToCalendarCommand}" IsVisible="{Binding CanCancel}">
+                                                <views:IconText Icon="{StaticResource Icon.CalendarAdd}" Text="Agregar a mi calendario" />
+                                            </Button>
+                                            <Button Classes="quiet" Command="{Binding DownloadReportCommand}">
+                                                <views:IconText Icon="{StaticResource Icon.Pdf}" Text="Reporte PDF" />
+                                            </Button>
+                                            <Button Classes="danger" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}">
+                                                <views:IconText Icon="{StaticResource Icon.CalendarCancel}" Text="Cancelar asesoría" />
+                                            </Button>
+                                        </WrapPanel>
+                                        <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding CanReschedule}"
+                                                   Text="Puedes cancelar o reprogramar hasta 24 horas antes de la cita." />
+
+                                        <!-- Reprogramar -->
+                                        <StackPanel Spacing="8" IsVisible="{Binding IsRescheduling}">
+                                            <TextBlock Classes="label" Text="Nuevo horario con el mismo asesor" />
+                                            <ComboBox ItemsSource="{Binding RescheduleSlots}" SelectedItem="{Binding RescheduleSlot}"
+                                                      PlaceholderText="Elige un horario" AutomationProperties.Name="Nuevo horario">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:AvailabilityItem">
+                                                        <TextBlock>
+                                                            <Run Text="{Binding DayName}" /> <Run Text="{Binding TimeRange}" /><Run Text=", " /><Run Text="{Binding Where}" />
+                                                        </TextBlock>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock Classes="label" Text="Nueva fecha" />
+                                            <CalendarDatePicker SelectedDate="{Binding RescheduleDate}" SelectedDateFormat="Long"
+                                                                DisplayDateStart="{x:Static vm:SessionsViewModel.Tomorrow}"
+                                                                DisplayDateEnd="{x:Static vm:SessionsViewModel.Horizon}"
+                                                                views:CalendarRules.EnabledDates="{Binding RescheduleDates}"
+                                                                AutomationProperties.Name="Nueva fecha" />
+                                            <Button Classes="primary" Command="{Binding RescheduleCommand}" HorizontalAlignment="Left">
+                                                <views:IconText Icon="{StaticResource Icon.ArrowSync}" Text="Reprogramar asesoría" />
+                                            </Button>
+                                        </StackPanel>
+
+                                        <!-- Bitácora -->
+                                        <StackPanel Spacing="8" IsVisible="{Binding IsLogging}">
+                                            <CheckBox Content="El alumno asistió" IsChecked="{Binding Attended}" />
+                                            <TextBox Text="{Binding Notes}" AcceptsReturn="True" MinHeight="90" TextWrapping="Wrap" MaxLength="2000"
+                                                     Watermark="Avance del estudiante, temas vistos, pendientes" AutomationProperties.Name="Notas de bitácora" />
+                                            <Button Classes="primary" Command="{Binding SaveLogCommand}" HorizontalAlignment="Left">
+                                                <views:IconText Icon="{StaticResource Icon.Checkmark}" Text="Guardar bitácora" />
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+
+            <!-- Calendario y filtros -->
+            <Border Classes="card side" VerticalAlignment="Top" Padding="12">
+                <StackPanel Spacing="10">
+                    <views:IconText Icon="{StaticResource Icon.Filter}" Text="Filtrar" HorizontalAlignment="Left"
+                                    TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource BrushGreenDark}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="Toca un día con asesorías:" />
+                    <Calendar SelectedDate="{Binding Day}" SelectionMode="SingleDate" HorizontalAlignment="Center"
+                              DisplayDateStart="{Binding CalendarStart}" DisplayDateEnd="{Binding CalendarEnd}"
+                              views:CalendarRules.EnabledDates="{Binding SessionDays}"
+                              AutomationProperties.Name="Calendario de asesorías" />
+                    <Label Content="Estado" />
+                    <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding StatusFilter}" AutomationProperties.Name="Estado" />
+                    <Button Classes="quiet" HorizontalAlignment="Stretch" Command="{Binding ClearFiltersCommand}">
+                        <views:IconText Icon="{StaticResource Icon.Dismiss}" Text="Ver todas" />
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </StackPanel>
+</UserControl>

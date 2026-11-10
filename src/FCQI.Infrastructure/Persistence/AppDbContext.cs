@@ -1,6 +1,7 @@
 using FCQI.Application.Interfaces;
 using FCQI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FCQI.Infrastructure.Persistence;
 
@@ -32,6 +33,11 @@ public class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<AdvisorSubject> AdvisorSubjects => Set<AdvisorSubject>();
     public DbSet<Availability> Availabilities => Set<Availability>();
     public DbSet<AdvisorySession> AdvisorySessions => Set<AdvisorySession>();
+    public DbSet<SessionLog> SessionLogs => Set<SessionLog>();
+    public DbSet<SessionStatusChange> SessionStatusChanges => Set<SessionStatusChange>();
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+        => Database.BeginTransactionAsync(cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

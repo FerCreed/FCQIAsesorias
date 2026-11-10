@@ -14,7 +14,7 @@ namespace FCQI.UnitTests.Admin;
 /// </summary>
 public class AdvisorSubjectsTests
 {
-    private const int Tutor = 1;
+    private const int Asesor = 1;
     private const short Ciclo = 1;
 
     [Fact]
@@ -22,8 +22,8 @@ public class AdvisorSubjectsTests
     {
         await using var db = await SeedAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Handler(db).HandleAsync(Tutor, [1, 9999]));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
+            () => Handler(db).HandleAsync(Asesor, [1, 9999]));
 
         Assert.Contains("9999", ex.Message);
         // Nada se guardó: la comprobación va antes de tocar la base.
@@ -35,18 +35,18 @@ public class AdvisorSubjectsTests
     {
         await using var db = await SeedAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Handler(db).HandleAsync(Tutor, [3]));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
+            () => Handler(db).HandleAsync(Asesor, [3]));
 
         Assert.Contains("baja", ex.Message);
     }
 
     [Fact]
-    public async Task TutorInexistente_SeRechaza()
+    public async Task AsesorInexistente_SeRechaza()
     {
         await using var db = await SeedAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => Handler(db).HandleAsync(404, [1]));
     }
 
@@ -55,19 +55,19 @@ public class AdvisorSubjectsTests
     {
         await using var db = await SeedAsync();
 
-        await Handler(db).HandleAsync(Tutor, [1, 2]);
+        await Handler(db).HandleAsync(Asesor, [1, 2]);
 
         var guardadas = await db.AdvisorSubjects.Select(x => x.SubjectId).OrderBy(x => x).ToListAsync();
         Assert.Equal([1, 2], guardadas);
     }
 
     [Fact]
-    public async Task ListaVacia_DejaAlTutorSinMaterias()
+    public async Task ListaVacia_DejaAlAsesorSinMaterias()
     {
         await using var db = await SeedAsync();
-        await Handler(db).HandleAsync(Tutor, [1, 2]);
+        await Handler(db).HandleAsync(Asesor, [1, 2]);
 
-        await Handler(db).HandleAsync(Tutor, []);
+        await Handler(db).HandleAsync(Asesor, []);
 
         Assert.Empty(db.AdvisorSubjects);
     }
@@ -88,7 +88,7 @@ public class AdvisorSubjectsTests
         });
         db.Programs.Add(new AcademicProgram { Id = 1, Code = "IQ", Name = "Ingeniería Química" });
         db.Modalities.Add(new Modality { Id = 1, Code = "IN_PERSON", Name = "Presencial" });
-        db.AdvisorProfiles.Add(new AdvisorProfile { PersonId = Tutor, ProgramId = 1, DefaultModalityId = 1, IsActive = true });
+        db.AdvisorProfiles.Add(new AdvisorProfile { PersonId = Asesor, ProgramId = 1, DefaultModalityId = 1, IsActive = true });
         db.Subjects.AddRange(
             new Subject { Id = 1, Code = "CALCULO-DIFERENCIAL", Name = "Cálculo Diferencial", IsActive = true },
             new Subject { Id = 2, Code = "ALGEBRA-LINEAL", Name = "Álgebra Lineal", IsActive = true },

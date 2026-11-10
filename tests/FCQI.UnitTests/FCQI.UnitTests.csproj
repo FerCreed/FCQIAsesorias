@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\FCQI.Domain\FCQI.Domain.csproj" />
     <ProjectReference Include="..\..\src\FCQI.Application\FCQI.Application.csproj" />
     <ProjectReference Include="..\..\src\FCQI.Infrastructure\FCQI.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\FCQI.Web\FCQI.Web.csproj" />
   </ItemGroup>
 
 </Project>

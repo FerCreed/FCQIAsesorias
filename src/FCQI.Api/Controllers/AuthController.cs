@@ -37,16 +37,26 @@ public class AuthController : ControllerBase
         => Ok(new
         {
             googleClientId = _configuration["Authentication:Google:ClientId"] ?? "",
-            googleConfigured = !string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"])
+            googleConfigured = !string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"]),
+            passwordlessLogin = DemoLoginEnabled
         });
 
     /// <summary>
-    /// El selector de perfiles expone el directorio de personas del programa,
-    /// así que solo existe mientras no haya OAuth configurado. En cuanto se
-    /// define un ClientId de Google, estos dos endpoints desaparecen.
+    /// Acceso sin contraseña: /login no verifica la contraseña (aún no hay
+    /// directorio UABC) y /demo ni la pide, así que cualquiera que conozca un
+    /// correo entraría como esa persona. Solo se permite mientras no haya
+    /// Google configurado. Activo por omisión (fase de pruebas); se apaga con
+    /// Authentication:PasswordlessLogin=false (FCQI_PASSWORDLESS_LOGIN en .env).
     /// </summary>
     private bool DemoLoginEnabled
-        => string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"]);
+        => string.IsNullOrWhiteSpace(_configuration["Authentication:Google:ClientId"])
+           && _configuration.GetValue("Authentication:PasswordlessLogin", true);
+
+    private ObjectResult PasswordlessDisabled()
+        => StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            message = "El acceso sin contraseña está desactivado en este servidor. Entra con tu cuenta de Google @uabc.edu.mx."
+        });
 
     [HttpGet("demo-profiles")]
     public async Task<ActionResult<IEnumerable<DemoProfileDto>>> DemoProfiles(CancellationToken cancellationToken)
@@ -62,6 +72,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResult>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
+        if (!DemoLoginEnabled)
+        {
+            return PasswordlessDisabled();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Password))
         {
             return BadRequest(new { message = "Ingresa una contraseña." });
@@ -75,7 +90,7 @@ public class AuthController : ControllerBase
     {
         if (!DemoLoginEnabled)
         {
-            return NotFound();
+            return PasswordlessDisabled();
         }
 
         return await SignInAsync(request.Email, cancellationToken);
@@ -83,44 +98,28 @@ public class AuthController : ControllerBase
 
     private async Task<ActionResult<AuthResult>> SignInAsync(string email, CancellationToken cancellationToken)
     {
-        try
+        var resolved = await _profiles.ResolveAsync(email, "pending", cancellationToken);
+        if (resolved is null)
         {
-            var resolved = await _profiles.ResolveAsync(email, "pending", cancellationToken);
-            if (resolved is null)
-            {
-                return Unauthorized(new { message = "El correo UABC no está dado de alta en el programa de asesorías." });
-            }
+            return Unauthorized(new { message = "El correo UABC no está dado de alta en el programa de asesorías." });
+        }
 
-            var token = _jwt.Create(resolved);
-            return Ok(resolved with { Token = token });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(resolved with { Token = _jwt.Create(resolved) });
     }
 
     [HttpPost("google")]
     public async Task<ActionResult<AuthResult>> Google([FromBody] GoogleLoginRequest request, CancellationToken cancellationToken)
     {
-        try
+        var googleUser = await _google.ValidateAsync(request.IdToken, cancellationToken);
+        var resolved = await _profiles.ResolveAsync(googleUser.Email, "pending", cancellationToken);
+        if (resolved is null)
         {
-            var googleUser = await _google.ValidateAsync(request.IdToken, cancellationToken);
-            var resolved = await _profiles.ResolveAsync(googleUser.Email, "pending", cancellationToken);
-            if (resolved is null)
+            return Unauthorized(new
             {
-                return Unauthorized(new
-                {
-                    message = "El correo @uabc.edu.mx es válido, pero no está registrado como alumno, asesor o directivo del programa."
-                });
-            }
+                message = "El correo @uabc.edu.mx es válido, pero no está registrado como alumno, asesor o directivo del programa."
+            });
+        }
 
-            var token = _jwt.Create(resolved);
-            return Ok(resolved with { Token = token });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(resolved with { Token = _jwt.Create(resolved) });
     }
 }

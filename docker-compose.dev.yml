@@ -18,8 +18,6 @@ services:
       dockerfile: Dockerfile
       target: debug
       args:
-        # Debe coincidir con el puerto publicado más abajo.
-        API_BASE_URL: http://localhost:5080
         RUN_TESTS: "false"
         INSTALL_VSDBG: "true"
         # Ponlo en "true" si además quieres recompilar el frontend Avalonia
@@ -74,8 +72,23 @@ services:
       - /src/tests/FCQI.UnitTests/obj
       - /src/tests/FCQI.UnitTests/bin
       - fcqi-mysql-dev:/var/lib/mysql
+    # Alias "fcqi": el mismo Public Hostname (http://fcqi:80) sirve en dev y prod.
+    networks:
+      default:
+        aliases: [fcqi]
     stdin_open: true
     tty: true
+
+  # Mismo túnel que producción (token en .env): tu dominio muestra el entorno dev.
+  cloudflared-dev:
+    image: cloudflare/cloudflared:2025.10.0
+    container_name: fcqi-tunnel-dev
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - fcqi-dev
+    restart: unless-stopped
 
 volumes:
   fcqi-mysql-dev:

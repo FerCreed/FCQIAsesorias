@@ -1,3 +1,4 @@
+using FCQI.Application.Common;
 using FCQI.Application.Auth;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
@@ -17,7 +18,7 @@ public class GoogleTokenValidator : IGoogleTokenValidator
     {
         if (string.IsNullOrWhiteSpace(_clientId))
         {
-            throw new InvalidOperationException("Falta Authentication:Google:ClientId. Configúralo en User Secrets para OAuth real.");
+            throw new BusinessRuleException("Falta Authentication:Google:ClientId. Configúralo en User Secrets para OAuth real.");
         }
 
         var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings
@@ -25,10 +26,10 @@ public class GoogleTokenValidator : IGoogleTokenValidator
             Audience = [_clientId]
         });
 
-        var email = payload.Email ?? throw new InvalidOperationException("El token de Google no incluye correo.");
+        var email = payload.Email ?? throw new BusinessRuleException("El token de Google no incluye correo.");
         if (!email.EndsWith("@uabc.edu.mx", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Solo se permiten cuentas institucionales @uabc.edu.mx.");
+            throw new BusinessRuleException("Solo se permiten cuentas institucionales @uabc.edu.mx.");
         }
 
         return new GoogleUser(email, payload.Name ?? email);

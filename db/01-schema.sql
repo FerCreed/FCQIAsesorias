@@ -47,7 +47,7 @@ USE `fcqi_asesorias`;
 -- El orden no importa con las comprobaciones desactivadas.
 SET FOREIGN_KEY_CHECKS = 0;
 DROP VIEW  IF EXISTS `v_asesores`, `v_alumnos`, `v_roles_persona`, `v_ocupacion_horarios`;
-DROP TABLE IF EXISTS `historial_estados_sesion`, `asesorias`, `asesores_materias`,
+DROP TABLE IF EXISTS `bitacoras_asesoria`, `historial_estados_sesion`, `asesorias`, `asesores_materias`,
                      `horarios`, `programas_materias`, `materias`, `perfiles_directivo`,
                      `perfiles_alumno`, `perfiles_asesor`, `personas`, `lugares`,
                      `ciclos_escolares`, `programas`, `estados_sesion`, `modalidades`,
@@ -93,7 +93,9 @@ INSERT INTO `estados_sesion` (`Id`, `Codigo`, `Nombre`, `Activo`) VALUES
     (1, 'PENDING',   'Pendiente',  1),
     (2, 'CONFIRMED', 'Confirmada', 1),
     (3, 'CANCELLED', 'Cancelada',  0),
-    (4, 'REJECTED',  'Rechazada',  0);
+    (4, 'REJECTED',  'Rechazada',  0),
+    --  Impartida y con bitácora (BPMN 9). Ya no ocupa cupo: la hora pasó.
+    (5, 'COMPLETED', 'Realizada',  0);
 
 
 --  Programas educativos. En v1 esto era advisors.Area: texto libre repetido
@@ -356,6 +358,8 @@ CREATE TABLE `asesorias` (
     `NumeroLugar`   smallint unsigned NOT NULL DEFAULT 1,
     `EstadoId`      tinyint unsigned NOT NULL DEFAULT 1,
     `Tema`          varchar(500) NOT NULL,
+    --  Enlace de la reunión virtual; se llena al confirmar (BPMN 10).
+    `EnlaceReunion` varchar(300) NULL,
     `CreadoEn`      datetime(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `ActualizadoEn` datetime(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
                                           ON UPDATE CURRENT_TIMESTAMP(6),
@@ -436,6 +440,24 @@ CREATE TABLE `historial_estados_sesion` (
         FOREIGN KEY (`EstadoNuevoId`) REFERENCES `estados_sesion` (`Id`) ON DELETE RESTRICT,
     CONSTRAINT `FK_historial_personas`
         FOREIGN KEY (`CambiadoPor`) REFERENCES `personas` (`Id`) ON DELETE SET NULL
+) ENGINE = InnoDB;
+
+
+--  Bitácora de la asesoría impartida (BPMN 9): pase de lista y notas de
+--  avance. Una por asesoría, por eso la llave primaria es la propia asesoría.
+--  Los reportes de horas (BPMN 6) solo cuentan las que tienen Asistio = 1.
+CREATE TABLE `bitacoras_asesoria` (
+    `AsesoriaId`    bigint unsigned NOT NULL,
+    `Asistio`       tinyint(1)    NOT NULL,
+    `Notas`         varchar(2000) NULL,
+    `RegistradoPor` int unsigned  NOT NULL,
+    `RegistradoEn`  datetime(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`AsesoriaId`),
+    KEY `IX_bitacoras_RegistradoPor` (`RegistradoPor`),
+    CONSTRAINT `FK_bitacoras_asesorias`
+        FOREIGN KEY (`AsesoriaId`) REFERENCES `asesorias` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_bitacoras_personas`
+        FOREIGN KEY (`RegistradoPor`) REFERENCES `personas` (`Id`) ON DELETE RESTRICT
 ) ENGINE = InnoDB;
 
 

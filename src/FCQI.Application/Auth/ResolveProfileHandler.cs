@@ -1,3 +1,4 @@
+using FCQI.Application.Common;
 using FCQI.Application.Interfaces;
 using FCQI.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,7 @@ public class ResolveProfileHandler
         email = email.Trim().ToLowerInvariant();
         if (!email.EndsWith("@uabc.edu.mx", StringComparison.OrdinalIgnoreCase) || email.Length < 14)
         {
-            throw new InvalidOperationException("Solo se permiten cuentas institucionales @uabc.edu.mx.");
+            throw new BusinessRuleException("Solo se permiten cuentas institucionales @uabc.edu.mx.");
         }
 
         var person = await _context.People.AsNoTracking()

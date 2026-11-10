@@ -30,7 +30,7 @@ public class PeerAdvisorTests
     private static Caller ComoAsesorPar() => new(Par, false, true, true);
 
     [Fact]
-    public async Task AsesorPar_PuedeAgendarComoAlumno_ConOtroTutor()
+    public async Task AsesorPar_PuedeAgendarComoAlumno_ConOtroAsesor()
     {
         await using var db = await SeedAsync();
 
@@ -49,7 +49,7 @@ public class PeerAdvisorTests
     {
         await using var db = await SeedAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => Create(db).HandleAsync(
                 Solicitud(advisorId: Par, subjectId: MateriaDelPar, availabilityId: BloqueDelPar),
                 ComoAsesorPar()));
@@ -88,7 +88,7 @@ public class PeerAdvisorTests
     public async Task AsesorPar_ConfirmaLoQueAsesora_PeroSoloCancelaLoQueCursa()
     {
         await using var db = await SeedAsync();
-        var handler = new UpdateSessionStatusCommandHandler(db);
+        var handler = TestServices.UpdateStatus(db);
 
         // Sesión 2: él es el asesor. Puede confirmarla.
         await handler.HandleAsync(2, SessionStatuses.Confirmed, ComoAsesorPar());
@@ -108,7 +108,7 @@ public class PeerAdvisorTests
                AvailabilityId: availabilityId, ScheduledAt: Cita(), Topic: "Prueba");
 
     private static CreateSessionCommandHandler Create(AppDbContext db)
-        => new(db, new CurrentTerm(db), new CampusClock());
+        => TestServices.Create(db);
 
     /// <summary>
     /// Fecha de la cita: dentro de tres días a las 12:00, hora del campus. Se

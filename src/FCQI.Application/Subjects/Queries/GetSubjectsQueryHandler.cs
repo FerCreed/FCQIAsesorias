@@ -27,8 +27,11 @@ public class GetSubjectsQueryHandler
         return await _context.Subjects
             .AsNoTracking()
             .Where(s => s.IsActive)
-            .OrderBy(s => s.Code)
-            .Select(s => new SubjectDto(s.Id, s.Code, s.Name, program))
+            .OrderBy(s => s.Name)
+            .Select(s => new SubjectDto(
+                s.Id, s.Code, s.Name, program,
+                s.ProgramSubjects.Select(p => p.Program.Name).OrderBy(n => n).ToList(),
+                s.AdvisorSubjects.Count(a => a.TermId == term.Id && a.Advisor.IsActive)))
             .ToListAsync(cancellationToken);
     }
 }

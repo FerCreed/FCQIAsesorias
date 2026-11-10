@@ -94,6 +94,7 @@ public class AdvisorySessionConfiguration : IEntityTypeConfiguration<AdvisorySes
         builder.Property(s => s.SeatNumber).HasColumnName("NumeroLugar");
         builder.Property(s => s.StatusId).HasColumnName("EstadoId");
         builder.Property(s => s.Topic).HasColumnName("Tema").HasMaxLength(500).IsRequired();
+        builder.Property(s => s.MeetingLink).HasColumnName("EnlaceReunion").HasMaxLength(300);
         builder.Property(s => s.CreatedAt).HasColumnName("CreadoEn").ValueGeneratedOnAdd();
         builder.Property(s => s.UpdatedAt).HasColumnName("ActualizadoEn").ValueGeneratedOnAddOrUpdate();
 
@@ -139,5 +140,46 @@ public class AdvisorySessionConfiguration : IEntityTypeConfiguration<AdvisorySes
             .WithMany()
             .HasForeignKey(s => s.SubjectId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SessionLogConfiguration : IEntityTypeConfiguration<SessionLog>
+{
+    public void Configure(EntityTypeBuilder<SessionLog> builder)
+    {
+        builder.ToTable("bitacoras_asesoria");
+        builder.HasKey(l => l.SessionId);
+
+        builder.Property(l => l.SessionId).HasColumnName("AsesoriaId");
+        builder.Property(l => l.Attended).HasColumnName("Asistio");
+        builder.Property(l => l.Notes).HasColumnName("Notas").HasMaxLength(2000);
+        builder.Property(l => l.RecordedBy).HasColumnName("RegistradoPor");
+        builder.Property(l => l.RecordedAt).HasColumnName("RegistradoEn");
+
+        builder.HasOne(l => l.Session)
+            .WithOne(s => s.Log)
+            .HasForeignKey<SessionLog>(l => l.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>Solo lectura: las filas las insertan los triggers de asesorias.</summary>
+public class SessionStatusChangeConfiguration : IEntityTypeConfiguration<SessionStatusChange>
+{
+    public void Configure(EntityTypeBuilder<SessionStatusChange> builder)
+    {
+        builder.ToTable("historial_estados_sesion");
+        builder.HasKey(h => h.Id);
+
+        builder.Property(h => h.SessionId).HasColumnName("AsesoriaId");
+        builder.Property(h => h.FromStatusId).HasColumnName("EstadoAnteriorId");
+        builder.Property(h => h.ToStatusId).HasColumnName("EstadoNuevoId");
+        builder.Property(h => h.ChangedBy).HasColumnName("CambiadoPor");
+        builder.Property(h => h.ChangedAt).HasColumnName("CambiadoEn").ValueGeneratedOnAdd();
+        builder.Property(h => h.Reason).HasColumnName("Motivo").HasMaxLength(500);
+
+        builder.HasOne(h => h.Session).WithMany(s => s.History).HasForeignKey(h => h.SessionId);
+        builder.HasOne(h => h.FromStatus).WithMany().HasForeignKey(h => h.FromStatusId);
+        builder.HasOne(h => h.ToStatus).WithMany().HasForeignKey(h => h.ToStatusId);
     }
 }

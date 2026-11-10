@@ -1,6 +1,8 @@
 using FCQI.Application.Common;
 using FCQI.Application.Interfaces;
 using FCQI.Application.Sessions.Dtos;
+using FCQI.Application.Sessions.Events;
+using FCQI.Application.Sessions.Queries;
 using FCQI.Domain;
 using FCQI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +14,15 @@ public class CreateSessionCommandHandler
     private readonly IApplicationDbContext _context;
     private readonly CurrentTerm _term;
     private readonly IClock _clock;
+    private readonly SessionEventPublisher _events;
 
-    public CreateSessionCommandHandler(IApplicationDbContext context, CurrentTerm term, IClock clock)
+    public CreateSessionCommandHandler(
+        IApplicationDbContext context, CurrentTerm term, IClock clock, SessionEventPublisher events)
     {
         _context = context;
         _term = term;
         _clock = clock;
+        _events = events;
     }
 
     public async Task<SessionDto> HandleAsync(
@@ -49,7 +54,7 @@ public class CreateSessionCommandHandler
             .AnyAsync(s => s.PersonId == studentId && s.IsActive, cancellationToken);
         if (!studentExists)
         {
-            throw new InvalidOperationException("El alumno no está dado de alta en el programa.");
+            throw new BusinessRuleException("El alumno no está dado de alta en el programa.");
         }
 
         // Los asesores pares son alumnos que asesoran, así que una misma
@@ -58,22 +63,22 @@ public class CreateSessionCommandHandler
         // asesor par podía ocupar su propio bloque de horario como alumno.
         if (studentId == request.AdvisorId)
         {
-            throw new InvalidOperationException("No puedes agendar una asesoría contigo mismo.");
+            throw new BusinessRuleException("No puedes agendar una asesoría contigo mismo.");
         }
 
         var slot = await _context.Availabilities
                        .AsNoTracking()
                        .SingleOrDefaultAsync(a => a.Id == request.AvailabilityId, cancellationToken)
-                   ?? throw new InvalidOperationException("El horario no existe.");
+                   ?? throw new BusinessRuleException("El horario no existe.");
 
         if (!slot.IsActive)
         {
-            throw new InvalidOperationException("Ese horario ya no está disponible.");
+            throw new BusinessRuleException("Ese horario ya no está disponible.");
         }
 
         if (slot.TermId != termId)
         {
-            throw new InvalidOperationException("Ese horario pertenece a un ciclo escolar anterior.");
+            throw new BusinessRuleException("Ese horario pertenece a un ciclo escolar anterior.");
         }
 
         // La base ya impide que el asesor no sea el dueño del bloque, mediante
@@ -81,7 +86,7 @@ public class CreateSessionCommandHandler
         // un mensaje claro en vez de un error de restricción.
         if (slot.AdvisorId != request.AdvisorId)
         {
-            throw new InvalidOperationException("El horario no pertenece a ese tutor.");
+            throw new BusinessRuleException("El horario no pertenece a ese asesor.");
         }
 
         var teaches = await _context.AdvisorSubjects.AnyAsync(
@@ -90,7 +95,7 @@ public class CreateSessionCommandHandler
                  && x.SubjectId == request.SubjectId, cancellationToken);
         if (!teaches)
         {
-            throw new InvalidOperationException("El directivo no ha asignado esta materia a ese tutor.");
+            throw new BusinessRuleException("El directivo no ha asignado esta materia a ese asesor.");
         }
 
         // La fecha llega en hora local del campus. Debe caer en el día y la
@@ -101,13 +106,13 @@ public class CreateSessionCommandHandler
 
         if (local.DayOfWeek != slot.DayOfWeek)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"La fecha elegida es {DayName(local.DayOfWeek)} y ese horario es de {DayName(slot.DayOfWeek)}.");
         }
 
         if (TimeOnly.FromDateTime(local) != slot.StartTime)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Ese horario empieza a las {slot.StartTime:HH\\:mm}.");
         }
 
@@ -115,7 +120,7 @@ public class CreateSessionCommandHandler
 
         if (scheduledUtc <= _clock.UtcNow)
         {
-            throw new InvalidOperationException("No se puede agendar una asesoría en el pasado.");
+            throw new BusinessRuleException("No se puede agendar una asesoría en el pasado.");
         }
 
         // ciclos_escolares define la ventana del ciclo. Sin esta comprobación se
@@ -123,7 +128,7 @@ public class CreateSessionCommandHandler
         var day = DateOnly.FromDateTime(local);
         if (day < term.StartsOn || day > term.EndsOn)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"La fecha está fuera del ciclo {term.Code}, que va del " +
                 $"{term.StartsOn:dd/MM/yyyy} al {term.EndsOn:dd/MM/yyyy}.");
         }
@@ -143,12 +148,12 @@ public class CreateSessionCommandHandler
                  && s.ActiveAt == scheduledUtc, cancellationToken);
         if (mine)
         {
-            throw new InvalidOperationException("Ya tienes una solicitud activa en ese horario.");
+            throw new BusinessRuleException("Ya tienes una solicitud activa en ese horario.");
         }
 
         if (taken.Count >= slot.MaxCapacity)
         {
-            throw new InvalidOperationException("Ese horario ya está lleno.");
+            throw new BusinessRuleException("Ese horario ya está lleno.");
         }
 
         var seat = Enumerable.Range(1, slot.MaxCapacity).First(n => !taken.Contains(n));
@@ -178,12 +183,18 @@ public class CreateSessionCommandHandler
             // cupo y el INSERT se coló otra solicitud, y los índices únicos de
             // la base tuvieron la última palabra. Pero no es la única causa
             // posible, así que el mensaje no la afirma como si lo fuera.
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "No se pudo registrar la asesoría; es posible que ese lugar " +
                 "acabe de ocuparse. Vuelve a intentarlo.", ex);
         }
 
-        return await MapAsync(session.Id, cancellationToken);
+        // BPMN 8: el asesor recibe aviso de la nueva solicitud.
+        await _events.PublishAsync(new SessionChanged(session.Id, null, session.StatusId, caller.PersonId), cancellationToken);
+
+        var created = await _context.AdvisorySessions.AsNoTracking()
+            .Where(x => x.Id == session.Id)
+            .ToDtosAsync(_clock, cancellationToken);
+        return created.Single();
     }
 
     private static string DayName(DayOfWeek day) => day switch
@@ -196,35 +207,4 @@ public class CreateSessionCommandHandler
         DayOfWeek.Friday => "viernes",
         _ => "sábado"
     };
-
-    private async Task<SessionDto> MapAsync(long id, CancellationToken cancellationToken)
-    {
-        var s = await _context.AdvisorySessions
-            .AsNoTracking()
-            .Where(x => x.Id == id)
-            .Select(x => new
-            {
-                x.Id,
-                x.StudentId,
-                StudentName = x.Student.Person.DisplayName,
-                x.AdvisorId,
-                AdvisorName = x.Advisor.Person.DisplayName,
-                x.SubjectId,
-                SubjectName = x.Subject.Name,
-                x.AvailabilityId,
-                x.ScheduledAt,
-                x.Topic,
-                Status = x.Status.Name
-            })
-            .SingleAsync(cancellationToken);
-
-        return new SessionDto(
-            (int)s.Id, s.StudentId, s.StudentName,
-            s.AdvisorId, s.AdvisorName,
-            s.SubjectId, s.SubjectName,
-            s.AvailabilityId,
-            _clock.ToLocal(s.ScheduledAt),
-            DateTime.SpecifyKind(s.ScheduledAt, DateTimeKind.Utc),
-            s.Topic, s.Status);
-    }
 }

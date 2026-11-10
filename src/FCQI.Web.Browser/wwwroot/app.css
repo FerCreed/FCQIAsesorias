@@ -3,13 +3,16 @@ html, body {
     height: 100%;
     overflow: hidden;
     overscroll-behavior: none;
-    font-family: "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+    font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif;
     background: #024731;
 }
 
+/* Avalonia dibuja en un canvas: el área segura se reserva aquí, alrededor. */
 #out {
+    box-sizing: border-box;
     height: 100%;
     width: 100%;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .avalonia-splash {
@@ -19,5 +22,4 @@ html, body {
     justify-content: center;
     color: #FEBE10;
     background: #024731;
-    letter-spacing: 0.08em;
 }

@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Sistema de Asesorías FCQI</title>
+    <title>Asesorías FCQI</title>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover + env(safe-area-inset-*) en app.css: respeta la
+         muesca y la barra de gestos de los teléfonos en vertical. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#024731" />
+    <meta name="description" content="Solicita asesorías académicas de la FCQI, UABC." />
     <base href="/" />
-    <link rel="modulepreload" href="./main.js" />
-    <link rel="modulepreload" href="./_framework/dotnet.js" />
+    <!-- El marcador de versión (?v=) lo reemplaza la imagen Docker por un número distinto en cada
+         construcción: así ningún navegador ni Cloudflare reutiliza la app vieja. -->
+    <link rel="modulepreload" href="./main.js?v=__BUILD__" />
     <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
     <div id="out">
-        <div class="avalonia-splash">Cargando Avalonia WASM…</div>
+        <div class="avalonia-splash">Cargando asesorías…</div>
     </div>
-    <script type="module" src="./main.js"></script>
+    <script type="module" src="./main.js?v=__BUILD__"></script>
 </body>
 </html>

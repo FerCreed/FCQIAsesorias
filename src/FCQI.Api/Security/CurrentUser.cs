@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FCQI.Application.Common;
 using FCQI.Domain;
 
 namespace FCQI.Api.Security;
@@ -32,4 +33,7 @@ public class CurrentUser
     public bool IsAdmin => _principal.IsInRole(UserRoles.Admin);
     public bool IsAdvisor => _principal.IsInRole(UserRoles.Advisor);
     public bool IsStudent => _principal.IsInRole(UserRoles.Student);
+
+    /// <summary>La identidad en el formato que entienden los casos de uso.</summary>
+    public Caller ToCaller() => new(PersonId, IsAdmin, IsAdvisor, IsStudent);
 }

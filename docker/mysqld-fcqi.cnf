@@ -1,0 +1,32 @@
+# Configuración de MySQL para el contenedor del Sistema de Asesorías FCQI.
+#
+# /etc/mysql/my.cnf incluye DOS directorios, en este orden:
+#     !includedir /etc/mysql/conf.d/
+#     !includedir /etc/mysql/mysql.conf.d/
+# El paquete de Ubuntu (arm64) deja su propio mysqld.cnf en el segundo, así que
+# este archivo se copia a AMBOS con un nombre que ordena al final ("zz-"),
+# garantizando que gana sin importar el origen del paquete.
+[mysqld]
+user                    = mysql
+datadir                 = /var/lib/mysql
+socket                  = /var/run/mysqld/mysqld.sock
+pid-file                = /var/run/mysqld/mysqld.pid
+port                    = 3306
+
+# Los errores van a stderr para que aparezcan en `docker logs`.
+log-error               = stderr
+
+# El plugin X (puerto 33060) no se usa en este proyecto.
+mysqlx                  = 0
+skip-name-resolve
+
+# EF Core / Pomelo generan el esquema con utf8mb4 (ver la migración InitialCreate).
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_0900_ai_ci
+
+max_connections         = 100
+innodb_flush_method     = O_DIRECT
+
+[client]
+socket                  = /var/run/mysqld/mysqld.sock
+default-character-set   = utf8mb4

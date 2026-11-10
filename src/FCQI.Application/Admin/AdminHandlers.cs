@@ -32,15 +32,18 @@ public class GetAdminAdvisorsQueryHandler
                 a.Person.Email,
                 a.Program.Name,
                 a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive
-                    ? TutorKinds.Student
-                    : TutorKinds.Professor,
+                    ? AdvisorKinds.Student
+                    : AdvisorKinds.Professor,
                 a.DefaultModality.Name,
                 a.IsActive,
                 a.AdvisorSubjects
                     .Where(x => x.TermId == termId)
                     .Select(x => x.Subject.Name)
                     .OrderBy(n => n)
-                    .ToList()))
+                    .ToList(),
+                a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive,
+                null,
+                0))
             .ToListAsync(cancellationToken);
     }
 }
@@ -64,7 +67,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             .AnyAsync(a => a.PersonId == advisorId, cancellationToken);
         if (!exists)
         {
-            throw new InvalidOperationException("El tutor no existe.");
+            throw new BusinessRuleException("El asesor no existe.");
         }
 
         var wanted = subjectIds.Distinct().ToHashSet();
@@ -84,7 +87,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             var unknown = wanted.Except(valid).ToList();
             if (unknown.Count > 0)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Hay materias que no existen o están dadas de baja: "
                     + string.Join(", ", unknown.OrderBy(id => id)) + ".");
             }
@@ -115,7 +118,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
 
             if (inUse.Count > 0)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "No se pueden quitar materias con asesorías registradas en este ciclo: "
                     + string.Join(", ", inUse.OrderBy(n => n)) + ".");
             }

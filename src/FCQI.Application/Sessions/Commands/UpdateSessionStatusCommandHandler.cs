@@ -1,26 +1,44 @@
 using FCQI.Application.Common;
 using FCQI.Application.Interfaces;
+using FCQI.Application.Sessions.Events;
 using FCQI.Domain;
+using FCQI.Domain.Entities;
+using FCQI.Domain.Sessions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Sessions.Commands;
 
+/// <summary>
+/// Confirmar, rechazar o cancelar una asesoría (BPMN 11, 12 y 18). Qué
+/// transición es válida y quién puede hacerla lo decide <see cref="SessionState"/>;
+/// aquí solo se orquesta: cargar, validar, guardar y avisar.
+/// </summary>
 public class UpdateSessionStatusCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly IClock _clock;
+    private readonly SessionPolicy _policy;
+    private readonly SessionEventPublisher _events;
 
-    public UpdateSessionStatusCommandHandler(IApplicationDbContext context) => _context = context;
+    public UpdateSessionStatusCommandHandler(
+        IApplicationDbContext context, IClock clock, SessionPolicy policy, SessionEventPublisher events)
+    {
+        _context = context;
+        _clock = clock;
+        _policy = policy;
+        _events = events;
+    }
 
     public async Task HandleAsync(int sessionId, string status, Caller caller, CancellationToken cancellationToken = default)
     {
         if (!SessionStatuses.All.Contains(status))
         {
-            throw new InvalidOperationException("Estado no válido.");
+            throw new BusinessRuleException("Estado no válido.");
         }
 
         var session = await _context.AdvisorySessions
                           .SingleOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
-                      ?? throw new InvalidOperationException("La solicitud no existe.");
+                      ?? throw new NotFoundException("La solicitud no existe.");
 
         var target = SessionStatusIds.FromName(status);
         if (session.StatusId == target)
@@ -30,9 +48,57 @@ public class UpdateSessionStatusCommandHandler
             return;
         }
 
-        Authorize(session.StudentId, session.AdvisorId, session.StatusId, status, caller);
+        var actor = EnsureAllowed(session, target, status, caller);
+        if (actor == SessionActor.Student)
+        {
+            _policy.EnsureStudentCanChange(session.ScheduledAt, _clock);
+        }
 
-        EnsureTransitionIsPossible(session.StatusId, target);
+        await SaveAsync(session, target, caller, cancellationToken);
+    }
+
+    /// <summary>
+    /// Valida la transición. Los estados finales van primero a propósito:
+    /// confirmar una asesoría cancelada la devolvía a la vida y volvía a ocupar
+    /// un lugar que quizá ya era de otro alumno.
+    /// </summary>
+    private static SessionActor EnsureAllowed(AdvisorySession session, byte target, string status, Caller caller)
+    {
+        var state = SessionState.From(session.StatusId);
+
+        if (state.IsFinal)
+        {
+            throw new BusinessRuleException(
+                $"Esta asesoría está {state.Name.ToLowerInvariant()} y ya no puede cambiar de estado. " +
+                "Si se necesita la cita, hay que solicitarla de nuevo.");
+        }
+
+        if (target == SessionStatusIds.Completed)
+        {
+            throw new BusinessRuleException(
+                "Para marcar la asesoría como realizada, registra su bitácora.");
+        }
+
+        var actor = SessionPolicy.RequireActor(session, caller);
+
+        if (!state.CanMoveTo(target))
+        {
+            throw new BusinessRuleException(
+                $"Una asesoría {state.Name.ToLowerInvariant()} no puede pasar a {status.ToLowerInvariant()}.");
+        }
+
+        if (!state.Allows(target, actor))
+        {
+            throw new ForbiddenOperationException(
+                "Como alumno solo puedes cancelar tu asesoría; confirmarla o rechazarla le toca al asesor.");
+        }
+
+        return actor;
+    }
+
+    private async Task SaveAsync(AdvisorySession session, byte target, Caller caller, CancellationToken cancellationToken)
+    {
+        var previous = session.StatusId;
 
         // El trigger de la base recalcula ActivaEn (liberando el cupo cuando se
         // cancela) y registra el cambio en historial_estados_sesion.
@@ -45,83 +111,12 @@ public class UpdateSessionStatusCommandHandler
         catch (DbUpdateException ex)
         {
             // Los índices únicos sobre ActiveAt tienen la última palabra sobre
-            // el cupo. Si saltan aquí, el mensaje debe poder enseñarse: antes
-            // esta excepción subía sin tratar y la API respondía 500 con el
-            // volcado de la excepción.
-            throw new InvalidOperationException(
+            // el cupo. Si saltan aquí, el mensaje debe poder enseñarse.
+            throw new BusinessRuleException(
                 "No se pudo cambiar el estado de la asesoría; es posible que " +
                 "ese lugar ya esté ocupado. Vuelve a intentarlo.", ex);
         }
-    }
 
-    /// <summary>
-    /// Cancelada y Rechazada son estados finales.
-    ///
-    /// Sin esta regla, confirmar una asesoría cancelada la devolvía a la vida:
-    /// el trigger le reasignaba ActiveAt y volvía a ocupar el lugar. Si entre
-    /// tanto otro alumno había tomado ese lugar, el índice único de cupo
-    /// abortaba la operación y la API respondía 500. Y si el lugar seguía
-    /// libre, era peor: una cita que el alumno canceló reaparecía como
-    /// confirmada sin que él hiciera nada.
-    /// </summary>
-    private static void EnsureTransitionIsPossible(byte current, byte target)
-    {
-        var isFinal = current is SessionStatusIds.Cancelled or SessionStatusIds.Rejected;
-        if (!isFinal)
-        {
-            return;
-        }
-
-        var name = current == SessionStatusIds.Cancelled
-            ? SessionStatuses.Cancelled
-            : SessionStatuses.Rejected;
-
-        throw new InvalidOperationException(
-            $"Esta asesoría está {name.ToLowerInvariant()} y ya no puede cambiar de estado. " +
-            "Si se necesita la cita, hay que solicitarla de nuevo.");
-    }
-
-    /// <summary>
-    /// Quién puede mover una asesoría, y a qué estado:
-    ///   · Dirección: cualquier cambio.
-    ///   · El asesor dueño: confirmar, rechazar o cancelar.
-    ///   · El alumno dueño: solo cancelar la suya.
-    ///   · Cualquier otro: nada.
-    ///
-    /// Los roles salen del token, no del selector de la interfaz: un asesor par
-    /// que esté viendo la pantalla como alumno sigue siendo el asesor de sus
-    /// propias asesorías.
-    /// </summary>
-    private static void Authorize(int studentId, int advisorId, byte currentStatusId, string status, Caller caller)
-    {
-        if (caller.IsAdmin)
-        {
-            return;
-        }
-
-        var isOwningAdvisor = caller.IsAdvisor && caller.PersonId == advisorId;
-        var isOwningStudent = caller.IsStudent && caller.PersonId == studentId;
-
-        if (!isOwningAdvisor && !isOwningStudent)
-        {
-            throw new ForbiddenOperationException("Esta asesoría no es tuya.");
-        }
-
-        if (isOwningAdvisor)
-        {
-            return;
-        }
-
-        if (status != SessionStatuses.Cancelled)
-        {
-            throw new ForbiddenOperationException(
-                "Como alumno solo puedes cancelar tu asesoría; confirmarla o rechazarla le toca al asesor.");
-        }
-
-        if (currentStatusId != SessionStatusIds.Pending)
-        {
-            throw new InvalidOperationException(
-                "Solo puedes cancelar solicitudes pendientes. Las confirmadas requieren el proceso del programa.");
-        }
+        await _events.PublishAsync(new SessionChanged(session.Id, previous, target, caller.PersonId), cancellationToken);
     }
 }

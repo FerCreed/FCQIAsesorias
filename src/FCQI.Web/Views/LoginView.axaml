@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FCQI.Web.ViewModels"
+             xmlns:models="using:FCQI.Web.Models"
+             xmlns:views="using:FCQI.Web.Views"
+             x:Class="FCQI.Web.Views.LoginView"
+             x:DataType="vm:LoginViewModel">
+    <StackPanel Classes="page">
+        <Border Classes="card" MaxWidth="480" HorizontalAlignment="Stretch">
+            <StackPanel Spacing="12">
+                <TextBlock Classes="eyebrow" Text="Acceso institucional" />
+                <TextBlock Classes="h2" Text="Inicia sesión" AutomationProperties.HeadingLevel="1" />
+                <TextBlock Classes="muted"
+                           Text="Usa tu cuenta @uabc.edu.mx para solicitar asesorías, atender solicitudes como asesor o entrar como dirección." />
+
+                <StackPanel Spacing="6" IsVisible="{Binding HasProfiles}">
+                    <Label Content="Elige un perfil de prueba" Target="Profiles" />
+                    <ComboBox x:Name="Profiles" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
+                              PlaceholderText="Alumno, Asesor o Directivo…" HorizontalAlignment="Stretch" MaxDropDownHeight="360"
+                              AutomationProperties.Name="Perfil de prueba">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:DemoProfileItem">
+                                <TextBlock Text="{Binding Display}" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Classes="muted" FontSize="12" Text="O escribe el correo:" />
+                </StackPanel>
+
+                <Label Content="Correo institucional" Target="Email" />
+                <TextBox x:Name="Email" Text="{Binding Email}" Watermark="nombre.apellido@uabc.edu.mx"
+                         AutomationProperties.Name="Correo institucional">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding SignInCommand}" />
+                    </TextBox.KeyBindings>
+                </TextBox>
+
+                <TextBlock Text="{Binding Error}" IsVisible="{Binding HasError}" Foreground="{StaticResource BrushDanger}" FontWeight="SemiBold" />
+
+                <Button Classes="primary" Command="{Binding SignInCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Stretch">
+                    <views:IconText Icon="{StaticResource Icon.SignIn}" Text="Entrar" />
+                </Button>
+
+                <TextBlock Classes="muted" FontSize="12"
+                           Text="Acceso de prueba: basta un correo @uabc.edu.mx dado de alta en el programa, sin contraseña." />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

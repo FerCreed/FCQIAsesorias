@@ -17,11 +17,8 @@ services:
       dockerfile: Dockerfile
       target: runtime
       args:
-        # La URL de la API se compila DENTRO del .wasm, así que debe coincidir
-        # con la dirección por la que abres la aplicación en el navegador.
-        # Para publicar en el servidor académico, cámbiala por su dirección real
-        # (p. ej. http://asesorias.fcqi.uabc.mx).
-        API_BASE_URL: http://localhost:8080
+        # El frontend usa como API el mismo origen desde el que se abre, así
+        # que la imagen sirve igual en localhost que en el servidor académico.
         RUN_TESTS: "true"
     image: fcqi-asesorias:prod
     container_name: fcqi-prod
@@ -49,6 +46,11 @@ services:
       # Sin ClientId de Google, la app usa el login de demostración por perfil.
       # Para OAuth real (solo correos @uabc.edu.mx), pon aquí el ClientId.
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      # Acceso sin contraseña (solo correo @uabc.edu.mx o perfil de la lista).
+      # Activo por omisión para la fase de pruebas. OJO: con el túnel la app
+      # queda en internet y cualquiera entraría como cualquier persona; para
+      # cerrarlo pon FCQI_PASSWORDLESS_LOGIN=false en .env.
+      Authentication__PasswordlessLogin: ${FCQI_PASSWORDLESS_LOGIN:-true}
       # Si la dejas vacía, el contenedor genera una clave aleatoria y la guarda
       # en el volumen. NO uses la de appsettings.json: está en el repositorio.
       Authentication__Jwt__Key: ${JWT_KEY:-}
@@ -63,6 +65,20 @@ services:
       timeout: 10s
       start_period: 120s
       retries: 5
+
+  # Publica la app en tu dominio con un Cloudflare Tunnel (sin abrir puertos).
+  # Arranca siempre junto con la app.
+  # Requiere CLOUDFLARE_TUNNEL_TOKEN en .env (Zero Trust → Networks → Tunnels)
+  # y en el túnel un "Public Hostname" apuntando a  http://fcqi:80
+  cloudflared:
+    image: cloudflare/cloudflared:2025.10.0
+    container_name: fcqi-tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - fcqi
+    restart: unless-stopped
 
 volumes:
   fcqi-mysql-prod:
