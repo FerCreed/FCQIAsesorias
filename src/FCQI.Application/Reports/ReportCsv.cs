@@ -3,12 +3,11 @@ using System.Text;
 
 namespace FCQI.Application.Reports;
 
-/// <summary>
-/// CSV con todos los datos de cada asesoría (RFC 4180, separador coma). Se
-/// abre en Excel u Hojas de cálculo; el BOM lo agrega quien lo entrega.
-/// </summary>
+// CSV con todos los datos de cada asesoría (RFC 4180, separador coma). Se
+// abre en Excel u Hojas de cálculo; el BOM lo agrega quien lo entrega.
 public static class ReportCsv
 {
+    // Encabezados en español y en el mismo orden que las columnas de Write.
     private static readonly string[] Header =
     [
         "Id", "Ciclo", "Fecha", "Inicio", "Fin", "Clave", "Materia", "Asesor", "Correo del asesor", "Tipo de asesor",
@@ -17,6 +16,10 @@ public static class ReportCsv
         "Cambios de estado"
     ];
 
+    // Serializa las asesorías a texto CSV. Usa StringBuilder porque el reporte
+    // puede tener miles de filas y concatenar cadenas sería cuadrático; los
+    // números se formatean con cultura invariante para que el punto decimal no
+    // dependa del servidor.
     public static string Write(IEnumerable<SessionRecord> rows)
     {
         var csv = new StringBuilder();
@@ -40,9 +43,10 @@ public static class ReportCsv
         return csv.ToString();
     }
 
-    /// <summary>Entre comillas siempre; las comillas internas se duplican. También neutraliza fórmulas de Excel.</summary>
+    // Entre comillas siempre; las comillas internas se duplican. También neutraliza fórmulas de Excel.
     private static string Quote(string value)
     {
+        // Un apóstrofo delante impide que Excel ejecute celdas que empiezan con =, +, - o @ (inyección CSV).
         var safe = value.Length > 0 && "=+-@".Contains(value[0]) ? "'" + value : value;
         return $"\"{safe.Replace("\"", "\"\"")}\"";
     }

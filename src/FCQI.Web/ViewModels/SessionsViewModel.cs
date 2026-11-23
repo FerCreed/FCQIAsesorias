@@ -6,30 +6,33 @@ using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
-/// <summary>
-/// "Mis asesorías" del alumno y bandeja del asesor: próximas (BPMN 19) e
-/// historial (BPMN 14), con calendario y filtros. Desde aquí se confirma,
-/// rechaza, cancela, reprograma, registra bitácora, se agrega la cita al
-/// calendario y se descarga su reporte individual.
-/// </summary>
+// "Mis asesorías" del alumno y bandeja del asesor: próximas (BPMN 19) e
+// historial (BPMN 14), con calendario y filtros. Desde aquí se confirma,
+// rechaza, cancela, reprograma, registra bitácora, se agrega la cita al
+// calendario y se descarga su reporte individual.
 public partial class SessionsViewModel : PageViewModel, IResettable
 {
     private readonly IFcqiApi _api;
     private readonly ICatalogApi _catalog;
     private readonly IPlatformServices _platform;
+    // Lista completa del alcance actual; Sessions guarda solo lo filtrado.
     private List<SessionItem> _all = [];
 
+    // Alterna entre próximas e historial.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ScopeTitle))]
     private bool _showHistory;
 
+    // Asesoría seleccionada; de ella dependen los botones de acción habilitados.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(CanConfirm), nameof(CanCancel), nameof(CanReschedule), nameof(CanLog))]
     private SessionItem? _selected;
 
+    // Filtros de la lista: día del calendario y estado.
     [ObservableProperty] private DateTime? _day;
     [ObservableProperty] private string _statusFilter = CatalogFilters.All;
 
+    // Estado del panel de reprogramación.
     [ObservableProperty] private bool _isRescheduling;
 
     [ObservableProperty]
@@ -37,10 +40,12 @@ public partial class SessionsViewModel : PageViewModel, IResettable
     private AvailabilityItem? _rescheduleSlot;
 
     [ObservableProperty] private DateTime? _rescheduleDate;
+    // Estado del panel de bitácora; asistencia marcada por omisión, que es lo común.
     [ObservableProperty] private bool _isLogging;
     [ObservableProperty] private bool _attended = true;
     [ObservableProperty] private string _notes = string.Empty;
 
+    // Recibe la API, el catálogo (horarios para reprogramar), la plataforma (descargas) y la sesión (rol).
     public SessionsViewModel(AppStatus status, IFcqiApi api, ICatalogApi catalog, IPlatformServices platform, SessionContext session)
         : base(status)
     {
@@ -50,7 +55,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         Session = session;
     }
 
-    /// <summary>Límites del calendario de reprogramación.</summary>
+    // Límites del calendario de reprogramación.
     public static DateTime Tomorrow => DateTime.Today.AddDays(1);
     public static DateTime Horizon => DateTime.Today.AddMonths(4);
 
@@ -65,11 +70,12 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         SessionStatuses.Cancelled, SessionStatuses.Rejected
     ];
 
-    /// <summary>Días con asesorías: el calendario solo deja elegir esos.</summary>
+    // Días con asesorías: el calendario solo deja elegir esos.
     public IReadOnlyList<DateTime> SessionDays => _all.Select(s => s.ScheduledAt.Date).Distinct().ToList();
     public DateTime CalendarStart => SessionDays.Count == 0 ? DateTime.Today : SessionDays.Min();
     public DateTime CalendarEnd => SessionDays.Count == 0 ? DateTime.Today : SessionDays.Max();
 
+    // Fechas válidas para el bloque elegido: solo los días de la semana en que se imparte.
     public IReadOnlyList<DateTime>? RescheduleDates => RescheduleSlot is null
         ? null
         : CatalogFilters.DatesOn(RescheduleSlot.DayOfWeek, Tomorrow, Horizon).ToList();
@@ -78,17 +84,20 @@ public partial class SessionsViewModel : PageViewModel, IResettable
     public string ResultText => $"{Sessions.Count} de {_all.Count} asesorías";
     public bool IsEmpty => Sessions.Count == 0 && !IsBusy;
     public bool HasSelection => Selected is not null;
+    // Reglas de botones: reflejan las de la API (SessionState) para no ofrecer acciones que fallarían.
     public bool CanConfirm => Session.IsAdvisor && Selected?.IsPending == true;
     public bool CanCancel => Selected?.IsOpen == true;
     public bool CanReschedule => Session.IsStudent && Selected?.IsOpen == true;
     public bool CanLog => Session.IsAdvisor && Selected?.IsConfirmed == true && Selected.ScheduledAt <= DateTime.Now;
 
+    // El título depende del rol activo, que pudo cambiar desde la última visita.
     public override Task OnNavigatedToAsync()
     {
         OnPropertyChanged(nameof(Title));
         return RefreshAsync();
     }
 
+    // Al cerrar sesión se vacían listas, selección y filtros.
     public void Reset()
     {
         (_all, Selected, Day, StatusFilter, ShowHistory) = ([], null, null, CatalogFilters.All, false);
@@ -96,25 +105,31 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         RescheduleSlots.Clear();
     }
 
+    // Cambiar de alcance pide otra lista al servidor; los filtros solo reaplican en memoria.
     partial void OnShowHistoryChanged(bool value) => _ = RefreshAsync();
     partial void OnDayChanged(DateTime? value) => ApplyFilters();
     partial void OnStatusFilterChanged(string value) => ApplyFilters();
 
+    // Al elegir otra asesoría se cierran los paneles abiertos de la anterior.
     partial void OnSelectedChanged(SessionItem? value)
     {
         IsRescheduling = false;
         IsLogging = false;
     }
 
+    // Propone la próxima fecha del bloque, evitando la misma cita que se reprograma.
     partial void OnRescheduleSlotChanged(AvailabilityItem? value)
         => RescheduleDate = value?.NextOccurrence(DateTime.Today, Selected?.ScheduledAt).Date;
 
+    // Pestañas Próximas/Historial: el parámetro llega como texto desde el XAML.
     [RelayCommand]
     private void ShowScope(string history) => ShowHistory = history == "history";
 
+    // «Ver todas»: quita el día y el estado elegidos.
     [RelayCommand]
     private void ClearFilters() => (Day, StatusFilter) = (null, CatalogFilters.All);
 
+    // Recarga del servidor y recalcula los días habilitados del calendario.
     [RelayCommand]
     private async Task RefreshAsync()
     {
@@ -127,10 +142,12 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         ApplyFilters();
     }
 
+    // Cambios de estado: comparten ChangeStatusAsync y solo varían destino y mensaje.
     [RelayCommand] private Task ConfirmAsync() => ChangeStatusAsync(SessionStatuses.Confirmed, "Asesoría confirmada. Avisamos al alumno.");
     [RelayCommand] private Task RejectAsync() => ChangeStatusAsync(SessionStatuses.Rejected, "Solicitud rechazada. Avisamos al alumno.");
     [RelayCommand] private Task CancelAsync() => ChangeStatusAsync(SessionStatuses.Cancelled, "Asesoría cancelada. El lugar quedó libre.");
 
+    // Abre el panel de reprogramación con los horarios actuales del mismo asesor.
     [RelayCommand]
     private async Task StartRescheduleAsync()
     {
@@ -151,6 +168,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         }
     }
 
+    // Envía la reprogramación; la API cancela la cita vieja y crea la nueva como Pendiente.
     [RelayCommand]
     private async Task RescheduleAsync()
     {
@@ -160,6 +178,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
             return;
         }
 
+        // Fecha elegida + hora de inicio del bloque = instante local que valida la API.
         var start = RescheduleDate.Value.Date + (TimeSpan.TryParse(RescheduleSlot.StartTime, out var t) ? t : TimeSpan.Zero);
         if (await RunAsync(() => _api.RescheduleAsync(Selected.Id, new RescheduleBody(RescheduleSlot.Id, start)),
                 $"Asesoría reprogramada al {start:dd/MM/yyyy HH:mm}. El asesor debe confirmar el nuevo horario."))
@@ -168,6 +187,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         }
     }
 
+    // Abre el panel de bitácora con valores limpios.
     [RelayCommand]
     private void StartLog()
     {
@@ -175,6 +195,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         (Attended, Notes, IsLogging) = (true, string.Empty, true);
     }
 
+    // Guarda la bitácora; la API marca la asesoría como realizada.
     [RelayCommand]
     private async Task SaveLogAsync()
     {
@@ -187,19 +208,23 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         }
     }
 
+    // Descarga el .ics de la cita para importarlo en cualquier calendario.
     [RelayCommand]
     private Task AddToCalendarAsync() => DownloadAsync(
         id => _api.GetCalendarAsync(id), "asesoria-{0}.ics", "text/calendar",
         "Archivo de calendario descargado. Ábrelo para agregar la cita a tu calendario.");
 
-    /// <summary>Reporte individual (PDF): lo descargan el alumno, el asesor y dirección.</summary>
+    // Reporte individual (PDF): lo descargan el alumno, el asesor y dirección.
     [RelayCommand]
     private Task DownloadReportAsync() => DownloadAsync(
         id => _api.GetSessionReportAsync(id), "asesoria-{0}.pdf", "application/pdf", "Reporte de la asesoría descargado.");
 
+    // Abre el enlace de la reunión virtual en el navegador del sistema.
     [RelayCommand]
     private Task OpenMeetingAsync() => Selected?.MeetingLink is { } link ? _platform.OpenUrlAsync(link) : Task.CompletedTask;
 
+    // Descarga común de archivos de la asesoría seleccionada; el Id se copia antes
+    // de esperar porque la selección puede cambiar mientras llega la respuesta.
     private async Task DownloadAsync(Func<int, Task<byte[]>> fetch, string nameFormat, string mime, string done)
     {
         if (Selected is null) return;
@@ -214,6 +239,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         });
     }
 
+    // Cambia el estado y recarga para reflejar el resultado real del servidor.
     private async Task ChangeStatusAsync(string status, string done)
     {
         if (Selected is null) return;
@@ -224,6 +250,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         }
     }
 
+    // Reaplica día y estado sobre la lista en memoria, sin volver al servidor.
     private void ApplyFilters()
     {
         Sessions.Clear();

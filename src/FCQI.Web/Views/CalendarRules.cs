@@ -4,16 +4,16 @@ using Avalonia.Controls.Primitives;
 
 namespace FCQI.Web.Views;
 
-/// <summary>
-/// Propiedad adjunta para <see cref="Calendar"/> y <see cref="CalendarDatePicker"/>:
-/// solo deja elegir las fechas indicadas y bloquea visualmente el resto del
-/// rango mostrado. BlackoutDates no admite enlace de datos; esto lo suple.
-/// </summary>
+// Propiedad adjunta para Calendar y CalendarDatePicker:
+// solo deja elegir las fechas indicadas y bloquea visualmente el resto del
+// rango mostrado. BlackoutDates no admite enlace de datos; esto lo suple.
 public static class CalendarRules
 {
+    // Fechas permitidas; nulo desactiva la restricción.
     public static readonly AttachedProperty<IEnumerable<DateTime>?> EnabledDatesProperty =
         AvaloniaProperty.RegisterAttached<Control, IEnumerable<DateTime>?>("EnabledDates", typeof(CalendarRules));
 
+    // Registra una sola vez los manejadores de cambio para todos los calendarios.
     static CalendarRules()
     {
         EnabledDatesProperty.Changed.AddClassHandler<Control>((control, _) => Apply(control));
@@ -25,11 +25,16 @@ public static class CalendarRules
         CalendarDatePicker.DisplayDateEndProperty.Changed.AddClassHandler<CalendarDatePicker>((c, _) => Apply(c));
     }
 
+    // Accesores que Avalonia exige para usar la propiedad adjunta desde XAML.
     public static IEnumerable<DateTime>? GetEnabledDates(Control control) => control.GetValue(EnabledDatesProperty);
     public static void SetEnabledDates(Control control, IEnumerable<DateTime>? value) => control.SetValue(EnabledDatesProperty, value);
 
+    // Recalcula las fechas bloqueadas del control. Calendar y CalendarDatePicker
+    // no comparten interfaz, así que se distinguen por tipo y se pasan sus
+    // miembros como delegados.
     private static void Apply(Control control)
     {
+        // HashSet para consultar cada día del rango en O(1).
         var enabled = GetEnabledDates(control)?.Select(d => d.Date).ToHashSet();
 
         switch (control)
@@ -45,6 +50,7 @@ public static class CalendarRules
         }
     }
 
+    // Rehace la colección de fechas bloqueadas: todo el rango mostrado salvo las fechas permitidas.
     private static void Rebuild(
         CalendarBlackoutDatesCollection? blackout, HashSet<DateTime>? enabled, DateTime? start, DateTime? end,
         Func<DateTime?> getSelected, Action<DateTime?> setSelected)
@@ -56,6 +62,8 @@ public static class CalendarRules
         setSelected(null);
         blackout.Clear();
 
+        // Agrupa los días bloqueados consecutivos en rangos: un rango por tramo
+        // es mucho más barato para el calendario que un rango por día.
         if (enabled is not null && start is not null && end is not null)
         {
             DateTime? runStart = null;
@@ -73,6 +81,7 @@ public static class CalendarRules
             if (runStart is not null) blackout.Add(new CalendarDateRange(runStart.Value, end.Value.Date));
         }
 
+        // Solo se repone la selección si sigue siendo una fecha permitida.
         if (selected is { } s && (enabled is null || enabled.Contains(s.Date)))
         {
             setSelected(s);

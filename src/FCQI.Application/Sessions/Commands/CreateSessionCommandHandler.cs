@@ -9,6 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Sessions.Commands;
 
+// Solicitar asesoría (BPMN 8): valida alumno, horario, materia, fecha y cupo,
+// reserva un lugar y avisa a los observadores. Las validaciones se hacen
+// aquí con mensajes claros; los índices únicos de la base quedan como última
+// defensa ante carreras.
 public class CreateSessionCommandHandler
 {
     private readonly IApplicationDbContext _context;
@@ -16,6 +20,7 @@ public class CreateSessionCommandHandler
     private readonly IClock _clock;
     private readonly SessionEventPublisher _events;
 
+    // Recibe sus dependencias por inyección; el publicador desacopla los avisos del caso de uso.
     public CreateSessionCommandHandler(
         IApplicationDbContext context, CurrentTerm term, IClock clock, SessionEventPublisher events)
     {
@@ -25,6 +30,9 @@ public class CreateSessionCommandHandler
         _events = events;
     }
 
+    // Registra la solicitud como Pendiente y devuelve la asesoría creada.
+    // Lanza BusinessRuleException o
+    // ForbiddenOperationException si alguna regla no se cumple.
     public async Task<SessionDto> HandleAsync(
         CreateSessionRequest request, Caller caller, CancellationToken cancellationToken = default)
     {
@@ -66,6 +74,7 @@ public class CreateSessionCommandHandler
             throw new BusinessRuleException("No puedes agendar una asesoría contigo mismo.");
         }
 
+        // AsNoTracking: el bloque solo se lee para validar, no se modifica.
         var slot = await _context.Availabilities
                        .AsNoTracking()
                        .SingleOrDefaultAsync(a => a.Id == request.AvailabilityId, cancellationToken)
@@ -89,6 +98,7 @@ public class CreateSessionCommandHandler
             throw new BusinessRuleException("El horario no pertenece a ese asesor.");
         }
 
+        // El asesor debe tener la materia asignada en este ciclo; la asigna dirección.
         var teaches = await _context.AdvisorSubjects.AnyAsync(
             x => x.TermId == termId
                  && x.AdvisorId == request.AdvisorId
@@ -116,6 +126,7 @@ public class CreateSessionCommandHandler
                 $"Ese horario empieza a las {slot.StartTime:HH\\:mm}.");
         }
 
+        // Conversión única a UTC con las reglas reales de horario de verano.
         var scheduledUtc = _clock.ToUtc(local);
 
         if (scheduledUtc <= _clock.UtcNow)
@@ -156,8 +167,10 @@ public class CreateSessionCommandHandler
             throw new BusinessRuleException("Ese horario ya está lleno.");
         }
 
+        // Primer número de lugar libre: reutiliza los que dejaron cancelaciones.
         var seat = Enumerable.Range(1, slot.MaxCapacity).First(n => !taken.Contains(n));
 
+        // Sin tema explícito se usa uno genérico, porque la columna es obligatoria.
         var session = new AdvisorySession
         {
             TermId = termId,
@@ -191,12 +204,14 @@ public class CreateSessionCommandHandler
         // BPMN 8: el asesor recibe aviso de la nueva solicitud.
         await _events.PublishAsync(new SessionChanged(session.Id, null, session.StatusId, caller.PersonId), cancellationToken);
 
+        // Se relee con la proyección común para devolver nombres y horas locales ya resueltos.
         var created = await _context.AdvisorySessions.AsNoTracking()
             .Where(x => x.Id == session.Id)
             .ToDtosAsync(_clock, cancellationToken);
         return created.Single();
     }
 
+    // Nombre del día en español para los mensajes de error; no depende de la cultura del servidor.
     private static string DayName(DayOfWeek day) => day switch
     {
         DayOfWeek.Sunday => "domingo",

@@ -9,8 +9,10 @@ namespace FCQI.Infrastructure.Persistence.Configurations;
 // declara su columna con HasColumnName: sin eso, la convención de EF Core
 // buscaría una columna con el nombre de la propiedad y no existiría.
 
+// Mapea AcademicProgram a la tabla programas.
 public class AcademicProgramConfiguration : IEntityTypeConfiguration<AcademicProgram>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<AcademicProgram> builder)
     {
         builder.ToTable("programas");
@@ -23,8 +25,10 @@ public class AcademicProgramConfiguration : IEntityTypeConfiguration<AcademicPro
     }
 }
 
+// Mapea AcademicTerm a la tabla ciclos_escolares.
 public class AcademicTermConfiguration : IEntityTypeConfiguration<AcademicTerm>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<AcademicTerm> builder)
     {
         builder.ToTable("ciclos_escolares");
@@ -39,8 +43,10 @@ public class AcademicTermConfiguration : IEntityTypeConfiguration<AcademicTerm>
     }
 }
 
+// Mapea Modality a modalidades. Ids fijos (ValueGeneratedNever) porque el código los referencia.
 public class ModalityConfiguration : IEntityTypeConfiguration<Modality>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<Modality> builder)
     {
         builder.ToTable("modalidades");
@@ -52,8 +58,10 @@ public class ModalityConfiguration : IEntityTypeConfiguration<Modality>
     }
 }
 
+// Mapea SessionStatus a estados_sesion. Ids fijos porque SessionStatusIds los usa como constantes.
 public class SessionStatusConfiguration : IEntityTypeConfiguration<SessionStatus>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<SessionStatus> builder)
     {
         builder.ToTable("estados_sesion");
@@ -66,8 +74,10 @@ public class SessionStatusConfiguration : IEntityTypeConfiguration<SessionStatus
     }
 }
 
+// Mapea Location a lugares; Restrict impide borrar una modalidad en uso.
 public class LocationConfiguration : IEntityTypeConfiguration<Location>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<Location> builder)
     {
         builder.ToTable("lugares");
@@ -86,8 +96,10 @@ public class LocationConfiguration : IEntityTypeConfiguration<Location>
     }
 }
 
+// Mapea Subject a materias.
 public class SubjectConfiguration : IEntityTypeConfiguration<Subject>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<Subject> builder)
     {
         builder.ToTable("materias");
@@ -100,8 +112,10 @@ public class SubjectConfiguration : IEntityTypeConfiguration<Subject>
     }
 }
 
+// Mapea la relación carrera-materia; Cascade porque la fila no tiene sentido sin sus dos extremos.
 public class ProgramSubjectConfiguration : IEntityTypeConfiguration<ProgramSubject>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<ProgramSubject> builder)
     {
         builder.ToTable("programas_materias");

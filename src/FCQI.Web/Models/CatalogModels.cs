@@ -2,6 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace FCQI.Web.Models;
 
+// Modelos del catálogo tal como llegan de la API. Las propiedades [JsonIgnore]
+// son textos derivados para la vista: se calculan aquí para que el XAML solo enlace.
+
+// Materia del catálogo con sus carreras y número de asesores.
 public class SubjectItem
 {
     public int Id { get; set; }
@@ -19,6 +23,7 @@ public class SubjectItem
     };
 }
 
+// Asesor del catálogo con sus materias y resumen de disponibilidad.
 public class AdvisorItem
 {
     public int Id { get; set; }
@@ -28,7 +33,7 @@ public class AdvisorItem
     public string Kind { get; set; } = string.Empty;
     public bool IsStudent { get; set; }
 
-    /// <summary>Días con horario publicado (0=domingo…6=sábado).</summary>
+    // Días con horario publicado (0=domingo…6=sábado).
     public List<int> Days { get; set; } = [];
 
     public double WeeklyHours { get; set; }
@@ -42,11 +47,14 @@ public class AdvisorItem
         : $"{string.Join(", ", Days.Select(d => DayNames.Of(d)[..3]))} · {WeeklyHours:0.#} h por semana";
 }
 
+// Bloque de horario semanal de un asesor.
 public class AvailabilityItem
 {
     public int Id { get; set; }
     public int AdvisorId { get; set; }
     public int DayOfWeek { get; set; }
+
+    // Horas como texto "HH:mm:ss" (formato de TimeOnly en la API); se recortan al mostrarlas.
     public string StartTime { get; set; } = string.Empty;
     public string EndTime { get; set; } = string.Empty;
     public int MaxCapacity { get; set; }
@@ -58,12 +66,10 @@ public class AvailabilityItem
     [JsonIgnore] public string Where => $"{Modality}, {Location}";
     [JsonIgnore] public int StartHour => TimeSpan.TryParse(StartTime, out var t) ? t.Hours : 0;
 
-    /// <summary>
-    /// Próxima fecha en la que cae el bloque, a partir de mañana. Si coincide
-    /// con <paramref name="avoid"/> (la cita que se reprograma) salta una semana.
-    /// shortcut: usa la fecha del dispositivo, no la del campus; si se usa fuera
-    /// de Baja California cerca de medianoche, mover el cálculo a la API.
-    /// </summary>
+    // Próxima fecha en la que cae el bloque, a partir de mañana. Si coincide
+    // con avoid (la cita que se reprograma) salta una semana.
+    // shortcut: usa la fecha del dispositivo, no la del campus; si se usa fuera
+    // de Baja California cerca de medianoche, mover el cálculo a la API.
     public DateTime NextOccurrence(DateTime today, DateTime? avoid = null)
     {
         var day = today.Date.AddDays(1);
@@ -76,18 +82,22 @@ public class AvailabilityItem
         return start == avoid ? start.AddDays(7) : start;
     }
 
+    // "HH:mm:ss" → "HH:mm"; deja el texto intacto si viene más corto.
     private static string Short(string time) => time.Length >= 5 ? time[..5] : time;
 }
 
+// Sede para el formulario de horarios.
 public class LocationItem
 {
     public short Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Modality { get; set; } = string.Empty;
 
+    // Texto del ComboBox: nombre con modalidad para distinguir sedes virtuales.
     public override string ToString() => $"{Name} ({Modality})";
 }
 
+// Ciclo vigente; sus fechas limitan los calendarios de solicitud.
 public class TermItem
 {
     public short Id { get; set; }

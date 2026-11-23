@@ -8,17 +8,21 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FCQI.Api.Configuration;
 
-/// <summary>Configuración web de la API: controladores, JWT y CORS.</summary>
+// Configuración web de la API: controladores, JWT y CORS.
 public static class ApiSetup
 {
-    /// <summary>Política del limitador para los mensajes al asesor (BPMN 15).</summary>
+    // Política del limitador para los mensajes al asesor (BPMN 15).
     public const string ContactPolicy = "contacto";
 
-    /// <summary>Mensajes por persona y minuto. Evita usar el sistema para saturar el correo de un profesor.</summary>
+    // Mensajes por persona y minuto. Evita usar el sistema para saturar el correo de un profesor.
     public const int ContactPermitsPerMinute = 5;
 
+    // Registra todo lo propio de la capa web. Es método de extensión para que
+    // Program.cs quede como una cadena legible de capas (API, aplicación,
+    // infraestructura).
     public static IServiceCollection AddApi(this IServiceCollection services, IConfiguration configuration)
     {
+        // El filtro global traduce las excepciones de negocio a 400/403/404 en todos los controladores.
         services.AddControllers(options => options.Filters.Add<ApiExceptionFilter>());
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
@@ -27,6 +31,8 @@ public static class ApiSetup
         services.AddHttpContextAccessor();
         services.AddScoped<CurrentUser>();
 
+        // Se valida emisor, audiencia y firma para rechazar tokens de otros sistemas o alterados.
+        // Los valores por omisión son solo de desarrollo; en producción vienen de la configuración.
         var jwt = configuration.GetSection("Authentication:Jwt");
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
@@ -60,6 +66,7 @@ public static class ApiSetup
                 context.HttpContext.Response.WriteAsJsonAsync(
                     new { message = "Enviaste demasiados mensajes seguidos. Espera un minuto e inténtalo de nuevo." },
                     cancellationToken));
+            // Ventana fija particionada por persona: cada usuario tiene su propio contador.
             options.AddPolicy(ContactPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonimo",
                 _ => new FixedWindowRateLimiterOptions

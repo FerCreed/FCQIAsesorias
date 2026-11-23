@@ -10,6 +10,7 @@
         asesoría, sus acciones se abren dentro de la misma tarjeta.
     -->
     <StackPanel Classes="page">
+        <!-- Encabezado con título de la página y botón para recargar. -->
         <Grid ColumnDefinitions="*,Auto">
             <TextBlock Classes="h1" Text="{Binding Title}" AutomationProperties.HeadingLevel="1" />
             <Button Grid.Column="1" Classes="quiet" Command="{Binding RefreshCommand}" VerticalAlignment="Top">
@@ -17,19 +18,23 @@
             </Button>
         </Grid>
 
+        <!-- Pestañas Próximas / Historial. -->
         <StackPanel Orientation="Horizontal" Spacing="8">
             <ToggleButton Classes="chip" Content="Próximas" IsChecked="{Binding !ShowHistory}" Command="{Binding ShowScopeCommand}" CommandParameter="upcoming" />
             <ToggleButton Classes="chip" Content="Historial" IsChecked="{Binding ShowHistory}" Command="{Binding ShowScopeCommand}" CommandParameter="history" />
         </StackPanel>
 
+        <!-- Dos columnas: lista de asesorías y panel de calendario y filtros; en teléfono se apilan. -->
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
             <StackPanel Spacing="8">
                 <TextBlock Classes="label" Text="{Binding ResultText}" />
                 <TextBlock Classes="muted" Text="Cargando…" IsVisible="{Binding IsBusy}" />
+                <!-- Aviso cuando no hay asesorías con los filtros actuales. -->
                 <Border Classes="card" IsVisible="{Binding IsEmpty}">
                     <TextBlock Classes="muted" Text="No hay asesorías aquí. Busca un asesor para solicitar una, o limpia los filtros." />
                 </Border>
 
+                <!-- Lista de asesorías; la seleccionada despliega sus acciones. -->
                 <ListBox Classes="picker" ItemsSource="{Binding Sessions}" SelectedItem="{Binding Selected}" AutomationProperties.Name="Asesorías">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="models:SessionItem">

@@ -5,6 +5,7 @@ const version = new URL(import.meta.url).searchParams.get('v') ?? '';
 const withVersion = url => version ? `${url}${url.includes('?') ? '&' : '?'}v=${version}` : url;
 const { dotnet } = await import(withVersion('./_framework/dotnet.js'));
 
+// El runtime de .NET para navegador también puede cargarse en Node; aquí solo se admite navegador.
 const is_browser = typeof window != "undefined";
 if (!is_browser) throw new Error("Expected to be running in a browser");
 
@@ -20,13 +21,17 @@ globalThis.fcqiDownload = (fileName, mimeType, base64) => {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    // Se libera la URL temporal con retraso: algunos navegadores inician la descarga de forma asíncrona.
     setTimeout(() => URL.revokeObjectURL(url), 10000);
 };
 
-// Preferencias de esta persona en este equipo (p. ej. el zoom).
+// Preferencias de esta persona en este equipo (p. ej. el zoom). El try/catch
+// cubre navegadores que bloquean localStorage: la app sigue sin recordarlas.
 globalThis.fcqiGetSetting = key => { try { return localStorage.getItem(key); } catch { return null; } };
 globalThis.fcqiSetSetting = (key, value) => { try { localStorage.setItem(key, value); } catch { /* modo privado */ } };
 
+// Arranca el runtime de .NET pidiendo cada recurso con la versión y le pasa
+// la URL de la página a Program.Main para deducir la dirección de la API.
 try {
     const dotnetRuntime = await dotnet
         .withApplicationArgumentsFromQuery()

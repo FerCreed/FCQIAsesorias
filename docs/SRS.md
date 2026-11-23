@@ -4,8 +4,8 @@
 | Campo | Valor |
 |-------|-------|
 | Organización | Facultad de Ciencias Químicas e Ingeniería (FCQI), UABC Tijuana |
-| Versión del documento | 1.1 |
-| Fecha | 7 de noviembre de 2026 |
+| Versión del documento | 1.2 |
+| Fecha | 23 de noviembre de 2026 |
 | Estándar de referencia | ISO/IEC/IEEE 29148:2018 (sucesor de IEEE 830) |
 | Fuente de los procesos | Diagramas BPMN en `AsesoriasBizagi/` (Diagrama 1 a 19) |
 
@@ -59,6 +59,7 @@ para Android/iOS (en el teléfono se usa el navegador, ver RNF-01).
 - `db/01-schema.sql`, `db/diagrama-er.md` — modelo de datos.
 - `docs/checklist-validacion.md` — procedimiento de validación de una entrega.
 - `README.md` — instalación y ejecución.
+- `docs/manual/manual-de-usuario.md` — manual de usuario con capturas, para alumnos, asesores y dirección.
 
 ---
 
@@ -93,8 +94,8 @@ Sistema web autónomo en cuatro capas, desplegado como un solo contenedor:
 | Directivo | Dirección o coordinación del programa. | Asignación de materias, reportes; puede actuar sobre cualquier asesoría. |
 | Sistema | Procesos automáticos. | Validaciones, notificaciones, enlaces, historial de estados. |
 
-Una persona puede tener varios roles; elige con cuál trabajar en el selector
-"rol" de la cabecera sin volver a entrar.
+Una persona puede tener varios roles; elige con cuál trabajar en «Entrar como»,
+dentro del menú ☰ de la cabecera, sin volver a entrar.
 
 ### 2.3 Restricciones
 
@@ -124,6 +125,9 @@ Prioridad: **A** imprescindible, **M** importante. Estado: **✔** implementado,
 | RF-03 | Si la persona tiene más de un rol, debe poder cambiar de rol sin volver a entrar. | 1 | A | ✔ |
 | RF-04 | Al salir, el cliente debe borrar el token, limpiar listas y selecciones y regresar al inicio. | 17 | A | ✔ |
 | RF-05 | Si una acción requiere sesión, el sistema lleva al acceso y, al entrar, regresa a la pantalla de origen y retoma la solicitud pendiente. | 1, 8 | M | ✔ |
+
+**RF-05:** tras entrar, la app regresa al buscador con la materia, el asesor, el
+horario, la fecha y el tema intactos, envía la solicitud y salta a «Mis asesorías».
 
 ### 3.2 Catálogo y solicitud (alumno)
 
@@ -201,7 +205,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RNF-08 | Disponibilidad | Un fallo de correo o de enlace no debe impedir el cambio de estado. | Los observadores corren después de guardar y sus errores se registran sin propagarse. |
 | RNF-09 | Usabilidad | Todo error de negocio se muestra en español, con la causa y qué hacer; los fallos internos no exponen detalles. | Las reglas lanzan `BusinessRuleException`; `ApiExceptionFilter` la traduce a 400 con `{ message }` y deja el resto como 500 en el log. |
 | RNF-10 | Mantenibilidad | Capas desacopladas, patrones de diseño donde aportan y pruebas automáticas de las reglas de negocio. | Ver §6 y §8. |
-| RNF-12 | Accesibilidad | Zoom de la interfaz de 80 % a 200 % (botones A− / A+ y Ctrl/Cmd + − 0); foco de teclado visible; contraste AA; objetivos táctiles de 44 px o más; nombres accesibles en los botones con ícono; cada elemento pulsable cambia al pasar el cursor y al presionarse. | Zoom con `LayoutTransformControl`; estilos globales en `App.axaml`; control `IconText`. |
+| RNF-12 | Accesibilidad | Zoom de la interfaz de 80 % a 200 % (lupas − / + en «Tamaño de letra» del menú ☰, y Ctrl/Cmd + − 0); el nivel elegido se recuerda en el navegador; foco de teclado visible; contraste AA; objetivos táctiles de 44 px o más; nombres accesibles en los botones con ícono; cada elemento pulsable cambia al pasar el cursor y al presionarse. | Zoom con `LayoutTransformControl`; estilos globales en `App.axaml`; control `IconText`. |
 | RNF-13 | Usabilidad | Íconos Fluent System Icons de Microsoft en menú, botones y listas; aspecto institucional (encabezado blanco, banda verde, fondo papel). | `Themes/Icons.axaml` (trazos oficiales, licencia MIT). |
 | RNF-14 | Vocabulario | El rol se llama **asesor** en todo el sistema ("tutor" es otro rol en la facultad). El tipo de asesor es "Profesor" o "Estudiante". | Textos, API, correos, reportes y documentación. |
 | RNF-11 | Rendimiento | Respuesta < 1 s para el catálogo y las consultas con los volúmenes de un ciclo (miles de citas). | Índices por asesor, alumno, ciclo y estado; caché de materias y sedes en el cliente. |
@@ -266,8 +270,8 @@ Códigos: 400 regla de negocio incumplida, 401 sin sesión, 403 sin permiso,
 | Fachada | `FcqiApiClient` (`IFcqiApi`, `ICatalogApi`) | Un único punto de acceso a la API REST para el cliente. |
 | Proxy | `AuthTokenHandler` | Añade el token a cada petición HTTP. |
 | Decorador | `CachedCatalogApi` | Cachea materias y sedes sin tocar la fachada. |
-| Método plantilla | `PageViewModel.RunAsync` | Esqueleto común ocupado → ejecutar → avisar/mostrar error. |
-| Fábrica | `AppServices` (fábrica de páginas por `AppPage`) | El shell crea páginas sin conocer clases concretas. |
+| Método plantilla | `PageViewModel.RunAsync`; `QuestPdfReportRenderer.Render` | Esqueleto común ocupado → ejecutar → avisar/mostrar error; página, encabezado y pie comunes a los tres PDF. |
+| Fábrica | `AppServices` (fábrica de páginas por `AppPage`); `SessionState.From`; `ReportMetrics.From`; `DayToggle.Weekdays` | El shell crea páginas sin conocer clases concretas; el estado se obtiene del Id guardado; las métricas se calculan en un solo punto. |
 | Singleton | `SessionContext`, `AppStatus`, `CampusClock`, `JwtTokenFactory` (DI) | Una instancia compartida por la app. |
 | Composición | `ShellViewModel` + menú de `NavItem` | El contenedor compone páginas y menú según rol. |
 | Iterador | LINQ / `IQueryable` en consultas | Recorrido y filtrado declarativo. |
@@ -292,15 +296,16 @@ aplicada al arrancar el contenedor): estado 5 *Realizada*, columna
 
 | Requisito | Prueba automática (`tests/FCQI.UnitTests`) |
 |-----------|---------------------------------------------|
-| RF-01, RF-05 | `Client/ClientLogicTests` (validación de correo) |
+| RF-01 | `Client/ClientLogicTests` (validación de correo) |
+| RF-05 | `Client/PendingRequestTests` (la solicitud pendiente se envía al volver del login) |
 | RF-02, RF-03 | `Auth/ResolveProfileHandlerTests` |
-| RF-13 | `Sessions/PeerAdvisorTests`, `Client/ClientLogicTests` (próxima fecha) |
+| RF-13 | `Sessions/PeerAdvisorTests`, `Client/ClientLogicTests` (próxima fecha), `Processes/LogicEdgeTests` (día, hora, pasado y ciclo) |
 | RF-20, RF-23, RF-33 | `Auth/SessionAuthorizationTests`, `Sessions/StatusTransitionTests`, `Processes/SessionStateTests` |
 | RF-21, RF-22, RF-26–RF-28, RF-30, RF-31 | `Processes/SessionProcessTests` |
 | RF-40–RF-42 | `Processes/AvailabilityProcessTests` |
 | RF-50 | `Admin/AdvisorSubjectsTests` |
 | RF-15, RF-16 | `Client/FilterAndLogoutTests`, `Client/CatalogRaceTests` |
-| RF-51–RF-54 | `Processes/ReportTests` (permisos, horas, filtro "desde", 25 columnas, PDF) y `tools/probar-api.py` I15–I26 |
+| RF-51–RF-54 | `Processes/ReportTests` (permisos, horas, filtro "desde", 25 columnas, PDF), `Processes/LogicEdgeTests` (porcentajes, horas con asistencia, orden de días, sin datos) y `tools/probar-api.py` I15–I26 |
 | RF-04 (limpiar al salir) | `Client/FilterAndLogoutTests` |
 | RNF-06 | `Persistence/ModelMappingTests` + checklist §1 |
 | RNF-07 | `Time/CampusClockTests` |

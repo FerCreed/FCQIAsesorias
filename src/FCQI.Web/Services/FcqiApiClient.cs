@@ -5,24 +5,29 @@ using FCQI.Web.Serialization;
 
 namespace FCQI.Web.Services;
 
-/// <summary>
-/// Fachada única sobre la API REST. El token lo añade <see cref="AuthTokenHandler"/>
-/// y la dirección base llega del anfitrión (navegador o escritorio).
-/// </summary>
+// Fachada única sobre la API REST. El token lo añade AuthTokenHandler
+// y la dirección base llega del anfitrión (navegador o escritorio).
 public class FcqiApiClient : IFcqiApi, ICatalogApi
 {
+    // Metadatos de serialización generados en compilación (necesarios en WebAssembly recortado).
     private static AppJsonContext Json => AppJsonContext.Default;
     private readonly HttpClient _http;
 
+    // Recibe el HttpClient ya configurado con dirección base y proxy de token.
     public FcqiApiClient(HttpClient http) => _http = http;
 
+    // Cada método público traduce un caso de uso a su ruta REST; los nulos se
+    // sustituyen por valores vacíos para que la vista nunca reciba null.
+
+    // Autenticación
     public async Task<AuthConfigItem> GetAuthConfigAsync()
         => await GetAsync("api/auth/config", Json.AuthConfigItem) ?? new AuthConfigItem();
 
-    /// <summary>Entrada con correo institucional, sin contraseña (solo si el servidor lo permite).</summary>
+    // Entrada con correo institucional, sin contraseña (solo si el servidor lo permite).
     public async Task<AuthResultItem> LoginAsync(string email)
     {
         using var response = await _http.PostAsJsonAsync("api/auth/demo", new LoginBody(email), Json.LoginBody);
+        // unauthorized: null → en el login un 401 significa "correo no registrado", no "sesión expirada".
         await ThrowIfFailedAsync(response, unauthorized: null);
         return await response.Content.ReadFromJsonAsync(Json.AuthResultItem)
                ?? throw new InvalidOperationException("Respuesta de inicio de sesión vacía.");
@@ -66,6 +71,7 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
     public Task<byte[]> GetAdvisorReportAsync(int advisorId, string format, DateOnly from, DateOnly to)
         => GetBytesAsync($"api/admin/advisors/{advisorId}/report.{format}?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
 
+    // GET que deserializa JSON con los metadatos generados.
     private async Task<T?> GetAsync<T>(string url, JsonTypeInfo<T> typeInfo)
     {
         using var response = await _http.GetAsync(url);
@@ -73,6 +79,7 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
         return await response.Content.ReadFromJsonAsync(typeInfo);
     }
 
+    // GET de archivos (PDF, CSV, .ics) como bytes crudos.
     private async Task<byte[]> GetBytesAsync(string url)
     {
         using var response = await _http.GetAsync(url);
@@ -80,6 +87,7 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
         return await response.Content.ReadAsByteArrayAsync();
     }
 
+    // Envío genérico (POST, PUT, PATCH, DELETE); el cuerpo es opcional, p. ej. en DELETE.
     private async Task SendAsync<T>(HttpMethod method, string url, T? body, JsonTypeInfo<T>? typeInfo)
     {
         using var request = new HttpRequestMessage(method, url);
@@ -92,11 +100,9 @@ public class FcqiApiClient : IFcqiApi, ICatalogApi
         await ThrowIfFailedAsync(response);
     }
 
-    /// <summary>
-    /// Convierte la respuesta de error en un mensaje que se pueda enseñar: la API
-    /// manda el motivo en <c>{ message }</c>; sin esto la interfaz mostraba
-    /// "Response status code does not indicate success: 403", en inglés y sin motivo.
-    /// </summary>
+    // Convierte la respuesta de error en un mensaje que se pueda enseñar: la API
+    // manda el motivo en { message }; sin esto la interfaz mostraba
+    // "Response status code does not indicate success: 403", en inglés y sin motivo.
     private static async Task ThrowIfFailedAsync(
         HttpResponseMessage response, string? unauthorized = "Tu sesión expiró. Vuelve a entrar.")
     {

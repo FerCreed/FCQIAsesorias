@@ -7,13 +7,13 @@ using FCQI.Web.Services;
 
 [assembly: SupportedOSPlatform("browser")]
 
+// Arranque del cliente en WebAssembly. Conecta las funciones de JavaScript
+// con HostHooks y monta la app en el elemento #out.
 internal sealed partial class Program
 {
-    /// <summary>
-    /// main.js pasa la URL de la página como primer argumento. La API vive en
-    /// el mismo origen (nginx sirve /api), salvo que se indique otra con
-    /// <c>?api=http://localhost:5016</c>, útil al depurar la API fuera de Docker.
-    /// </summary>
+    // main.js pasa la URL de la página como primer argumento. La API vive en
+    // el mismo origen (nginx sirve /api), salvo que se indique otra con
+    // ?api=http://localhost:5016, útil al depurar la API fuera de Docker.
     private static Task Main(string[] args)
     {
         App.ApiBaseAddress = ApiAddress(args.FirstOrDefault());
@@ -25,6 +25,9 @@ internal sealed partial class Program
             .StartBrowserAppAsync("out");
     }
 
+    // Deduce la URL de la API a partir de la página: el parámetro api
+    // si es válido; si no, el mismo origen. Sin URL de página usa el puerto
+    // del contenedor local.
     private static Uri ApiAddress(string? pageUrl)
     {
         if (!Uri.TryCreate(pageUrl, UriKind.Absolute, out var page))
@@ -38,6 +41,7 @@ internal sealed partial class Program
             : new Uri(page.GetLeftPart(UriPartial.Authority));
     }
 
+    // Configuración mínima de Avalonia para el navegador; pública porque la usan las herramientas de diseño.
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>();
 }

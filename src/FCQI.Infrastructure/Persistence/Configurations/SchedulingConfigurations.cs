@@ -5,8 +5,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FCQI.Infrastructure.Persistence.Configurations;
 
+// Mapea asesores_materias con llave compuesta (ciclo, asesor, materia).
 public class AdvisorSubjectConfiguration : IEntityTypeConfiguration<AdvisorSubject>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<AdvisorSubject> builder)
     {
         builder.ToTable("asesores_materias");
@@ -34,8 +36,10 @@ public class AdvisorSubjectConfiguration : IEntityTypeConfiguration<AdvisorSubje
     }
 }
 
+// Mapea Availability a horarios. Restrict en sus llaves foráneas para no borrar bloques con historial.
 public class AvailabilityConfiguration : IEntityTypeConfiguration<Availability>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<Availability> builder)
     {
         builder.ToTable("horarios");
@@ -58,6 +62,7 @@ public class AvailabilityConfiguration : IEntityTypeConfiguration<Availability>
         // es lo que impide que una sesión declare un asesor que no es el dueño
         // del bloque.
         builder.HasIndex(a => new { a.Id, a.AdvisorId }).IsUnique();
+        // Un asesor no puede tener dos bloques que empiecen el mismo día y hora en un ciclo.
         builder.HasIndex(a => new { a.TermId, a.AdvisorId, a.DayOfWeek, a.StartTime }).IsUnique();
 
         builder.HasOne(a => a.Term)
@@ -77,8 +82,10 @@ public class AvailabilityConfiguration : IEntityTypeConfiguration<Availability>
     }
 }
 
+// Mapea AdvisorySession a asesorias. Todas las relaciones son Restrict: una asesoría es un registro histórico que no debe desaparecer en cascada.
 public class AdvisorySessionConfiguration : IEntityTypeConfiguration<AdvisorySession>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<AdvisorySession> builder)
     {
         builder.ToTable("asesorias");
@@ -143,8 +150,10 @@ public class AdvisorySessionConfiguration : IEntityTypeConfiguration<AdvisorySes
     }
 }
 
+// Mapea la bitácora; Cascade porque solo existe ligada a su asesoría.
 public class SessionLogConfiguration : IEntityTypeConfiguration<SessionLog>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<SessionLog> builder)
     {
         builder.ToTable("bitacoras_asesoria");
@@ -163,9 +172,10 @@ public class SessionLogConfiguration : IEntityTypeConfiguration<SessionLog>
     }
 }
 
-/// <summary>Solo lectura: las filas las insertan los triggers de asesorias.</summary>
+// Solo lectura: las filas las insertan los triggers de asesorias.
 public class SessionStatusChangeConfiguration : IEntityTypeConfiguration<SessionStatusChange>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<SessionStatusChange> builder)
     {
         builder.ToTable("historial_estados_sesion");

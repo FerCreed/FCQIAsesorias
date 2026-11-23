@@ -2,9 +2,7 @@ using FCQI.Application.Interfaces;
 
 namespace FCQI.Infrastructure.Time;
 
-/// <summary>
-/// Reloj del campus de la FCQI, en Ensenada (America/Tijuana).
-/// </summary>
+// Reloj del campus de la FCQI, en Ensenada (America/Tijuana).
 public class CampusClock : IClock
 {
     // Identificador IANA. .NET 8 lo resuelve también en Windows gracias a ICU;
@@ -13,13 +11,16 @@ public class CampusClock : IClock
     private const string Iana = "America/Tijuana";
     private const string Windows = "Pacific Standard Time (Mexico)";
 
+    // Zona del campus, resuelta una sola vez al construir (el reloj es singleton).
     public TimeZoneInfo Zone { get; }
 
+    // Resuelve la zona al arrancar para fallar pronto si el sistema no la tiene.
     public CampusClock()
     {
         Zone = Resolve();
     }
 
+    // Busca la zona probando el identificador IANA y luego el de Windows.
     private static TimeZoneInfo Resolve()
     {
         foreach (var id in new[] { Iana, Windows })
@@ -43,12 +44,16 @@ public class CampusClock : IClock
             "que instalar tzdata, o compilar sin InvariantGlobalization.");
     }
 
+    // Instante actual en UTC.
     public DateTime UtcNow => DateTime.UtcNow;
 
+    // Hora local del campus, calculada desde UTC para no depender de la zona del servidor.
     public DateTime LocalNow => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Zone);
 
+    // Convierte hora de reloj local a UTC tolerando los cambios de horario.
     public DateTime ToUtc(DateTime local)
     {
+        // Unspecified obliga a interpretar la hora en la zona del campus y no en la del servidor.
         var naive = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
 
         // Durante el salto de primavera hay horas locales que no existen
@@ -65,6 +70,7 @@ public class CampusClock : IClock
         return TimeZoneInfo.ConvertTimeToUtc(naive, Zone);
     }
 
+    // Convierte UTC a hora local; marca el Kind porque EF Core entrega fechas sin él.
     public DateTime ToLocal(DateTime utc)
         => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Zone);
 }

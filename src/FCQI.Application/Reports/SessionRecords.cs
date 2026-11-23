@@ -5,12 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Reports;
 
-/// <summary>Única proyección asesoría → <see cref="SessionRecord"/> de todos los reportes.</summary>
+// Única proyección asesoría → SessionRecord de todos los reportes.
 internal static class SessionRecords
 {
+    // Método de extensión sobre la consulta para que cada reporte aplique sus
+    // propios filtros y comparta la misma proyección. La consulta se resuelve
+    // en una sola ida a la base con una proyección anónima de columnas planas.
     public static async Task<List<SessionRecord>> ToRecordsAsync(
         this IQueryable<AdvisorySession> query, IClock clock, CancellationToken cancellationToken)
     {
+        // Orden cronológico estable: el Id desempata asesorías a la misma hora.
         var rows = await query.AsNoTracking()
             .OrderBy(s => s.ScheduledAt).ThenBy(s => s.Id)
             .Select(s => new
@@ -61,7 +65,7 @@ internal static class SessionRecords
         }).ToList();
     }
 
-    /// <summary>Periodo local del campus → rango UTC semiabierto [desde, hasta+1 día).</summary>
+    // Periodo local del campus → rango UTC semiabierto [desde, hasta+1 día).
     public static (DateTime FromUtc, DateTime ToUtc) ToUtcRange(this ReportPeriod period, IClock clock)
         => (clock.ToUtc(period.From.ToDateTime(TimeOnly.MinValue)),
             clock.ToUtc(period.To.AddDays(1).ToDateTime(TimeOnly.MinValue)));

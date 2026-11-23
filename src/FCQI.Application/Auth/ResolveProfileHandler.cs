@@ -5,24 +5,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Auth;
 
-/// <summary>
-/// Resuelve la identidad y los roles de un correo institucional.
-///
-/// El modelo anterior consultaba tres tablas en cadena y devolvía el PRIMER
-/// acierto, así que una persona que fuera alumna y asesora a la vez —los
-/// asesores pares del programa— quedaba atrapada en un solo rol y nunca podía
-/// agendar como alumna. Ahora se resuelven todos sus roles y quien llama
-/// elige, con el de mayor alcance como predeterminado.
-/// </summary>
+// Resuelve la identidad y los roles de un correo institucional.
+//
+// El modelo anterior consultaba tres tablas en cadena y devolvía el PRIMER
+// acierto, así que una persona que fuera alumna y asesora a la vez —los
+// asesores pares del programa— quedaba atrapada en un solo rol y nunca podía
+// agendar como alumna. Ahora se resuelven todos sus roles y quien llama
+// elige, con el de mayor alcance como predeterminado.
 public class ResolveProfileHandler
 {
     private readonly IApplicationDbContext _context;
 
+    // Recibe el contexto de datos por inyección.
     public ResolveProfileHandler(IApplicationDbContext context) => _context = context;
 
+    // Devuelve la identidad y los roles activos del correo, con el token ya
+    // emitido; devuelve null si la persona no existe o no tiene roles activos,
+    // para que la API responda 401 sin revelar cuál de las dos fue.
     public async Task<AuthResult> ResolveAsync(string email, string token, CancellationToken cancellationToken = default)
     {
+        // Se normaliza porque los correos se guardan en minúsculas y el usuario puede teclearlos como sea.
         email = email.Trim().ToLowerInvariant();
+        // Longitud mínima: descarta "@uabc.edu.mx" sin usuario delante.
         if (!email.EndsWith("@uabc.edu.mx", StringComparison.OrdinalIgnoreCase) || email.Length < 14)
         {
             throw new BusinessRuleException("Solo se permiten cuentas institucionales @uabc.edu.mx.");
@@ -46,6 +50,7 @@ public class ResolveProfileHandler
             return null;
         }
 
+        // El orden de inserción define el rol predeterminado: el de mayor alcance va primero.
         var roles = new List<string>();
         if (person.IsAdmin) roles.Add(UserRoles.Admin);
         if (person.IsAdvisor) roles.Add(UserRoles.Advisor);
@@ -61,6 +66,8 @@ public class ResolveProfileHandler
         return new AuthResult(token, roles[0], person.Id, person.DisplayName, person.Email, roles);
     }
 
+    // Lista las personas activas con cada uno de sus roles, para el selector
+    // del login de demostración. Solo se expone cuando la API corre en modo demo.
     public async Task<IReadOnlyList<DemoProfileDto>> ListDemoProfilesAsync(CancellationToken cancellationToken = default)
     {
         var people = await _context.People.AsNoTracking()

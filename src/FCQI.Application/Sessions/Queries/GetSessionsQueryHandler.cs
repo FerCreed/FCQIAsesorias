@@ -5,21 +5,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Sessions.Queries;
 
+// Listado de asesorías con filtros por alumno, asesor, estado y alcance
+// temporal, restringido a lo que quien llama tiene derecho a ver.
 public class GetSessionsQueryHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly IClock _clock;
 
+    // Recibe el contexto de datos y el reloj por inyección.
     public GetSessionsQueryHandler(IApplicationDbContext context, IClock clock)
     {
         _context = context;
         _clock = clock;
     }
 
-    /// <param name="scope">
-    /// <c>upcoming</c>: citas por venir que siguen vivas (panel "Mis asesorías", BPMN 19).
-    /// <c>history</c>: las pasadas o cerradas (BPMN 14). Cualquier otro valor: todas.
-    /// </param>
+    // Devuelve las asesorías que cumplen los filtros, ya en hora local.
+    // upcoming: citas por venir que siguen vivas (panel "Mis asesorías", BPMN 19).
+    // history: las pasadas o cerradas (BPMN 14). Cualquier otro valor: todas.
     public async Task<IReadOnlyList<SessionDto>> HandleAsync(
         int? studentId, int? advisorId, string? status, Caller caller,
         string? scope = null, CancellationToken cancellationToken = default)
@@ -45,6 +47,7 @@ public class GetSessionsQueryHandler
             }
         }
 
+        // Los filtros se componen sobre IQueryable para que EF Core genere un único SQL.
         var query = _context.AdvisorySessions.AsNoTracking();
 
         if (studentId is not null)
@@ -62,6 +65,7 @@ public class GetSessionsQueryHandler
             query = query.Where(s => s.Status.Name == status);
         }
 
+        // Próximas en orden ascendente (la más cercana arriba); historial y todas, de la más reciente a la más antigua.
         var now = _clock.UtcNow;
         query = scope switch
         {

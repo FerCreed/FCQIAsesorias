@@ -6,6 +6,7 @@ using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
+// Paso visible del buscador; se deduce de lo seleccionado, no se guarda aparte.
 public enum CatalogStep
 {
     Subject,
@@ -13,24 +14,25 @@ public enum CatalogStep
     Slot
 }
 
-/// <summary>
-/// Buscar asesoría en tres pasos: materia (BPMN 5), asesor (BPMN 4) y horario
-/// (BPMN 3), con filtros en cada paso (BPMN 8: materia, programa, profesor,
-/// modalidad, día y horario). Al final se elige la fecha en el calendario y se
-/// solicita, o se escribe al asesor (BPMN 15). Se consulta sin cuenta.
-/// </summary>
+// Buscar asesoría en tres pasos: materia (BPMN 5), asesor (BPMN 4) y horario
+// (BPMN 3), con filtros en cada paso (BPMN 8: materia, programa, profesor,
+// modalidad, día y horario). Al final se elige la fecha en el calendario y se
+// solicita, o se escribe al asesor (BPMN 15). Se consulta sin cuenta.
 public partial class CatalogViewModel : PageViewModel, IResettable
 {
     private readonly ICatalogApi _catalog;
     private readonly IFcqiApi _api;
     private readonly SessionContext _session;
     private readonly INavigator _navigator;
+    // Listas completas de cada paso; las colecciones observables guardan solo lo filtrado.
     private List<SubjectItem> _allSubjects = [];
     private List<AdvisorItem> _allAdvisors = [];
     private List<AvailabilityItem> _allSlots = [];
     private TermItem? _term;
+    // Si la solicitud se interrumpió para iniciar sesión, se reanuda al volver.
     private bool _resumeRequest;
 
+    // Selecciones de cada paso; al cambiar se notifican las propiedades derivadas del paso.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Step), nameof(Heading), nameof(Context), nameof(CanGoBack))]
     private SubjectItem? _selectedSubject;
@@ -43,6 +45,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
     [NotifyPropertyChangedFor(nameof(HasSlotSelected), nameof(AllowedDates))]
     private AvailabilityItem? _selectedSlot;
 
+    // Datos de la solicitud y del mensaje al asesor.
     [ObservableProperty] private DateTime? _selectedDate;
     [ObservableProperty] private string _topic = string.Empty;
     [ObservableProperty] private string _message = string.Empty;
@@ -56,6 +59,8 @@ public partial class CatalogViewModel : PageViewModel, IResettable
     [ObservableProperty] private string _modality = CatalogFilters.All;
     [ObservableProperty] private Option<TimeBand> _timeBand = CatalogFilters.TimeBands[0];
 
+    // Recibe catálogo público y API autenticada por separado: el catálogo funciona sin sesión.
+    // Se suscribe a la sesión para cambiar la etiqueta del botón al entrar o salir.
     public CatalogViewModel(AppStatus status, ICatalogApi catalog, IFcqiApi api, SessionContext session, INavigator navigator)
         : base(status)
     {
@@ -69,6 +74,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
 
     public override string Title => "Buscar asesoría";
 
+    // Listas y opciones que enlaza la vista.
     public ObservableCollection<SubjectItem> Subjects { get; } = [];
     public ObservableCollection<AdvisorItem> Advisors { get; } = [];
     public ObservableCollection<AvailabilityItem> Slots { get; } = [];
@@ -78,6 +84,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
     public IReadOnlyList<string> Modalities => CatalogFilters.Modalities;
     public IReadOnlyList<Option<TimeBand>> TimeBands => CatalogFilters.TimeBands;
 
+    // Con asesor elegido se ve el paso de horario; con materia, el de asesor; si no, el de materia.
     public CatalogStep Step => SelectedAdvisor is not null ? CatalogStep.Slot
         : SelectedSubject is not null ? CatalogStep.Advisor
         : CatalogStep.Subject;
@@ -88,15 +95,16 @@ public partial class CatalogViewModel : PageViewModel, IResettable
     public bool CanGoBack => SelectedSubject is not null;
     public bool HasSlotSelected => SelectedSlot is not null;
 
-    /// <summary>Primer día que se puede pedir: mañana. Último: fin del ciclo.</summary>
+    // Primer día que se puede pedir: mañana. Último: fin del ciclo.
     public DateTime FirstDate => DateTime.Today.AddDays(1);
     public DateTime LastDate => _term?.EndsOn.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today.AddMonths(4);
 
-    /// <summary>Fechas del ciclo que caen en el día del bloque elegido; el calendario bloquea las demás.</summary>
+    // Fechas del ciclo que caen en el día del bloque elegido; el calendario bloquea las demás.
     public IReadOnlyList<DateTime>? AllowedDates => SelectedSlot is null
         ? null
         : CatalogFilters.DatesOn(SelectedSlot.DayOfWeek, FirstDate, LastDate).ToList();
 
+    // Textos que cambian con el paso: título, contexto, conteo y mensaje de lista vacía.
     public string Heading => Step switch
     {
         CatalogStep.Subject => "Elige una materia",
@@ -136,8 +144,10 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         _ => Slots.Count == 0
     };
 
+    // Sin sesión el botón anticipa que pedirá entrar antes de solicitar.
     public string RequestLabel => _session.IsLoggedIn ? "Solicitar asesoría" : "Entrar y solicitar";
 
+    // Recarga ciclo y materias en cada visita y, si se volvió del login, envía la solicitud pendiente.
     public override async Task OnNavigatedToAsync()
     {
         // Se recargan en cada visita: dirección pudo asignar asesores a una
@@ -155,6 +165,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
             ApplyFilters();
         });
 
+        // Regreso del login: se envía la solicitud que quedó pendiente sin que la persona repita los pasos.
         if (_resumeRequest && _session.IsLoggedIn)
         {
             _resumeRequest = false;
@@ -162,6 +173,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         }
     }
 
+    // Al cerrar sesión vuelve al primer paso y borra textos y filtros.
     public void Reset()
     {
         SelectedSubject = null;
@@ -169,6 +181,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         ClearFilters();
     }
 
+    // Cualquier cambio de filtro reaplica sobre la lista del paso visible.
     partial void OnQueryChanged(string value) => ApplyFilters();
     partial void OnProgramChanged(string value) => ApplyFilters();
     partial void OnOnlyWithAdvisorsChanged(bool value) => ApplyFilters();
@@ -176,6 +189,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
     partial void OnModalityChanged(string value) => ApplyFilters();
     partial void OnTimeBandChanged(Option<TimeBand> value) => ApplyFilters();
 
+    // Al elegir materia se descarta el asesor previo y se cargan los de la nueva materia.
     partial void OnSelectedSubjectChanged(SubjectItem? value)
     {
         SelectedAdvisor = null;
@@ -189,6 +203,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         NotifyStep();
     }
 
+    // Al elegir asesor se descarta el horario previo y se cargan los del nuevo asesor.
     partial void OnSelectedAdvisorChanged(AdvisorItem? value)
     {
         SelectedSlot = null;
@@ -203,9 +218,11 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         NotifyStep();
     }
 
+    // Propone la próxima fecha del bloque para que el calendario abra en un día válido.
     partial void OnSelectedSlotChanged(AvailabilityItem? value)
         => SelectedDate = value?.NextOccurrence(DateTime.Today).Date;
 
+    // Restablece todos los filtros a sus valores por omisión.
     [RelayCommand]
     private void ClearFilters()
     {
@@ -215,9 +232,11 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         ApplyFilters();
     }
 
+    // «Cambiar horario»: quita el bloque elegido y vuelve a mostrar la lista completa de horarios.
     [RelayCommand]
     private void ClearSlot() => SelectedSlot = null;
 
+    // Retrocede un paso quitando la selección más reciente.
     [RelayCommand]
     private void Back()
     {
@@ -225,6 +244,8 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         else SelectedSubject = null;
     }
 
+    // Envía la solicitud. Sin sesión, pide entrar y la reanuda al volver; con un rol
+    // que no es alumno, explica cómo cambiar de rol en vez de fallar en la API.
     [RelayCommand]
     private async Task RequestAsync()
     {
@@ -247,6 +268,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
             return;
         }
 
+        // Fecha elegida + hora de inicio del bloque, en hora local del campus como espera la API.
         var start = SelectedDate.Value.Date + (TimeSpan.TryParse(SelectedSlot.StartTime, out var t) ? t : TimeSpan.Zero);
         var body = new CreateSessionBody(_session.PersonId, SelectedAdvisor.Id, SelectedSubject.Id, SelectedSlot.Id,
             start, string.IsNullOrWhiteSpace(Topic) ? "Dudas de la materia" : Topic.Trim());
@@ -260,6 +282,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         }
     }
 
+    // Abre o cierra el formulario de mensaje; escribir exige sesión.
     [RelayCommand]
     private void ToggleContact()
     {
@@ -272,6 +295,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         IsContactOpen = !IsContactOpen;
     }
 
+    // Envía el mensaje al asesor por correo y cierra el formulario si salió bien.
     [RelayCommand]
     private async Task SendMessageAsync()
     {
@@ -289,11 +313,9 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         }
     }
 
-    /// <summary>
-    /// Aplica los filtros a la lista del paso visible. Solo esa: vaciar la lista
-    /// de un paso anterior haría que su ListBox borrara la selección (la materia
-    /// o el asesor elegidos) y la búsqueda regresaría sola al paso 1.
-    /// </summary>
+    // Aplica los filtros a la lista del paso visible. Solo esa: vaciar la lista
+    // de un paso anterior haría que su ListBox borrara la selección (la materia
+    // o el asesor elegidos) y la búsqueda regresaría sola al paso 1.
     private void ApplyFilters()
     {
         var days = Days.Where(d => d.IsChecked).Select(d => d.Value).ToList();
@@ -313,10 +335,20 @@ public partial class CatalogViewModel : PageViewModel, IResettable
                     CatalogFilters.Matches(days, a.Days)));
                 break;
             default:
+                // Al vaciarse la lista, el ListBox borra el horario elegido y con él la
+                // fecha. Se guardan antes y se restauran si el bloque sigue en la lista:
+                // así la solicitud pendiente sobrevive al regreso del login.
+                var (slot, date) = (SelectedSlot, SelectedDate);
                 Replace(Slots, _allSlots.Where(s =>
                     CatalogFilters.Matches(Modality, s.Modality) &&
                     CatalogFilters.Matches(TimeBand.Value, s.StartHour) &&
                     CatalogFilters.Matches(days, [s.DayOfWeek])));
+                if (slot is not null && Slots.Contains(slot))
+                {
+                    // El orden importa: asignar el horario propone una fecha y luego se repone la elegida.
+                    (SelectedSlot, SelectedDate) = (slot, date);
+                }
+
                 break;
         }
 
@@ -325,11 +357,9 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         OnPropertyChanged(nameof(IsEmpty));
     }
 
-    /// <summary>
-    /// Carga una lista del paso actual. La respuesta se descarta si la selección
-    /// ya cambió (<paramref name="stillCurrent"/>), para no mezclar asesores de
-    /// una materia con los de otra.
-    /// </summary>
+    // Carga una lista del paso actual. La respuesta se descarta si la selección
+    // ya cambió (stillCurrent), para no mezclar asesores de
+    // una materia con los de otra.
     internal async Task LoadAsync<T>(Func<Task<List<T>>> fetch, Action<List<T>> store, Func<bool> stillCurrent)
     {
         try
@@ -353,12 +383,14 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         }
     }
 
+    // Sustituye el contenido de la colección observable conservando la misma instancia enlazada.
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
     {
         target.Clear();
         foreach (var item in items) target.Add(item);
     }
 
+    // Tras cambiar de paso, refresca la lista y todas las propiedades que dependen del paso.
     private void NotifyStep()
     {
         ApplyFilters();

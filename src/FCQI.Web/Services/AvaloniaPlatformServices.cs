@@ -3,19 +3,20 @@ using Avalonia.Platform.Storage;
 
 namespace FCQI.Web.Services;
 
-/// <summary>
-/// Adaptador de <see cref="IPlatformServices"/>. En el navegador descarga con
-/// JavaScript (<see cref="HostHooks"/>); en escritorio usa el diálogo de
-/// guardar y el lanzador de Avalonia.
-/// </summary>
+// Adaptador de IPlatformServices. En el navegador descarga con
+// JavaScript (HostHooks); en escritorio usa el diálogo de
+// guardar y el lanzador de Avalonia.
 public class AvaloniaPlatformServices : IPlatformServices
 {
     private readonly Func<TopLevel?> _topLevel;
 
+    // Recibe una función y no el TopLevel, porque este aún no existe al construir los servicios.
     public AvaloniaPlatformServices(Func<TopLevel?> topLevel) => _topLevel = topLevel;
 
+    // Resuelve el TopLevel en cada uso; lanza si se pide antes de montar la vista.
     private TopLevel Top => _topLevel() ?? throw new InvalidOperationException("La ventana todavía no está lista.");
 
+    // Descarga directa en navegador; diálogo de guardar en escritorio.
     public async Task<bool> SaveFileAsync(string suggestedName, string mimeType, byte[] content)
     {
         if (HostHooks.Download is { } download)
@@ -39,6 +40,7 @@ public class AvaloniaPlatformServices : IPlatformServices
         return true;
     }
 
+    // Abre la URL con el lanzador del sistema; lanza si es inválida o no se pudo abrir.
     public async Task OpenUrlAsync(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !await Top.Launcher.LaunchUriAsync(uri))

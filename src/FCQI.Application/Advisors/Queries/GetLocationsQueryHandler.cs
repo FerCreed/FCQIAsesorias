@@ -4,13 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Advisors.Queries;
 
-/// <summary>Sedes activas, para el formulario de horarios del asesor.</summary>
+// Sedes activas, para el formulario de horarios del asesor.
 public class GetLocationsQueryHandler
 {
     private readonly IApplicationDbContext _context;
 
+    // Recibe el contexto de datos por inyección.
     public GetLocationsQueryHandler(IApplicationDbContext context) => _context = context;
 
+    // Devuelve las sedes activas ordenadas por nombre, con su modalidad.
     public async Task<IReadOnlyList<LocationDto>> HandleAsync(CancellationToken cancellationToken = default)
         => await _context.Locations.AsNoTracking()
             .Where(l => l.IsActive)

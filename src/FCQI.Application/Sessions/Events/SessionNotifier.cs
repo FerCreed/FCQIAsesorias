@@ -4,16 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Sessions.Events;
 
-/// <summary>
-/// Notificaciones de BPMN 8, 11, 12 y 18: avisa por correo al alumno y al
-/// asesor de la cita, nombrando a quien hizo el cambio.
-/// </summary>
+// Notificaciones de BPMN 8, 11, 12 y 18: avisa por correo al alumno y al
+// asesor de la cita, nombrando a quien hizo el cambio.
 public class SessionNotifier : ISessionObserver
 {
     private readonly IApplicationDbContext _context;
     private readonly IEmailSender _email;
     private readonly IClock _clock;
 
+    // Recibe el contexto de datos, el emisor de correo y el reloj por inyección.
     public SessionNotifier(IApplicationDbContext context, IEmailSender email, IClock clock)
     {
         _context = context;
@@ -21,8 +20,10 @@ public class SessionNotifier : ISessionObserver
         _clock = clock;
     }
 
+    // Redacta y envía el aviso del cambio a ambos participantes.
     public async Task OnChangedAsync(SessionChanged change, CancellationToken cancellationToken)
     {
+        // Proyección con solo los datos que lleva el correo.
         var s = await _context.AdvisorySessions.AsNoTracking()
             .Where(x => x.Id == change.SessionId)
             .Select(x => new
@@ -37,12 +38,14 @@ public class SessionNotifier : ISessionObserver
             })
             .SingleAsync(cancellationToken);
 
+        // Sin persona asociada el cambio se atribuye a dirección, no a un nombre vacío.
         var actor = await _context.People.AsNoTracking()
             .Where(p => p.Id == change.ChangedBy)
             .Select(p => p.DisplayName)
             .SingleOrDefaultAsync(cancellationToken) ?? "Dirección del programa";
 
         var when = _clock.ToLocal(s.ScheduledAt).ToString("dddd dd/MM/yyyy HH:mm", Spanish);
+        // Coincidencia de patrones sobre el evento: la creación se reconoce por From nulo.
         var what = change switch
         {
             { From: null } => "solicitó una nueva asesoría",
@@ -67,5 +70,6 @@ public class SessionNotifier : ISessionObserver
         }
     }
 
+    // Cultura fija para que el nombre del día salga en español sin importar la configuración del servidor.
     private static readonly System.Globalization.CultureInfo Spanish = new("es-MX");
 }

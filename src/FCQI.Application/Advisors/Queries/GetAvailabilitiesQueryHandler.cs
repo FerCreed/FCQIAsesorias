@@ -5,17 +5,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Advisors.Queries;
 
+// Bloques de horario activos de un asesor en el ciclo vigente, ordenados por
+// día y hora para pintarlos tal cual en el calendario.
 public class GetAvailabilitiesQueryHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly CurrentTerm _term;
 
+    // Recibe el contexto de datos y el resolvedor del ciclo vigente por inyección.
     public GetAvailabilitiesQueryHandler(IApplicationDbContext context, CurrentTerm term)
     {
         _context = context;
         _term = term;
     }
 
+    // Devuelve los bloques del asesor indicado; lista vacía si no tiene.
     public async Task<IReadOnlyList<AvailabilityDto>> HandleAsync(int advisorId, CancellationToken cancellationToken = default)
     {
         var termId = await _term.IdAsync(cancellationToken);

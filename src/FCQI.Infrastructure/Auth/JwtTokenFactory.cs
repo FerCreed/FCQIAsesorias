@@ -7,12 +7,18 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FCQI.Infrastructure.Auth;
 
+// Fábrica de los JWT que emite la API tras autenticar. Es singleton: no
+// guarda estado y solo lee la configuración.
 public class JwtTokenFactory
 {
     private readonly IConfiguration _configuration;
 
+    // Recibe la configuración de la que lee clave, emisor y audiencia.
     public JwtTokenFactory(IConfiguration configuration) => _configuration = configuration;
 
+    // Firma un token HMAC-SHA256 con la identidad y todos los roles del perfil.
+    // Sin clave configurada lanza, porque firmar con una clave vacía produciría
+    // tokens falsificables.
     public string Create(AuthResult profile)
     {
         var key = _configuration["Authentication:Jwt:Key"]
@@ -39,6 +45,7 @@ public class JwtTokenFactory
         // puede actuar como cualquiera de los dos sin volver a autenticarse.
         claims.AddRange(profile.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
+        // Vigencia de 8 horas: cubre una jornada escolar sin dejar tokens válidos por días.
         var token = new JwtSecurityToken(
             issuer,
             audience,

@@ -6,19 +6,21 @@ using Microsoft.Extensions.Logging;
 
 namespace FCQI.Infrastructure.Messaging;
 
-/// <summary>
-/// Adaptador de <see cref="IEmailSender"/> sobre SMTP (System.Net.Mail).
-/// Se activa al definir <c>Smtp:Host</c>; el resto de la configuración:
-/// <c>Smtp:Port</c> (587), <c>Smtp:User</c>, <c>Smtp:Password</c>, <c>Smtp:From</c>.
-/// </summary>
+// Adaptador de IEmailSender sobre SMTP (System.Net.Mail).
+// Se activa al definir Smtp:Host; el resto de la configuración:
+// Smtp:Port (587), Smtp:User, Smtp:Password, Smtp:From.
 public class SmtpEmailSender : IEmailSender
 {
     private readonly IConfiguration _config;
 
+    // Guarda solo la sección Smtp de la configuración.
     public SmtpEmailSender(IConfiguration configuration) => _config = configuration.GetSection("Smtp");
 
+    // Envía el correo abriendo un cliente por mensaje: SmtpClient no es seguro
+    // para uso concurrente y el adaptador es singleton.
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
+        // Sin usuario se envía sin credenciales (relevo interno del campus).
         using var client = new SmtpClient(_config["Host"], _config.GetValue("Port", 587))
         {
             EnableSsl = _config.GetValue("EnableSsl", true),
@@ -37,16 +39,16 @@ public class SmtpEmailSender : IEmailSender
     }
 }
 
-/// <summary>
-/// Adaptador por omisión mientras no haya servidor SMTP: deja el correo en el
-/// log en vez de perderlo en silencio, así se puede revisar en desarrollo.
-/// </summary>
+// Adaptador por omisión mientras no haya servidor SMTP: deja el correo en el
+// log en vez de perderlo en silencio, así se puede revisar en desarrollo.
 public class LogEmailSender : IEmailSender
 {
     private readonly ILogger<LogEmailSender> _logger;
 
+    // Recibe el logger donde se registran los correos.
     public LogEmailSender(ILogger<LogEmailSender> logger) => _logger = logger;
 
+    // Registra destinatario y asunto; el cuerpo solo en nivel Debug.
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
         // El cuerpo lleva datos personales y mensajes de alumnos: solo en nivel
@@ -57,14 +59,14 @@ public class LogEmailSender : IEmailSender
     }
 }
 
-/// <summary>
-/// Adaptador por omisión de <see cref="IMeetingLinkProvider"/>: usa el enlace
-/// fijo de la sala virtual si la sede lo trae en <c>lugares.Detalles</c>.
-/// Para generar una reunión por cita (Google Meet) basta otro adaptador que
-/// implemente la misma interfaz.
-/// </summary>
+// Adaptador por omisión de IMeetingLinkProvider: usa el enlace
+// fijo de la sala virtual si la sede lo trae en lugares.Detalles.
+// Para generar una reunión por cita (Google Meet) basta otro adaptador que
+// implemente la misma interfaz.
 public class LocationMeetingLinkProvider : IMeetingLinkProvider
 {
+    // Devuelve el enlace de la sede solo si es una URL https absoluta, para no
+    // mandar por correo texto libre o enlaces inseguros como si fueran la reunión.
     public Task<string?> CreateLinkAsync(
         Domain.Entities.AdvisorySession session, Domain.Entities.Location location, CancellationToken cancellationToken = default)
         => Task.FromResult(

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Cada capa registra sus propios servicios; Program.cs solo las compone.
 builder.Services
     .AddApi(builder.Configuration)
     .AddApplication()
@@ -35,12 +36,15 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Swagger solo en desarrollo, para no publicar el mapa de la API en producción.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// El orden del pipeline importa: CORS antes de autenticar, autenticar antes de
+// autorizar, y el limitador después para particionar por el usuario ya identificado.
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();

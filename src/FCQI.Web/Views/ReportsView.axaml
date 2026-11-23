@@ -5,6 +5,7 @@
              xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.ReportsView"
              x:DataType="vm:ReportsViewModel">
+    <!-- Estilo de las tarjetas de métricas: número grande con su etiqueta debajo. -->
     <UserControl.Styles>
         <Style Selector="Border.metric">
             <Setter Property="Margin" Value="0,0,12,12" />
@@ -16,6 +17,7 @@
         </Style>
     </UserControl.Styles>
 
+    <!-- Reportes de dirección (BPMN 6): filtros, tablero de métricas y descargas. -->
     <StackPanel Classes="page">
         <StackPanel Spacing="4">
             <TextBlock Classes="h1" Text="Reportes de asesorías" AutomationProperties.HeadingLevel="1" />
@@ -76,10 +78,12 @@
             </StackPanel>
         </Border>
 
+        <!-- Aviso cuando el periodo no tiene asesorías, en lugar de mostrar ceros. -->
         <Border Classes="card" IsVisible="{Binding !HasData}">
             <TextBlock Classes="muted" Text="No hay asesorías en el periodo y filtros elegidos." />
         </Border>
 
+        <!-- Tablero: indicadores principales, desglose y descargas por asesor. -->
         <StackPanel Spacing="16" IsVisible="{Binding HasData}">
             <UniformGrid Classes="cards">
                 <Border Classes="card metric"><StackPanel><TextBlock Classes="value" Text="{Binding Metrics.Total}" /><TextBlock Classes="muted" Text="solicitadas" /></StackPanel></Border>
