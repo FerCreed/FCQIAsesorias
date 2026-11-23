@@ -102,58 +102,93 @@ Lo que cubre, por si hay que revisarlo a mano:
 
 ## 4. Interfaz (a mano, en el navegador)
 
-Abre `http://localhost:5080`. El acceso de demostración solo existe mientras
-`Authentication:Google:ClientId` esté vacío.
+Abre `http://localhost:5080`. El acceso sin contraseña (lista de perfiles o
+correo) solo existe mientras `Authentication:Google:ClientId` esté vacío y
+`Authentication:PasswordlessLogin` no sea `false`. El
+[manual de usuario](manual/manual-de-usuario.md) muestra con capturas cómo
+debe verse cada pantalla.
+
+### Común a todos
+
+- [ ] Sin sesión, el menú ofrece Inicio · Buscar y arriba a la derecha
+      aparecen «Entrar» y el botón ☰.
+- [ ] ☰ muestra «Tamaño de letra» (lupas − y + y el porcentaje). Con sesión,
+      además «Conectado como», el nombre, el rol y «Salir».
+- [ ] El tamaño de letra elegido se conserva al recargar la página.
+- [ ] En las pantallas con panel lateral (Mis asesorías, Solicitudes, Mis
+      horarios, Dirección) la **lista queda a la izquierda y el panel a la
+      derecha**, de 360 px; el panel **no tapa la lista**. Con menos de 640 px
+      de ancho el panel baja debajo de la lista.
 
 ### Alumno
 
-- [ ] Entra como **Alumno: Yesua Fernando Díaz Hernández**.
-- [ ] El encabezado ofrece Inicio · Buscar · Mis asesorías · Salir, y **no**
-      muestra Dirección.
+- [ ] Entra como **Alumno: Yesua Fernando Díaz Hernández** (o
+      `alumno.prueba@uabc.edu.mx`).
+- [ ] El menú ofrece Inicio · Buscar · Mis asesorías, y **no** muestra
+      Dirección ni Solicitudes.
 - [ ] Buscar → *Cálculo Diferencial* → sale la lista de asesores que dirección
       le asignó → elige asesor → salen sus bloques de horario.
+- [ ] Al elegir un bloque, el calendario de la fecha solo habilita los días de
+      ese bloque dentro del ciclo.
 - [ ] «Solicitar asesoría» → **la pantalla salta sola a Mis asesorías** y la
       nueva aparece como Pendiente.
 - [ ] Pedir dos veces el mismo bloque deja un mensaje que lo explica, no un
       volcado de excepción.
-- [ ] Con una asesoría seleccionada, «Cancelar mi asesoría» la pasa a Cancelada.
+- [ ] Con una asesoría seleccionada, «Cancelar asesoría» la pasa a Cancelada.
 - [ ] Al alumno no le aparecen los botones Confirmar ni Rechazar.
+- [ ] Sin sesión, «Entrar y solicitar» lleva al acceso. **Fallo conocido
+      (RF-05):** al entrar regresa al buscador pero pierde el horario elegido;
+      se marca como pasado cuando la solicitud se envía sola.
+
+### Asesor
+
+- [ ] Entra como `asesor.prueba@uabc.edu.mx`. El menú ofrece Inicio · Buscar ·
+      Solicitudes · Mis horarios.
+- [ ] Solicitudes → una Pendiente → Confirmar: pasa a Confirmada y el aviso
+      dice «Asesoría confirmada. Avisamos al alumno.»
+- [ ] Historial → una Confirmada que ya pasó → «Registrar bitácora» → Guardar:
+      pasa a Realizada.
+- [ ] Mis horarios → Nuevo bloque → Guardar horario: aparece en la lista y en
+      el buscador del alumno.
 
 ### Asesor par: el cambio de rol
 
 Este es el caso que motivó el selector. **Entra como `j2207105@uabc.edu.mx`
-(Jimena Beltrán) o `v1299027@uabc.edu.mx` (Vladimir Ramírez).**
+(Jimena Beltrán), `v1299027@uabc.edu.mx` (Vladimir Ramírez) o
+`asesor.estudiante.prueba@uabc.edu.mx`.**
 
-- [ ] En el selector de acceso, esa persona aparece **dos veces**, una por rol.
-      Elegir «Alumno: …» entra como alumna, no como asesora.
-- [ ] En el encabezado aparece **«Entrar como»** con una lista de sus dos roles.
-      A quien solo tiene un rol no le aparece.
-- [ ] El recuadro del hero dice **ESTÁS COMO: Alumno**.
+- [ ] En la lista de perfiles, esa persona aparece **dos veces**, una por rol.
+      Elegir «Alumno · …» entra como alumna, no como asesora.
+- [ ] En ☰ aparece **«Entrar como»** con sus dos roles. A quien solo tiene un
+      rol no le aparece.
 - [ ] Como alumna ve *sus* asesorías (las que pidió) y puede usar Buscar.
-- [ ] Cambia el selector a **Asesor**: vuelve al inicio, desaparece Buscar,
-      aparece Solicitudes y la lista cambia a las asesorías **que ella atiende**.
-      El recuadro dice ESTÁS COMO: Asesor.
+- [ ] Cambia «Entrar como» a **Asesor**: el menú cambia a Solicitudes y Mis
+      horarios y la lista pasa a las asesorías **que ella atiende**. «Conectado
+      como» muestra el rol nuevo.
 - [ ] **No hubo que salir ni volver a entrar.**
 - [ ] Como asesora, Confirmar/Rechazar funcionan sobre la solicitud que le
       hicieron.
-- [ ] Vuelve a **Alumno**: reaparece Buscar y vuelve su propia lista.
+- [ ] Vuelve a **Alumno**: reaparece Mis asesorías y vuelve su propia lista.
 - [ ] Agendarse consigo misma se rechaza con un mensaje claro.
 
 ### Dirección
 
-- [ ] Entra como **Directivo: Lizeth Carolina Aguilar Dodier**.
-- [ ] El encabezado ofrece Citas y Dirección; no ofrece Buscar.
-- [ ] Citas muestra **todas** las asesorías del programa.
-- [ ] Dirección → elige un asesor → marca una materia → Guardar: el mensaje
-      confirma y **el panel se queda en el mismo asesor**, no salta al primero.
+- [ ] Entra como **Directivo: Lizeth Carolina Aguilar Dodier** (o
+      `admin.prueba@uabc.edu.mx`).
+- [ ] El menú ofrece Inicio · Buscar · Dirección · Reportes.
+- [ ] Dirección → elige un asesor → marca una materia → Guardar materias: el
+      mensaje confirma y **el panel se queda en el mismo asesor**, no salta al
+      primero.
 - [ ] Esa materia aparece luego al alumno cuando la busca.
 - [ ] Desmarcar una materia con asesorías vivas se rechaza **con el motivo en
       pantalla**, no en silencio.
+- [ ] Reportes → Ver métricas muestra indicadores, horas por asesor y
+      desgloses; los botones PDF/CSV descargan archivos.
 
 ### Salir
 
-- [ ] «Salir» vuelve al acceso y no queda nada del usuario anterior en las
-      listas.
+- [ ] ☰ → «Salir» vuelve al inicio con el aviso «Sesión cerrada. El catálogo
+      sigue disponible.» y no queda nada del usuario anterior en las listas.
 
 ## 5. Operabilidad
 

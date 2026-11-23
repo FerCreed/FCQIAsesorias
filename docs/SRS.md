@@ -4,8 +4,8 @@
 | Campo | Valor |
 |-------|-------|
 | Organización | Facultad de Ciencias Químicas e Ingeniería (FCQI), UABC Tijuana |
-| Versión del documento | 1.1 |
-| Fecha | 7 de noviembre de 2026 |
+| Versión del documento | 1.2 |
+| Fecha | 23 de noviembre de 2026 |
 | Estándar de referencia | ISO/IEC/IEEE 29148:2018 (sucesor de IEEE 830) |
 | Fuente de los procesos | Diagramas BPMN en `AsesoriasBizagi/` (Diagrama 1 a 19) |
 
@@ -59,6 +59,7 @@ para Android/iOS (en el teléfono se usa el navegador, ver RNF-01).
 - `db/01-schema.sql`, `db/diagrama-er.md` — modelo de datos.
 - `docs/checklist-validacion.md` — procedimiento de validación de una entrega.
 - `README.md` — instalación y ejecución.
+- `docs/manual/manual-de-usuario.md` — manual de usuario con capturas, para alumnos, asesores y dirección.
 
 ---
 
@@ -93,8 +94,8 @@ Sistema web autónomo en cuatro capas, desplegado como un solo contenedor:
 | Directivo | Dirección o coordinación del programa. | Asignación de materias, reportes; puede actuar sobre cualquier asesoría. |
 | Sistema | Procesos automáticos. | Validaciones, notificaciones, enlaces, historial de estados. |
 
-Una persona puede tener varios roles; elige con cuál trabajar en el selector
-"rol" de la cabecera sin volver a entrar.
+Una persona puede tener varios roles; elige con cuál trabajar en «Entrar como»,
+dentro del menú ☰ de la cabecera, sin volver a entrar.
 
 ### 2.3 Restricciones
 
@@ -113,7 +114,8 @@ Una persona puede tener varios roles; elige con cuál trabajar en el selector
 ## 3. Requisitos funcionales
 
 Prioridad: **A** imprescindible, **M** importante. Estado: **✔** implementado,
-**◐** implementado con adaptador por omisión (ver §5.3).
+**◐** implementado con adaptador por omisión (ver §5.3), **⚠** implementado con
+un fallo conocido (ver la nota bajo su tabla).
 
 ### 3.1 Acceso
 
@@ -123,7 +125,11 @@ Prioridad: **A** imprescindible, **M** importante. Estado: **✔** implementado,
 | RF-02 | El sistema debe resolver todos los roles activos de la persona y emitir un token JWT con ellos; si no tiene ninguno, niega el acceso con un mensaje claro. | 1 | A | ✔ |
 | RF-03 | Si la persona tiene más de un rol, debe poder cambiar de rol sin volver a entrar. | 1 | A | ✔ |
 | RF-04 | Al salir, el cliente debe borrar el token, limpiar listas y selecciones y regresar al inicio. | 17 | A | ✔ |
-| RF-05 | Si una acción requiere sesión, el sistema lleva al acceso y, al entrar, regresa a la pantalla de origen y retoma la solicitud pendiente. | 1, 8 | M | ✔ |
+| RF-05 | Si una acción requiere sesión, el sistema lleva al acceso y, al entrar, regresa a la pantalla de origen y retoma la solicitud pendiente. | 1, 8 | M | ⚠ |
+
+**RF-05, fallo conocido:** tras entrar, la app regresa al buscador pero pierde el
+horario elegido y no envía la solicitud; el usuario debe volver a tocar el
+horario (el manual lo indica).
 
 ### 3.2 Catálogo y solicitud (alumno)
 
@@ -201,7 +207,7 @@ Cancelada, Rechazada y Realizada son finales.  Dirección: cualquier transición
 | RNF-08 | Disponibilidad | Un fallo de correo o de enlace no debe impedir el cambio de estado. | Los observadores corren después de guardar y sus errores se registran sin propagarse. |
 | RNF-09 | Usabilidad | Todo error de negocio se muestra en español, con la causa y qué hacer; los fallos internos no exponen detalles. | Las reglas lanzan `BusinessRuleException`; `ApiExceptionFilter` la traduce a 400 con `{ message }` y deja el resto como 500 en el log. |
 | RNF-10 | Mantenibilidad | Capas desacopladas, patrones de diseño donde aportan y pruebas automáticas de las reglas de negocio. | Ver §6 y §8. |
-| RNF-12 | Accesibilidad | Zoom de la interfaz de 80 % a 200 % (botones A− / A+ y Ctrl/Cmd + − 0); foco de teclado visible; contraste AA; objetivos táctiles de 44 px o más; nombres accesibles en los botones con ícono; cada elemento pulsable cambia al pasar el cursor y al presionarse. | Zoom con `LayoutTransformControl`; estilos globales en `App.axaml`; control `IconText`. |
+| RNF-12 | Accesibilidad | Zoom de la interfaz de 80 % a 200 % (lupas − / + en «Tamaño de letra» del menú ☰, y Ctrl/Cmd + − 0); el nivel elegido se recuerda en el navegador; foco de teclado visible; contraste AA; objetivos táctiles de 44 px o más; nombres accesibles en los botones con ícono; cada elemento pulsable cambia al pasar el cursor y al presionarse. | Zoom con `LayoutTransformControl`; estilos globales en `App.axaml`; control `IconText`. |
 | RNF-13 | Usabilidad | Íconos Fluent System Icons de Microsoft en menú, botones y listas; aspecto institucional (encabezado blanco, banda verde, fondo papel). | `Themes/Icons.axaml` (trazos oficiales, licencia MIT). |
 | RNF-14 | Vocabulario | El rol se llama **asesor** en todo el sistema ("tutor" es otro rol en la facultad). El tipo de asesor es "Profesor" o "Estudiante". | Textos, API, correos, reportes y documentación. |
 | RNF-11 | Rendimiento | Respuesta < 1 s para el catálogo y las consultas con los volúmenes de un ciclo (miles de citas). | Índices por asesor, alumno, ciclo y estado; caché de materias y sedes en el cliente. |

@@ -6,6 +6,8 @@ Catálogo dummy 2026-2 tomado de los horarios oficiales (14 asesores, materias y
 
 Los requisitos, la trazabilidad con los 19 diagramas BPMN de `AsesoriasBizagi/` y los patrones de diseño están en la **[SRS](docs/SRS.md)**.
 
+¿Vas a **usar** el sistema y no a programarlo? Lee el **[manual de usuario](docs/manual/manual-de-usuario.md)**: explica cada pantalla con capturas, para alumnos, asesores y dirección, sin lenguaje técnico.
+
 ## Estructura
 
 | Proyecto | Qué es |
@@ -21,9 +23,15 @@ Los requisitos, la trazabilidad con los 19 diagramas BPMN de `AsesoriasBizagi/` 
 | `docker/` | Scripts y configuración del contenedor (MySQL, nginx, supervisor) |
 | `db/` | **Definición de la base: estructura y datos** |
 | `tools/` | Utilidades: diagrama ER y pruebas de la API en ejecución |
-| `docs/` | [SRS](docs/SRS.md) y [checklist de validación](docs/checklist-validacion.md) |
+| `docs/` | [SRS](docs/SRS.md), [checklist de validación](docs/checklist-validacion.md) y [manual de usuario](docs/manual/manual-de-usuario.md) (con sus capturas en `docs/manual/img/`) |
 
-GitFlow: `main` (estable), `develop` (integración), `feature/*`.
+GitFlow: `main` (estable), `develop` (integración), `feature/*`, `fix/*`, `docs/*`.
+
+**Comentarios en el código.** Todo `src/` está comentado en español con
+comentarios `//` (y `<!-- -->` en AXAML), sin etiquetas XML de documentación
+(`<summary>` y similares). Son declarativos: dicen qué hace cada clase, método
+o bloque importante y **por qué** se resolvió así. Mantén esa convención al
+agregar código.
 
 ## Requisitos
 
@@ -99,7 +107,10 @@ verano, no con un desplazamiento fijo. La API recibe y devuelve hora local;
 ### Cómo ver los datos (MySQL Workbench)
 
 1. Abre **MySQL Workbench**.
-2. Conéctate a `localhost` / `127.0.0.1`, puerto `3306`, usuario `root`, tu contraseña.
+2. Conéctate a `127.0.0.1`, puerto `3307` (contenedor de desarrollo) o `3308`
+   (producción), usuario `root` y la contraseña de `MYSQL_ROOT_PASSWORD`.
+   No uses el 3306: está reservado para un MySQL instalado en tu equipo, si lo
+   tienes.
 3. En el panel izquierdo (SCHEMAS) abre **`fcqi_asesorias`**.
 4. Tablas principales:
    - `personas` — identidad única por correo institucional
@@ -224,7 +235,8 @@ usaba tal cual, lo que permitía agendar a nombre de otra persona.
 
 **El token lleva todos los roles.** Un asesor par viaja con `Asesor` y
 `Alumno`, y puede actuar como cualquiera de los dos sin volver a autenticarse.
-La interfaz lo aprovecha con un **selector «Entrar como»** en el encabezado,
+La interfaz lo aprovecha con un **selector «Entrar como»** dentro del menú ☰
+(arriba a la derecha, junto con «Conectado como», el tamaño de letra y «Salir»),
 que solo aparece si la persona tiene más de un rol: cambiarlo cambia el menú,
 las pantallas y la lista de asesorías, sin pedir el token otra vez. Quien tiene
 un solo rol no ve el selector.
@@ -284,6 +296,24 @@ y cancela al terminar todo lo que creó. Con la API nativa en el puerto 5016:
 `API=http://localhost:5016 python3 tools/probar-api.py`.
 
 Prueba rápida a mano: entra como **Alumno: Yesua** → Buscar → Cálculo
-Diferencial → solicita → Salir. Luego entra como **Alumno: Jimena Beltrán**
-(`j2207105`), que es asesora par: cambia el selector «Entrar como» del
-encabezado a **Asesor** y verás su bandeja de solicitudes sin haber salido.
+Diferencial → solicita → ☰ → Salir. Luego entra como **Alumno: Jimena Beltrán**
+(`j2207105`), que es asesora par: en ☰ cambia «Entrar como» a **Asesor** y
+verás su bandeja de solicitudes sin haber salido.
+
+### Capturas del manual
+
+Las imágenes de `docs/manual/img/` se tomaron con la app en el contenedor de
+desarrollo, la base de prueba amplia (`db/03-datos-prueba.sql`) y las cuentas
+`*.prueba@uabc.edu.mx`, en una ventana de 1280 × 800 (y 390 × 844 para las de
+celular). Si cambias una pantalla, vuelve a tomar su captura para que el manual
+no muestre una interfaz que ya no existe.
+
+### Problemas conocidos
+
+- Al pulsar «Entrar y solicitar» sin sesión, después de entrar la app regresa
+  al buscador pero **pierde el horario elegido** y muestra «Elige materia,
+  asesor, horario y fecha.» en lugar de enviar la solicitud (RF-05). El
+  manual le indica al usuario que vuelva a tocar el horario.
+- En «Mis horarios», los selectores de hora «Inicio» y «Fin» del formulario
+  lateral se enciman y se salen del recuadro.
+- «Cancelar asesoría» actúa sin pedir confirmación.
