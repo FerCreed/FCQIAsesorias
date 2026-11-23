@@ -6,20 +6,20 @@ using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
-/// <summary>
-/// Horarios del asesor: configurar (BPMN 7), editar (BPMN 13) y retirar
-/// (BPMN 16). También descarga su resumen de asesorías y horas trabajadas.
-/// </summary>
+// Horarios del asesor: configurar (BPMN 7), editar (BPMN 13) y retirar
+// (BPMN 16). También descarga su resumen de asesorías y horas trabajadas.
 public partial class AvailabilityViewModel : PageViewModel, IResettable
 {
     private readonly IFcqiApi _api;
     private readonly ICatalogApi _catalog;
     private readonly IPlatformServices _platform;
 
+    // Id del bloque en edición; null significa que el formulario crea uno nuevo.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FormTitle), nameof(IsEditing))]
     private int? _editingId;
 
+    // Campos del formulario; valores iniciales razonables (12:00–13:00, cupo 1).
     [ObservableProperty] private DayOption? _day;
     [ObservableProperty] private TimeSpan? _start = new(12, 0, 0);
     [ObservableProperty] private TimeSpan? _end = new(13, 0, 0);
@@ -30,6 +30,7 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
     [ObservableProperty] private DateTime? _summaryFrom;
     [ObservableProperty] private DateTime? _summaryTo = DateTime.Today;
 
+    // Recibe la API, el catálogo (sedes y ciclo) y la plataforma para guardar el resumen.
     public AvailabilityViewModel(AppStatus status, IFcqiApi api, ICatalogApi catalog, IPlatformServices platform) : base(status)
     {
         _api = api;
@@ -44,9 +45,12 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
     public ObservableCollection<LocationItem> Locations { get; } = [];
     public bool IsEditing => EditingId is not null;
     public string FormTitle => IsEditing ? "Editar bloque" : "Nuevo bloque";
+    // Muestra el aviso de "sin horarios" solo cuando ya terminó de cargar.
     public bool IsEmpty => Blocks.Count == 0 && !IsBusy;
+    // Total semanal publicado, para que el asesor vea su carga de un vistazo.
     public double WeeklyHours => Math.Round(Blocks.Sum(b => (TimeSpan.Parse(b.EndTime) - TimeSpan.Parse(b.StartTime)).TotalHours), 1);
 
+    // Carga sedes y periodo del resumen una sola vez; los bloques se recargan cada vez.
     public override async Task OnNavigatedToAsync()
     {
         await RunAsync(async () =>
@@ -62,12 +66,14 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
         });
     }
 
+    // Al cerrar sesión se vacían los bloques y el formulario.
     public void Reset()
     {
         Blocks.Clear();
         New();
     }
 
+    // Deja el formulario listo para dar de alta un bloque nuevo.
     [RelayCommand]
     private void New()
     {
@@ -76,6 +82,7 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
         Location = Locations.FirstOrDefault();
     }
 
+    // Copia el bloque al formulario; la sede se busca por nombre porque el bloque no trae su Id.
     [RelayCommand]
     private void Edit(AvailabilityItem block)
     {
@@ -94,7 +101,9 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
             return;
         }
 
+        // Las horas se envían como "HH:mm:00", el formato que espera TimeOnly en la API.
         var body = new AvailabilityBody(Day!.Value, $"{Start:hh\\:mm}:00", $"{End:hh\\:mm}:00", (int)Capacity!.Value, Location!.Id);
+        // Se copia el Id antes de la llamada: el formulario podría cambiar mientras espera.
         var id = EditingId;
         if (await RunAsync(async () =>
             {
@@ -107,6 +116,7 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
         }
     }
 
+    // Retira el bloque (baja lógica en la API) y recarga la lista.
     [RelayCommand]
     private Task RetireAsync(AvailabilityItem block)
         => RunAsync(async () =>
@@ -115,7 +125,7 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
             await ReloadAsync();
         }, $"Bloque del {block.DayName.ToLowerInvariant()} {block.TimeRange} retirado.");
 
-    /// <summary>Resumen de asesorías y horas trabajadas del periodo (PDF o CSV).</summary>
+    // Resumen de asesorías y horas trabajadas del periodo (PDF o CSV).
     [RelayCommand]
     private async Task DownloadSummaryAsync(string format)
     {
@@ -137,7 +147,7 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
         });
     }
 
-    /// <summary>Validación previa del formulario; la API repite las reglas de negocio.</summary>
+    // Validación previa del formulario; la API repite las reglas de negocio.
     private string? Validate()
     {
         if (Start is null || End is null) return "Elige la hora de inicio y la de fin.";
@@ -146,6 +156,7 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
         return null;
     }
 
+    // Recarga los bloques y notifica las propiedades derivadas de la lista.
     private async Task ReloadAsync()
     {
         Blocks.Clear();

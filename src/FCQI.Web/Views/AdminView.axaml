@@ -5,18 +5,21 @@
              xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.AdminView"
              x:DataType="vm:AdminViewModel">
+    <!-- Vista de dirección (BPMN 2): asignar materias a cada asesor del ciclo vigente. -->
     <StackPanel Classes="page">
         <StackPanel Spacing="4">
             <TextBlock Classes="h1" Text="Asesores y materias" AutomationProperties.HeadingLevel="1" />
             <TextBlock Classes="muted" FontSize="15" Text="Elige un asesor y marca las materias que cubre este ciclo." />
         </StackPanel>
 
+        <!-- Filtros de la lista de asesores: búsqueda por nombre o correo y tipo de asesor. -->
         <WrapPanel ItemSpacing="10" LineSpacing="8">
             <TextBox Text="{Binding Query}" Watermark="Buscar asesor por nombre o correo" MinWidth="260" AutomationProperties.Name="Buscar asesor" />
             <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" MinWidth="150" AutomationProperties.Name="Tipo de asesor" />
             <TextBlock Classes="label" Text="{Binding ResultText}" VerticalAlignment="Center" />
         </WrapPanel>
 
+        <!-- Dos columnas: lista de asesores y panel con las materias del asesor elegido; en teléfono se apilan. -->
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
             <ListBox Classes="picker" ItemsSource="{Binding Advisors}" SelectedItem="{Binding SelectedAdvisor}" AutomationProperties.Name="Asesores">
                 <ListBox.ItemTemplate>
@@ -34,6 +37,7 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
+            <!-- Panel lateral: casillas de materias y botón para guardar la asignación. -->
             <Border Classes="card side" VerticalAlignment="Top">
                 <StackPanel Spacing="10">
                     <TextBlock Classes="h3" Text="{Binding SelectedAdvisor.FullName, FallbackValue='Elige un asesor'}" />

@@ -6,21 +6,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Advisors.Queries;
 
+// Catálogo de asesores que ve el alumno: solo activos, con sus materias, días
+// y horas semanales del ciclo vigente para alimentar los filtros.
 public class GetAdvisorsQueryHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly CurrentTerm _term;
 
+    // Recibe el contexto de datos y el resolvedor del ciclo vigente por inyección.
     public GetAdvisorsQueryHandler(IApplicationDbContext context, CurrentTerm term)
     {
         _context = context;
         _term = term;
     }
 
+    // Devuelve los asesores activos; si llega subjectId,
+    // solo los que imparten esa materia en el ciclo vigente.
     public async Task<IReadOnlyList<AdvisorDto>> HandleAsync(int? subjectId, CancellationToken cancellationToken = default)
     {
         var termId = await _term.IdAsync(cancellationToken);
 
+        // Se exige que la persona también esté activa: una baja de persona oculta todos sus perfiles.
         var query = _context.AdvisorProfiles
             .AsNoTracking()
             .Where(a => a.IsActive && a.Person.IsActive);
@@ -31,6 +37,7 @@ public class GetAdvisorsQueryHandler
                 .Any(x => x.SubjectId == subjectId && x.TermId == termId));
         }
 
+        // Proyección anónima intermedia: los bloques se traen crudos para calcular días y horas en memoria.
         var rows = await query
             .OrderBy(a => a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive ? 1 : 0)
             .ThenBy(a => a.Person.LastNamePaternal).ThenBy(a => a.Person.FirstName)

@@ -3,12 +3,13 @@ using FCQI.Web;
 
 namespace FCQI.Desktop;
 
+// Arranque del cliente de escritorio. Reutiliza la misma aplicación Avalonia
+// que la versión web (FCQI.Web); aquí solo se elige la URL de la API y el
+// ciclo de vida de escritorio.
 internal static class Program
 {
-    /// <summary>
-    /// La API se toma de FCQI_API_URL; por omisión, el contenedor de
-    /// producción publicado en http://localhost:8080.
-    /// </summary>
+    // La API se toma de FCQI_API_URL; por omisión, el contenedor de
+    // producción publicado en http://localhost:8080.
     [STAThread]
     public static void Main(string[] args)
     {

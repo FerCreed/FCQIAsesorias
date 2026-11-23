@@ -5,17 +5,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Subjects.Queries;
 
+// Catálogo de materias activas con sus carreras y el número de asesores que
+// las imparten en el ciclo vigente.
 public class GetSubjectsQueryHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly CurrentTerm _term;
 
+    // Recibe el contexto de datos y el resolvedor del ciclo vigente por inyección.
     public GetSubjectsQueryHandler(IApplicationDbContext context, CurrentTerm term)
     {
         _context = context;
         _term = term;
     }
 
+    // Devuelve las materias activas ordenadas por nombre.
     public async Task<IReadOnlyList<SubjectDto>> HandleAsync(CancellationToken cancellationToken = default)
     {
         // materias ya no tiene columna Program: su contenido ('FCQI 2026-2')
@@ -24,6 +28,7 @@ public class GetSubjectsQueryHandler
         var term = await _term.GetAsync(cancellationToken);
         var program = $"FCQI {term.Code}";
 
+        // AdvisorCount solo cuenta asesores activos, para no ofrecer materias que nadie atiende.
         return await _context.Subjects
             .AsNoTracking()
             .Where(s => s.IsActive)

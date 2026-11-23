@@ -8,13 +8,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Sessions.Commands;
 
-/// <summary>
-/// Reprogramar (BPMN 11): se solicita la cita nueva con el mismo asesor y
-/// materia y, solo si se registró, se cancela la anterior. Reutiliza todas las
-/// validaciones de <see cref="CreateSessionCommandHandler"/> (cupo, día, ciclo)
-/// en vez de duplicarlas. La cita nueva vuelve a quedar Pendiente: el asesor
-/// debe confirmar el nuevo horario.
-/// </summary>
+// Reprogramar (BPMN 11): se solicita la cita nueva con el mismo asesor y
+// materia y, solo si se registró, se cancela la anterior. Reutiliza todas las
+// validaciones de CreateSessionCommandHandler (cupo, día, ciclo)
+// en vez de duplicarlas. La cita nueva vuelve a quedar Pendiente: el asesor
+// debe confirmar el nuevo horario.
 public class RescheduleSessionCommandHandler
 {
     private readonly IApplicationDbContext _context;
@@ -23,6 +21,8 @@ public class RescheduleSessionCommandHandler
     private readonly CreateSessionCommandHandler _create;
     private readonly SessionEventPublisher _events;
 
+    // Recibe sus dependencias por inyección, incluido el caso de uso de
+    // creación, que se compone en lugar de heredarse o duplicarse.
     public RescheduleSessionCommandHandler(
         IApplicationDbContext context, IClock clock, SessionPolicy policy,
         CreateSessionCommandHandler create, SessionEventPublisher events)
@@ -34,6 +34,7 @@ public class RescheduleSessionCommandHandler
         _events = events;
     }
 
+    // Reprograma la asesoría y devuelve la cita nueva.
     public async Task<SessionDto> HandleAsync(
         int sessionId, RescheduleSessionRequest request, Caller caller, CancellationToken cancellationToken = default)
     {
@@ -52,6 +53,7 @@ public class RescheduleSessionCommandHandler
             throw new BusinessRuleException("Solo se pueden reprogramar asesorías pendientes o confirmadas.");
         }
 
+        // Solo el alumno está sujeto a la anticipación mínima; dirección puede reprogramar siempre.
         if (actor == SessionActor.Student)
         {
             _policy.EnsureStudentCanChange(session.ScheduledAt, _clock);
@@ -72,6 +74,7 @@ public class RescheduleSessionCommandHandler
                 request.AvailabilityId, request.ScheduledAt, session.Topic),
             caller, cancellationToken);
 
+        // El aviso de cancelación sale tras el commit; la creación ya publicó el suyo.
         await transaction.CommitAsync(cancellationToken);
         await _events.PublishAsync(
             new SessionChanged(session.Id, previous, SessionStatusIds.Cancelled, caller.PersonId), cancellationToken);

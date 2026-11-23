@@ -7,20 +7,22 @@ using QuestPDF.Infrastructure;
 
 namespace FCQI.Infrastructure.Reports;
 
-/// <summary>
-/// Adaptador de <see cref="IReportRenderer"/> sobre QuestPDF (licencia
-/// Community: uso académico). Los tres documentos comparten encabezado
-/// institucional, pie de página y estilo de tablas.
-/// </summary>
+// Adaptador de IReportRenderer sobre QuestPDF (licencia
+// Community: uso académico). Los tres documentos comparten encabezado
+// institucional, pie de página y estilo de tablas.
 public class QuestPdfReportRenderer : IReportRenderer
 {
+    // Colores institucionales de la UABC, compartidos por los tres documentos.
     private const string Green = "#00723F";
     private const string GreenDeep = "#024731";
     private const string GoldText = "#875C0B";
+    // Cultura fija para nombres de día y mes en español sin depender del servidor.
     private static readonly CultureInfo Spanish = new("es-MX");
 
+    // Constructor estático: la licencia se declara una sola vez antes del primer documento.
     static QuestPdfReportRenderer() => QuestPDF.Settings.License = LicenseType.Community;
 
+    // Comprobante de una asesoría: datos, bitácora e historial de estados.
     public byte[] Session(SessionReport report) => Render(
         "Reporte de asesoría", $"Asesoría #{report.Session.Id}, ciclo {report.Session.Term}", report.GeneratedAt,
         col =>
@@ -55,6 +57,7 @@ public class QuestPdfReportRenderer : IReportRenderer
                 }), [2, 2, 2, 3]);
         });
 
+    // Constancia del asesor: texto de horas, métricas, desgloses y detalle de sesiones.
     public byte[] AdvisorSummary(AdvisorSummary summary) => Render(
         "Resumen de asesorías y horas trabajadas", $"{summary.AdvisorName} ({summary.AdvisorKind}), {summary.Period.Label}",
         summary.GeneratedAt,
@@ -69,6 +72,7 @@ public class QuestPdfReportRenderer : IReportRenderer
             SessionsTable(col, summary.Sessions, includeAdvisor: false);
         });
 
+    // Reporte de dirección: métricas globales, desgloses y todas las asesorías del periodo.
     public byte[] Sessions(SessionsExport export) => Render(
         "Reporte de todas las asesorías", $"Creadas {export.Period.Label}", export.GeneratedAt,
         col =>
@@ -86,6 +90,9 @@ public class QuestPdfReportRenderer : IReportRenderer
             SessionsTable(col, export.Sessions, includeAdvisor: true);
         });
 
+    // Método plantilla: fija página, encabezado institucional y pie con
+    // paginación, y delega el cuerpo a body. Así los tres
+    // reportes comparten formato sin repetirlo.
     private static byte[] Render(string title, string subtitle, DateTime generatedAt, Action<ColumnDescriptor> body)
         => Document.Create(container => container.Page(page =>
         {
@@ -124,9 +131,11 @@ public class QuestPdfReportRenderer : IReportRenderer
             });
         })).GeneratePdf();
 
+    // Título de sección con el estilo institucional.
     private static void Section(ColumnDescriptor col, string title)
         => col.Item().PaddingTop(6).Text(title).FontSize(11.5f).SemiBold().FontColor(GreenDeep);
 
+    // Tabla de dos columnas etiqueta-valor para fichas de datos.
     private static void KeyValues(ColumnDescriptor col, string title, IEnumerable<(string Key, string Value)> rows)
     {
         Section(col, title);
@@ -145,6 +154,7 @@ public class QuestPdfReportRenderer : IReportRenderer
         });
     }
 
+    // Bloque de métricas; sin datos muestra un aviso en vez de una tabla de ceros.
     private static void Metrics(ColumnDescriptor col, ReportMetrics m)
     {
         if (!m.HasData)
@@ -166,6 +176,7 @@ public class QuestPdfReportRenderer : IReportRenderer
         ]);
     }
 
+    // Desglose de conteo y horas; se omite si está vacío.
     private static void Breakdown(ColumnDescriptor col, string title, IReadOnlyList<CountRow> rows)
     {
         if (rows.Count == 0) return;
@@ -174,6 +185,8 @@ public class QuestPdfReportRenderer : IReportRenderer
             rows.Select(r => new[] { r.Name, r.Count.ToString(), r.Hours.ToString("0.##") }), [4, 1, 1]);
     }
 
+    // Detalle de asesorías. En el resumen de un asesor la columna de asesor
+    // sería redundante, así que se cambia por la modalidad.
     private static void SessionsTable(ColumnDescriptor col, IReadOnlyList<SessionRecord> rows, bool includeAdvisor)
     {
         if (rows.Count == 0) return;
@@ -192,6 +205,8 @@ public class QuestPdfReportRenderer : IReportRenderer
         }), widths);
     }
 
+    // Tabla genérica con encabezado repetido en cada página y filas en franjas
+    // alternas para facilitar la lectura de listados largos.
     private static void Table(ColumnDescriptor col, string[] header, IEnumerable<string[]> rows, float[] widths)
         => col.Item().Table(t =>
         {

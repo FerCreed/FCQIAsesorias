@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FCQI.Infrastructure.Persistence.Configurations;
 
+// Mapea Person a personas, con el correo como índice único de identidad.
 public class PersonConfiguration : IEntityTypeConfiguration<Person>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<Person> builder)
     {
         builder.ToTable("personas");
@@ -33,8 +35,10 @@ public class PersonConfiguration : IEntityTypeConfiguration<Person>
     }
 }
 
+// Mapea el perfil de alumno; comparte llave con la persona (relación uno a uno).
 public class StudentProfileConfiguration : IEntityTypeConfiguration<StudentProfile>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<StudentProfile> builder)
     {
         builder.ToTable("perfiles_alumno");
@@ -60,8 +64,10 @@ public class StudentProfileConfiguration : IEntityTypeConfiguration<StudentProfi
     }
 }
 
+// Mapea el perfil de asesor; comparte llave con la persona (relación uno a uno).
 public class AdvisorProfileConfiguration : IEntityTypeConfiguration<AdvisorProfile>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<AdvisorProfile> builder)
     {
         builder.ToTable("perfiles_asesor");
@@ -90,8 +96,10 @@ public class AdvisorProfileConfiguration : IEntityTypeConfiguration<AdvisorProfi
     }
 }
 
+// Mapea el perfil de directivo; comparte llave con la persona (relación uno a uno).
 public class AdminProfileConfiguration : IEntityTypeConfiguration<AdminProfile>
 {
+    // Lo invoca EF Core al construir el modelo (ApplyConfigurationsFromAssembly).
     public void Configure(EntityTypeBuilder<AdminProfile> builder)
     {
         builder.ToTable("perfiles_directivo");

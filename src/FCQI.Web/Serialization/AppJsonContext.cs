@@ -3,10 +3,10 @@ using FCQI.Web.Models;
 
 namespace FCQI.Web.Serialization;
 
-/// <summary>
-/// Serialización generada en compilación: en WebAssembly el recorte de código
-/// elimina la reflexión que usaría System.Text.Json en tiempo de ejecución.
-/// </summary>
+// Serialización generada en compilación: en WebAssembly el recorte de código
+// elimina la reflexión que usaría System.Text.Json en tiempo de ejecución.
+// Cada tipo que viaja por HTTP debe declararse aquí; uno olvidado falla en tiempo de ejecución.
+// CamelCase e insensibilidad a mayúsculas coinciden con el JSON que emite ASP.NET Core.
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(List<SubjectItem>))]
 [JsonSerializable(typeof(List<AdvisorItem>))]

@@ -4,11 +4,9 @@ using FCQI.Web.Models;
 
 namespace FCQI.Web.Services;
 
-/// <summary>
-/// Quién usa la app y con qué rol. Única instancia (singleton en DI) y
-/// observable: el shell y las páginas reaccionan a sus cambios en lugar de
-/// recibir avisos a mano.
-/// </summary>
+// Quién usa la app y con qué rol. Única instancia (singleton en DI) y
+// observable: el shell y las páginas reaccionan a sus cambios en lugar de
+// recibir avisos a mano.
 public partial class SessionContext : ObservableObject
 {
     [ObservableProperty]
@@ -19,8 +17,10 @@ public partial class SessionContext : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsStudent), nameof(IsAdvisor), nameof(IsAdmin))]
     private string? _activeRole;
 
+    // Roles de la persona; observable para que el selector de rol se actualice solo.
     public ObservableCollection<string> Roles { get; } = [];
 
+    // Propiedades derivadas: se recalculan al cambiar Auth o ActiveRole (ver NotifyPropertyChangedFor).
     public bool IsLoggedIn => Auth is not null;
     public string? Token => Auth?.Token;
     public int PersonId => Auth?.ProfileId ?? 0;
@@ -30,6 +30,8 @@ public partial class SessionContext : ObservableObject
     public bool IsAdmin => ActiveRole == UserRoles.Admin;
     public bool HasSeveralRoles => Roles.Count > 1;
 
+    // Inicia la sesión con la respuesta de la API y activa el rol
+    // predeterminado. Tolera respuestas sin lista de roles usando el rol único.
     public void SignIn(AuthResultItem auth)
     {
         var roles = auth.Roles.Count > 0 ? auth.Roles : [auth.Role];
@@ -44,6 +46,7 @@ public partial class SessionContext : ObservableObject
         OnPropertyChanged(nameof(HasSeveralRoles));
     }
 
+    // Cierra la sesión y descarta el token de memoria.
     public void SignOut()
     {
         Auth = null;

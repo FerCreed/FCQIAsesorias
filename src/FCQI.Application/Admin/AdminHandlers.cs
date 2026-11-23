@@ -7,21 +7,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Administration;
 
+// Lista para dirección de todos los asesores, activos o no, con sus materias
+// del ciclo vigente. A diferencia del catálogo del alumno, no filtra por
+// estado para que dirección pueda reactivar o revisar a cualquiera.
 public class GetAdminAdvisorsQueryHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly CurrentTerm _term;
 
+    // Recibe el contexto de datos y el resolvedor del ciclo vigente por inyección.
     public GetAdminAdvisorsQueryHandler(IApplicationDbContext context, CurrentTerm term)
     {
         _context = context;
         _term = term;
     }
 
+    // Devuelve los asesores ordenados con los profesores primero y, dentro de
+    // cada grupo, por apellido. Proyecta directo al DTO para que EF Core genere
+    // una sola consulta sin cargar entidades completas.
     public async Task<IReadOnlyList<AdvisorDto>> HandleAsync(CancellationToken cancellationToken = default)
     {
         var termId = await _term.IdAsync(cancellationToken);
 
+        // AsNoTracking: consulta de solo lectura, no necesita seguimiento de cambios.
+        // El primer OrderBy coloca a los asesores pares (alumnos) después de los profesores.
         return await _context.AdvisorProfiles
             .AsNoTracking()
             .OrderBy(a => a.Person.StudentProfile != null && a.Person.StudentProfile.IsActive ? 1 : 0)
@@ -48,17 +57,25 @@ public class GetAdminAdvisorsQueryHandler
     }
 }
 
+// Dirección reemplaza el conjunto de materias que un asesor imparte en el
+// ciclo vigente. Aplica solo la diferencia (altas y bajas) en lugar de borrar
+// y reinsertar todo, para no chocar con asesorías que ya referencian la
+// asignación.
 public class ReplaceAdvisorSubjectsCommandHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly CurrentTerm _term;
 
+    // Recibe el contexto de datos y el resolvedor del ciclo vigente por inyección.
     public ReplaceAdvisorSubjectsCommandHandler(IApplicationDbContext context, CurrentTerm term)
     {
         _context = context;
         _term = term;
     }
 
+    // Deja al asesor con exactamente subjectIds en el ciclo
+    // vigente. Lanza BusinessRuleException si el asesor o alguna
+    // materia no existe, o si se intenta quitar una materia con asesorías.
     public async Task HandleAsync(int advisorId, IReadOnlyList<int> subjectIds, CancellationToken cancellationToken = default)
     {
         var termId = await _term.IdAsync(cancellationToken);
@@ -70,6 +87,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             throw new BusinessRuleException("El asesor no existe.");
         }
 
+        // HashSet: elimina duplicados del cliente y da búsquedas O(1) al calcular la diferencia.
         var wanted = subjectIds.Distinct().ToHashSet();
 
         // Las materias tienen que existir y estar vigentes. Sin esta
@@ -93,10 +111,12 @@ public class ReplaceAdvisorSubjectsCommandHandler
             }
         }
 
+        // Asignaciones actuales con seguimiento, porque algunas se van a borrar.
         var current = await _context.AdvisorSubjects
             .Where(x => x.TermId == termId && x.AdvisorId == advisorId)
             .ToListAsync(cancellationToken);
 
+        // Lo que sobra respecto al conjunto pedido.
         var toRemove = current.Where(x => !wanted.Contains(x.SubjectId)).ToList();
 
         // Antes este método borraba TODAS las asignaciones y las reinsertaba.
@@ -126,6 +146,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             _context.AdvisorSubjects.RemoveRange(toRemove);
         }
 
+        // Alta solo de lo que falta; las asignaciones que ya existen conservan su fecha original.
         var currentIds = current.Select(x => x.SubjectId).ToHashSet();
         foreach (var subjectId in wanted.Where(id => !currentIds.Contains(id)))
         {
@@ -137,6 +158,7 @@ public class ReplaceAdvisorSubjectsCommandHandler
             });
         }
 
+        // Un solo SaveChanges: bajas y altas se aplican en la misma transacción.
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

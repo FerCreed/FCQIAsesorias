@@ -10,9 +10,10 @@ using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
-/// <summary>Entrada del menú: a qué página lleva, con qué ícono y cuándo se muestra.</summary>
+// Entrada del menú: a qué página lleva, con qué ícono y cuándo se muestra.
 public partial class NavItem : ObservableObject
 {
+    // Busca el ícono en los recursos de App.axaml por nombre; si no existe, la entrada va sin ícono.
     public NavItem(string label, AppPage page, string icon, Func<SessionContext, bool> isVisible)
     {
         (Label, Page, IsVisibleFor) = (label, page, isVisible);
@@ -22,18 +23,19 @@ public partial class NavItem : ObservableObject
     public string Label { get; }
     public AppPage Page { get; }
     public Geometry? Icon { get; }
+    // Regla de visibilidad según la sesión; se evalúa de nuevo al cambiar de rol.
     public Func<SessionContext, bool> IsVisibleFor { get; }
 
+    // Resalta la entrada de la página actual.
     [ObservableProperty] private bool _isCurrent;
 }
 
-/// <summary>
-/// Contenedor de la app (Composición): arma el menú, decide qué página se
-/// muestra, protege las que exigen sesión o rol y controla el zoom. Las
-/// páginas se crean con la fábrica de DI, una vez cada una.
-/// </summary>
+// Contenedor de la app (Composición): arma el menú, decide qué página se
+// muestra, protege las que exigen sesión o rol y controla el zoom. Las
+// páginas se crean con la fábrica de DI, una vez cada una.
 public partial class ShellViewModel : ObservableObject, INavigator
 {
+    // Límites del zoom: menos de 80 % es ilegible y más de 200 % no cabe en teléfono.
     public const double MinZoom = 0.8;
     public const double MaxZoom = 2.0;
     private const string ZoomKey = "fcqi.zoom";
@@ -42,6 +44,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
     private readonly IFcqiApi _api;
     private readonly IPlatformServices _platform;
     private readonly NavItem[] _menu;
+    // Página a la que se regresa tras iniciar sesión.
     private AppPage _returnTo = AppPage.Home;
     private AppPage _current = AppPage.Home;
 
@@ -51,6 +54,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
     [NotifyPropertyChangedFor(nameof(ZoomText))]
     private double _zoom = 1;
 
+    // Recibe la fábrica de páginas (no las páginas) para no depender de las clases concretas.
     public ShellViewModel(
         Func<AppPage, PageViewModel> pages, SessionContext session, AppStatus status, IFcqiApi api, IPlatformServices platform)
     {
@@ -60,6 +64,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
         Session = session;
         Status = status;
 
+        // Menú completo; RefreshMenu muestra solo las entradas del rol activo.
         _menu =
         [
             new("Inicio", AppPage.Home, "Home", _ => true),
@@ -71,6 +76,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
             new("Reportes", AppPage.Reports, "DataBar", s => s.IsAdmin)
         ];
 
+        // Restaura el zoom guardado, acotado por si la preferencia se alteró a mano.
         if (double.TryParse(platform.GetSetting(ZoomKey), NumberStyles.Float, CultureInfo.InvariantCulture, out var saved))
         {
             Zoom = Math.Clamp(saved, MinZoom, MaxZoom);
@@ -85,6 +91,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
     public ObservableCollection<NavItem> Menu { get; } = [];
     public string ZoomText => $"{Math.Round(Zoom * 100)} %";
 
+    // Arranque: muestra la portada y comprueba que la API responda para avisar pronto si no.
     public async Task StartAsync()
     {
         await GoAsync(AppPage.Home);
@@ -99,6 +106,8 @@ public partial class ShellViewModel : ObservableObject, INavigator
         }
     }
 
+    // Navega a la página si el rol lo permite. Sin sesión lleva al login y
+    // recuerda el destino; con sesión pero sin rol, solo explica el motivo.
     [RelayCommand]
     public async Task GoAsync(AppPage page)
     {
@@ -127,6 +136,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
         await CurrentPage.OnNavigatedToAsync();
     }
 
+    // Guarda el destino, explica por qué hace falta entrar y abre el login.
     public void RequireLogin(AppPage returnTo, string message)
     {
         _returnTo = returnTo;
@@ -134,6 +144,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
         _ = GoAsync(AppPage.Login);
     }
 
+    // Tras entrar vuelve al destino pendiente; si el rol no lo permite, a la portada.
     public Task CompleteLoginAsync()
     {
         var target = Guard(_returnTo) is null ? _returnTo : AppPage.Home;
@@ -141,10 +152,11 @@ public partial class ShellViewModel : ObservableObject, INavigator
         return GoAsync(target);
     }
 
+    // Botón "Entrar": regresa a la página actual salvo que ya sea el propio login.
     [RelayCommand]
     private void OpenLogin() => RequireLogin(_current == AppPage.Login ? AppPage.Home : _current, "Entra con tu correo institucional @uabc.edu.mx.");
 
-    /// <summary>BPMN 17: borra el token y vacía listas y selecciones para que nadie vea datos ajenos.</summary>
+    // BPMN 17: borra el token y vacía listas y selecciones para que nadie vea datos ajenos.
     [RelayCommand]
     private async Task LogoutAsync()
     {
@@ -158,10 +170,12 @@ public partial class ShellViewModel : ObservableObject, INavigator
         await GoAsync(AppPage.Home);
     }
 
+    // Comandos de zoom en pasos de 10 %.
     [RelayCommand] private void ZoomIn() => SetZoom(Zoom + 0.1);
     [RelayCommand] private void ZoomOut() => SetZoom(Zoom - 0.1);
     [RelayCommand] private void ZoomReset() => SetZoom(1);
 
+    // Aplica el zoom acotado y redondeado (evita acumular errores de coma flotante) y lo recuerda en el equipo.
     private void SetZoom(double value)
     {
         Zoom = Math.Round(Math.Clamp(value, MinZoom, MaxZoom), 1);
@@ -169,7 +183,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
         Status.Info($"Tamaño de la interfaz: {ZoomText}.");
     }
 
-    /// <summary>Por qué no se puede entrar a una página, o null si se puede.</summary>
+    // Por qué no se puede entrar a una página, o null si se puede.
     private string? Guard(AppPage page) => page switch
     {
         AppPage.Sessions when !Session.IsLoggedIn => "Entra para ver tus asesorías.",
@@ -178,6 +192,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
         _ => null
     };
 
+    // Observador de la sesión: solo reacciona al cambio de rol activo.
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is not nameof(SessionContext.ActiveRole))
@@ -197,6 +212,7 @@ public partial class ShellViewModel : ObservableObject, INavigator
         }
     }
 
+    // Reconstruye el menú visible con las entradas permitidas para el rol activo.
     private void RefreshMenu()
     {
         Menu.Clear();

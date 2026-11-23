@@ -15,6 +15,7 @@
             </StackPanel>
         </Border>
 
+        <!-- Tarjetas de acceso rápido; cada una se muestra solo para el rol que la usa. -->
         <StackPanel Classes="page">
             <UniformGrid Classes="cards">
                 <UniformGrid.Styles>
@@ -34,6 +35,7 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Invitación a entrar para quien navega sin sesión. -->
                 <Border Classes="card" IsVisible="{Binding !Session.IsLoggedIn}">
                     <StackPanel Spacing="10">
                         <views:IconText Icon="{StaticResource Icon.SignIn}" Text="Entrar" HorizontalAlignment="Left"
@@ -45,6 +47,7 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Accesos del alumno. -->
                 <Border Classes="card" IsVisible="{Binding Session.IsStudent}">
                     <StackPanel Spacing="10">
                         <views:IconText Icon="{StaticResource Icon.Calendar}" Text="Mis asesorías" HorizontalAlignment="Left"
@@ -56,6 +59,7 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Accesos del asesor. -->
                 <Border Classes="card" IsVisible="{Binding Session.IsAdvisor}">
                     <StackPanel Spacing="10">
                         <views:IconText Icon="{StaticResource Icon.Board}" Text="Solicitudes" HorizontalAlignment="Left"
@@ -78,6 +82,7 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Accesos de dirección. -->
                 <Border Classes="card" IsVisible="{Binding Session.IsAdmin}">
                     <StackPanel Spacing="10">
                         <views:IconText Icon="{StaticResource Icon.People}" Text="Asesores y materias" HorizontalAlignment="Left"

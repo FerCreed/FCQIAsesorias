@@ -6,13 +6,12 @@ using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
-/// <summary>
-/// Reportes de dirección (BPMN 6): tablero de métricas de las asesorías
-/// creadas en el periodo, descarga de todas las asesorías (CSV/PDF) y del
-/// resumen de cualquier asesor. Las fechas se eligen en calendario.
-/// </summary>
+// Reportes de dirección (BPMN 6): tablero de métricas de las asesorías
+// creadas en el periodo, descarga de todas las asesorías (CSV/PDF) y del
+// resumen de cualquier asesor. Las fechas se eligen en calendario.
 public partial class ReportsViewModel : PageViewModel, IResettable
 {
+    // Opciones "todos" con Id 0: el ComboBox necesita un elemento, y Id 0 se traduce a "sin filtro".
     private static readonly AdvisorItem AllAdvisors = new() { Id = 0, FullName = "Todos los asesores" };
     private static readonly SubjectItem AllSubjects = new() { Id = 0, Name = "Todas las materias" };
 
@@ -24,6 +23,7 @@ public partial class ReportsViewModel : PageViewModel, IResettable
     [NotifyPropertyChangedFor(nameof(HasData), nameof(Metrics))]
     private DashboardItem? _dashboard;
 
+    // Periodo del reporte: el inicio se llena con el del ciclo al entrar; el fin, hoy.
     [ObservableProperty] private DateTime? _from;
     [ObservableProperty] private DateTime? _to = DateTime.Today;
 
@@ -34,6 +34,7 @@ public partial class ReportsViewModel : PageViewModel, IResettable
     [ObservableProperty] private SubjectItem? _subject = AllSubjects;
     [ObservableProperty] private string _statusFilter = CatalogFilters.All;
 
+    // Recibe la API, el catálogo (ciclo y materias) y la plataforma para guardar archivos.
     public ReportsViewModel(AppStatus status, IFcqiApi api, ICatalogApi catalog, IPlatformServices platform) : base(status)
     {
         _api = api;
@@ -51,10 +52,12 @@ public partial class ReportsViewModel : PageViewModel, IResettable
         SessionStatuses.Cancelled, SessionStatuses.Rejected
     ];
 
+    // Atajos para el enlace de datos de la vista.
     public MetricsItem? Metrics => Dashboard?.Metrics;
     public bool HasData => Dashboard?.Metrics.HasData == true;
     public bool HasAdvisor => Advisor is { Id: > 0 };
 
+    // Al entrar carga una sola vez los filtros (solo está "todos") y refresca el tablero.
     public override async Task OnNavigatedToAsync()
     {
         await RunAsync(async () =>
@@ -69,15 +72,17 @@ public partial class ReportsViewModel : PageViewModel, IResettable
         await RefreshAsync();
     }
 
+    // Al cerrar sesión se descartan las métricas cargadas.
     public void Reset() => Dashboard = null;
 
+    // Recalcula el tablero con los filtros; si faltan fechas, Filter ya avisó y no se pide nada.
     [RelayCommand]
     private Task RefreshAsync()
         => Filter() is { } filter
             ? RunAsync(async () => Dashboard = await _api.GetDashboardAsync(filter))
             : Task.CompletedTask;
 
-    /// <summary>Todas las asesorías creadas desde la fecha elegida, con todos sus datos.</summary>
+    // Todas las asesorías creadas desde la fecha elegida, con todos sus datos.
     [RelayCommand]
     private Task ExportAsync(string format)
         => Filter() is { } filter
@@ -85,7 +90,7 @@ public partial class ReportsViewModel : PageViewModel, IResettable
                 () => _api.GetSessionsExportAsync(format, filter))
             : Task.CompletedTask;
 
-    /// <summary>Resumen del asesor elegido: sus asesorías y horas trabajadas.</summary>
+    // Resumen del asesor elegido: sus asesorías y horas trabajadas.
     [RelayCommand]
     private Task ExportAdvisorAsync(string format)
     {
@@ -101,6 +106,8 @@ public partial class ReportsViewModel : PageViewModel, IResettable
             : Task.CompletedTask;
     }
 
+    // Construye el filtro desde los controles; devuelve null y avisa si faltan fechas.
+    // Las opciones "todos" se envían como null para que la API no filtre por ellas.
     private ReportFilterItem? Filter()
     {
         if (From is null || To is null)
@@ -116,6 +123,8 @@ public partial class ReportsViewModel : PageViewModel, IResettable
             StatusFilter == CatalogFilters.All ? null : StatusFilter);
     }
 
+    // Descarga común de reportes: pide los bytes y los entrega con el tipo MIME del formato.
+    // Solo avisa si el usuario no canceló el diálogo de guardar.
     private Task SaveAsync(string name, string format, Func<Task<byte[]>> fetch)
         => RunAsync(async () =>
         {

@@ -2,8 +2,11 @@ using System.Text.Json.Serialization;
 
 namespace FCQI.Web.Models;
 
+// Asesoría tal como la devuelve la API, ya en hora local del campus. Las
+// propiedades [JsonIgnore] son textos y banderas derivados para la vista.
 public class SessionItem
 {
+    // Cultura fija para que el día y el mes salgan en español en cualquier dispositivo.
     private static readonly System.Globalization.CultureInfo Spanish = new("es-MX");
 
     public int Id { get; set; }
@@ -27,23 +30,26 @@ public class SessionItem
     [JsonIgnore] public string People => $"{StudentName} con {AdvisorName}";
     [JsonIgnore] public bool IsPending => Status == SessionStatuses.Pending;
     [JsonIgnore] public bool IsConfirmed => Status == SessionStatuses.Confirmed;
+    // Abierta = todavía ocupa lugar; habilita cancelar y reprogramar en la vista.
     [JsonIgnore] public bool IsOpen => IsPending || IsConfirmed;
     [JsonIgnore] public bool HasMeetingLink => !string.IsNullOrEmpty(MeetingLink);
 }
 
-/// <summary>Tablero de dirección: periodo y métricas de las asesorías.</summary>
+// Tablero de dirección: periodo y métricas de las asesorías.
 public class DashboardItem
 {
     public PeriodItem Period { get; set; } = new();
     public MetricsItem Metrics { get; set; } = new();
 }
 
+// Periodo del reporte en fechas locales, ambas inclusive.
 public class PeriodItem
 {
     public DateOnly From { get; set; }
     public DateOnly To { get; set; }
 }
 
+// Espejo de ReportMetrics de la API: conteos, tasas en porcentaje y desgloses.
 public class MetricsItem
 {
     public int Total { get; set; }
@@ -66,6 +72,7 @@ public class MetricsItem
     public List<CountRowItem> ByModality { get; set; } = [];
 }
 
+// Fila del desglose por asesor.
 public class AdvisorRowItem
 {
     public int AdvisorId { get; set; }
@@ -77,6 +84,7 @@ public class AdvisorRowItem
     public double Hours { get; set; }
 }
 
+// Fila de un desglose por materia, día o modalidad.
 public class CountRowItem
 {
     public string Name { get; set; } = string.Empty;
@@ -84,9 +92,11 @@ public class CountRowItem
     public double Hours { get; set; }
 }
 
-/// <summary>Filtros de los reportes de dirección.</summary>
+// Filtros de los reportes de dirección.
 public record ReportFilterItem(DateOnly From, DateOnly To, int? AdvisorId = null, int? SubjectId = null, string? Status = null)
 {
+    // Cadena de consulta con solo los filtros presentes; el estado se escapa
+    // porque puede llevar acentos.
     public string Query
     {
         get

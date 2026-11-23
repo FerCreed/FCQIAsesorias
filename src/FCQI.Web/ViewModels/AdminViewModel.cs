@@ -6,8 +6,10 @@ using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
+// Materia con su casilla de asignación para el asesor seleccionado.
 public partial class AssignableSubject : ObservableObject
 {
+    // Inicializa el campo de respaldo directamente para no disparar notificaciones al construir.
     public AssignableSubject(SubjectItem subject, bool assigned) => (Id, Name, _isAssigned) = (subject.Id, subject.Name, assigned);
 
     public int Id { get; }
@@ -16,11 +18,12 @@ public partial class AssignableSubject : ObservableObject
     [ObservableProperty] private bool _isAssigned;
 }
 
-/// <summary>Dirección asigna qué materias cubre cada asesor en el ciclo (BPMN 2).</summary>
+// Dirección asigna qué materias cubre cada asesor en el ciclo (BPMN 2).
 public partial class AdminViewModel : PageViewModel, IResettable
 {
     private readonly IFcqiApi _api;
     private readonly ICatalogApi _catalog;
+    // Listas completas en memoria; las colecciones observables solo guardan lo filtrado.
     private List<SubjectItem> _subjects = [];
     private List<AdvisorItem> _allAdvisors = [];
     private List<AssignableSubject> _assignable = [];
@@ -30,28 +33,34 @@ public partial class AdminViewModel : PageViewModel, IResettable
     [ObservableProperty] private string _kind = CatalogFilters.All;
     [ObservableProperty] private string _subjectQuery = string.Empty;
 
+    // Recibe la API autenticada y el catálogo (para la lista de materias).
     public AdminViewModel(AppStatus status, IFcqiApi api, ICatalogApi catalog) : base(status)
     {
         _api = api;
         _catalog = catalog;
     }
 
+    // Datos expuestos a la vista.
     public override string Title => "Dirección";
     public ObservableCollection<AdvisorItem> Advisors { get; } = [];
     public ObservableCollection<AssignableSubject> Subjects { get; } = [];
     public IReadOnlyList<string> Kinds => CatalogFilters.Kinds;
     public string ResultText => $"{Advisors.Count} de {_allAdvisors.Count} asesores";
 
+    // Vacía la lista de asesores al cerrar sesión.
     public void Reset()
     {
         (_allAdvisors, SelectedAdvisor) = ([], null);
         Advisors.Clear();
     }
 
+    // Métodos parciales que genera ObservableProperty: cada filtro se reaplica al teclear o elegir.
     partial void OnQueryChanged(string value) => FilterAdvisors();
     partial void OnKindChanged(string value) => FilterAdvisors();
     partial void OnSubjectQueryChanged(string value) => FilterSubjects();
 
+    // Reaplica búsqueda y tipo sobre la lista completa. Conserva la selección
+    // si sigue visible; si no, selecciona el primero para no dejar el panel vacío.
     private void FilterAdvisors()
     {
         var keep = SelectedAdvisor;
@@ -65,8 +74,10 @@ public partial class AdminViewModel : PageViewModel, IResettable
         OnPropertyChanged(nameof(ResultText));
     }
 
+    // Recarga al entrar para reflejar cambios hechos desde otra sesión.
     public override Task OnNavigatedToAsync() => RunAsync(ReloadAsync);
 
+    // Arma las casillas de materias marcando las que ya tiene el asesor elegido.
     partial void OnSelectedAdvisorChanged(AdvisorItem? value)
     {
         var assigned = value?.Subjects.ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
@@ -74,7 +85,7 @@ public partial class AdminViewModel : PageViewModel, IResettable
         FilterSubjects();
     }
 
-    /// <summary>Filtra solo lo que se ve: las casillas marcadas y ocultas se conservan al guardar.</summary>
+    // Filtra solo lo que se ve: las casillas marcadas y ocultas se conservan al guardar.
     private void FilterSubjects()
     {
         Subjects.Clear();
@@ -84,6 +95,8 @@ public partial class AdminViewModel : PageViewModel, IResettable
         }
     }
 
+    // Guarda el conjunto completo de materias marcadas (incluidas las ocultas
+    // por el filtro) y recarga para mostrar el estado real del servidor.
     [RelayCommand]
     private Task SaveAsync()
     {
@@ -97,6 +110,7 @@ public partial class AdminViewModel : PageViewModel, IResettable
         }, $"Materias de {advisor.FullName} guardadas. El catálogo ya muestra la nueva asignación.");
     }
 
+    // Trae materias y asesores y restaura la selección previa por Id.
     private async Task ReloadAsync()
     {
         _subjects = await _catalog.GetSubjectsAsync();

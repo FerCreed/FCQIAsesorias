@@ -10,11 +10,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FCQI.Api.Controllers;
 
-/// <summary>
-/// Asesorías. Los handlers se inyectan por acción ([FromServices]) para que el
-/// controlador no cargue con todos en cada petición. Los errores de negocio
-/// los traduce <see cref="Filters.ApiExceptionFilter"/>.
-/// </summary>
+// Asesorías. Los handlers se inyectan por acción ([FromServices]) para que el
+// controlador no cargue con todos en cada petición. Los errores de negocio
+// los traduce ApiExceptionFilter.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -22,12 +20,11 @@ public class SessionsController : ControllerBase
 {
     private readonly CurrentUser _user;
 
+    // Recibe la identidad de quien llama, leída del token.
     public SessionsController(CurrentUser user) => _user = user;
 
-    /// <summary>
-    /// Un alumno ve sus solicitudes, un asesor las que le tocan y dirección
-    /// todas. <c>scope</c>: <c>upcoming</c> o <c>history</c>.
-    /// </summary>
+    // Un alumno ve sus solicitudes, un asesor las que le tocan y dirección
+    // todas. scope: upcoming o history.
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SessionDto>>> Get(
         [FromServices] GetSessionsQueryHandler query,
@@ -36,7 +33,7 @@ public class SessionsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await query.HandleAsync(studentId, advisorId, status, _user.ToCaller(), scope, cancellationToken));
 
-    /// <summary>El alumno solicita (BPMN 8). La identidad sale del token.</summary>
+    // El alumno solicita (BPMN 8). La identidad sale del token.
     [HttpPost]
     public async Task<ActionResult<SessionDto>> Post(
         [FromServices] CreateSessionCommandHandler create,
@@ -46,7 +43,7 @@ public class SessionsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { studentId = created.StudentId }, created);
     }
 
-    /// <summary>Confirmar, rechazar o cancelar (BPMN 11, 12, 18).</summary>
+    // Confirmar, rechazar o cancelar (BPMN 11, 12, 18).
     [HttpPatch("{id:int}/status")]
     public async Task<IActionResult> PatchStatus(
         [FromServices] UpdateSessionStatusCommandHandler update,
@@ -56,14 +53,14 @@ public class SessionsController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Reprogramar (BPMN 11). Devuelve la cita nueva.</summary>
+    // Reprogramar (BPMN 11). Devuelve la cita nueva.
     [HttpPatch("{id:int}/schedule")]
     public async Task<ActionResult<SessionDto>> Reschedule(
         [FromServices] RescheduleSessionCommandHandler reschedule,
         int id, [FromBody] RescheduleSessionRequest request, CancellationToken cancellationToken)
         => Ok(await reschedule.HandleAsync(id, request, _user.ToCaller(), cancellationToken));
 
-    /// <summary>Bitácora y asistencia (BPMN 9). La asesoría queda Realizada.</summary>
+    // Bitácora y asistencia (BPMN 9). La asesoría queda Realizada.
     [HttpPost("{id:int}/log")]
     public async Task<IActionResult> Log(
         [FromServices] RecordSessionLogCommandHandler log,
@@ -73,14 +70,14 @@ public class SessionsController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>La cita en formato iCalendar para agregarla a cualquier calendario (BPMN 12).</summary>
+    // La cita en formato iCalendar para agregarla a cualquier calendario (BPMN 12).
     [HttpGet("{id:int}/calendar.ics")]
     public async Task<IActionResult> Calendar(
         [FromServices] SessionCalendarQueryHandler calendar, int id, CancellationToken cancellationToken)
         => File(Encoding.UTF8.GetBytes(await calendar.HandleAsync(id, _user.ToCaller(), cancellationToken)),
             "text/calendar", $"asesoria-{id}.ics");
 
-    /// <summary>Reporte individual en PDF. Lo descargan el alumno, el asesor de la cita y dirección.</summary>
+    // Reporte individual en PDF. Lo descargan el alumno, el asesor de la cita y dirección.
     [HttpGet("{id:int}/report.pdf")]
     public async Task<IActionResult> Report(
         [FromServices] SessionReportQueryHandler report, [FromServices] IReportRenderer pdf,

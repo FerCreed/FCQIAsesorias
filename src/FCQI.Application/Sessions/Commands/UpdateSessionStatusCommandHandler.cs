@@ -8,11 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Sessions.Commands;
 
-/// <summary>
-/// Confirmar, rechazar o cancelar una asesoría (BPMN 11, 12 y 18). Qué
-/// transición es válida y quién puede hacerla lo decide <see cref="SessionState"/>;
-/// aquí solo se orquesta: cargar, validar, guardar y avisar.
-/// </summary>
+// Confirmar, rechazar o cancelar una asesoría (BPMN 11, 12 y 18). Qué
+// transición es válida y quién puede hacerla lo decide SessionState;
+// aquí solo se orquesta: cargar, validar, guardar y avisar.
 public class UpdateSessionStatusCommandHandler
 {
     private readonly IApplicationDbContext _context;
@@ -20,6 +18,7 @@ public class UpdateSessionStatusCommandHandler
     private readonly SessionPolicy _policy;
     private readonly SessionEventPublisher _events;
 
+    // Recibe sus dependencias por inyección.
     public UpdateSessionStatusCommandHandler(
         IApplicationDbContext context, IClock clock, SessionPolicy policy, SessionEventPublisher events)
     {
@@ -29,8 +28,11 @@ public class UpdateSessionStatusCommandHandler
         _events = events;
     }
 
+    // Lleva la asesoría al estado indicado por nombre. Es idempotente: pedir
+    // el estado actual no hace nada.
     public async Task HandleAsync(int sessionId, string status, Caller caller, CancellationToken cancellationToken = default)
     {
+        // Se valida el nombre antes de tocar la base para no consultar con datos basura.
         if (!SessionStatuses.All.Contains(status))
         {
             throw new BusinessRuleException("Estado no válido.");
@@ -48,6 +50,7 @@ public class UpdateSessionStatusCommandHandler
             return;
         }
 
+        // Solo el alumno está sujeto a la anticipación mínima para cambios.
         var actor = EnsureAllowed(session, target, status, caller);
         if (actor == SessionActor.Student)
         {
@@ -57,11 +60,9 @@ public class UpdateSessionStatusCommandHandler
         await SaveAsync(session, target, caller, cancellationToken);
     }
 
-    /// <summary>
-    /// Valida la transición. Los estados finales van primero a propósito:
-    /// confirmar una asesoría cancelada la devolvía a la vida y volvía a ocupar
-    /// un lugar que quizá ya era de otro alumno.
-    /// </summary>
+    // Valida la transición. Los estados finales van primero a propósito:
+    // confirmar una asesoría cancelada la devolvía a la vida y volvía a ocupar
+    // un lugar que quizá ya era de otro alumno.
     private static SessionActor EnsureAllowed(AdvisorySession session, byte target, string status, Caller caller)
     {
         var state = SessionState.From(session.StatusId);
@@ -96,6 +97,7 @@ public class UpdateSessionStatusCommandHandler
         return actor;
     }
 
+    // Persiste el nuevo estado y publica el evento para correos, enlaces e historial.
     private async Task SaveAsync(AdvisorySession session, byte target, Caller caller, CancellationToken cancellationToken)
     {
         var previous = session.StatusId;

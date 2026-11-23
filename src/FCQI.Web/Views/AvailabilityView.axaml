@@ -5,6 +5,7 @@
              xmlns:views="using:FCQI.Web.Views"
              x:Class="FCQI.Web.Views.AvailabilityView"
              x:DataType="vm:AvailabilityViewModel">
+    <!-- Horarios del asesor (BPMN 7, 13 y 16): lista de bloques y formulario lateral. -->
     <StackPanel Classes="page">
         <StackPanel Spacing="4">
             <TextBlock Classes="h1" Text="Mis horarios" AutomationProperties.HeadingLevel="1" />
@@ -13,11 +14,14 @@
             </TextBlock>
         </StackPanel>
 
+        <!-- Dos columnas: bloques publicados y formulario; en teléfono se apilan. -->
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
             <StackPanel Spacing="8">
+                <!-- Aviso cuando el asesor todavía no publica bloques. -->
                 <Border Classes="card" IsVisible="{Binding IsEmpty}">
                     <TextBlock Classes="muted" Text="Aún no publicas horarios. Agrega tu primer bloque con el formulario." />
                 </Border>
+                <!-- Bloques del ciclo vigente con acciones de editar y retirar. -->
                 <ItemsControl ItemsSource="{Binding Blocks}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
@@ -51,6 +55,7 @@
                 </ItemsControl>
             </StackPanel>
 
+            <!-- Columna lateral: formulario de alta o edición y descarga del resumen. -->
             <StackPanel Classes="side" Spacing="14">
                 <Border Classes="card">
                     <StackPanel Spacing="8">

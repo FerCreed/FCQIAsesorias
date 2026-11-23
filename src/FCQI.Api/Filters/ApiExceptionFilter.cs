@@ -4,13 +4,14 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace FCQI.Api.Filters;
 
-/// <summary>
-/// Traduce las excepciones de la capa de aplicación a respuestas HTTP con un
-/// <c>{ message }</c> que la interfaz puede enseñar tal cual. Sustituye el
-/// try/catch que se repetía en cada acción de cada controlador.
-/// </summary>
+// Traduce las excepciones de la capa de aplicación a respuestas HTTP con un
+// { message } que la interfaz puede enseñar tal cual. Sustituye el
+// try/catch que se repetía en cada acción de cada controlador.
 public class ApiExceptionFilter : IExceptionFilter
 {
+    // Asigna el código HTTP según el tipo de excepción. El orden del switch
+    // importa: NotFoundException hereda de
+    // BusinessRuleException y debe evaluarse antes.
     public void OnException(ExceptionContext context)
     {
         var status = context.Exception switch

@@ -5,12 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCQI.Application.Sessions.Queries;
 
-/// <summary>
-/// Única proyección de asesoría → <see cref="SessionDto"/>. La usaban, copiada,
-/// la consulta de listado y la creación de citas.
-/// </summary>
+// Única proyección de asesoría → SessionDto. La usaban, copiada,
+// la consulta de listado y la creación de citas.
 internal static class SessionProjection
 {
+    // Método de extensión: cada consulta aplica sus filtros y orden y luego
+    // comparte esta proyección. Se proyecta a un tipo anónimo plano para que
+    // EF Core traiga solo las columnas necesarias en una sola consulta.
     public static async Task<List<SessionDto>> ToDtosAsync(
         this IQueryable<AdvisorySession> query, IClock clock, CancellationToken cancellationToken)
     {

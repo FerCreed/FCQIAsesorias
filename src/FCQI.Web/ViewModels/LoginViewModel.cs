@@ -6,7 +6,7 @@ using FCQI.Web.Services;
 
 namespace FCQI.Web.ViewModels;
 
-/// <summary>Inicio de sesión institucional (BPMN 1).</summary>
+// Inicio de sesión institucional (BPMN 1).
 public partial class LoginViewModel : PageViewModel, IResettable
 {
     private const string Domain = "@uabc.edu.mx";
@@ -18,6 +18,7 @@ public partial class LoginViewModel : PageViewModel, IResettable
     [ObservableProperty] private DemoProfileItem? _selectedProfile;
     [ObservableProperty] private string _error = string.Empty;
 
+    // Recibe la API, la sesión que se poblará y el navegador para regresar tras entrar.
     public LoginViewModel(AppStatus status, IFcqiApi api, SessionContext session, INavigator navigator) : base(status)
     {
         _api = api;
@@ -26,14 +27,18 @@ public partial class LoginViewModel : PageViewModel, IResettable
     }
 
     public override string Title => "Entrar";
+
+    // Muestra el mensaje de error junto al formulario y no solo en la franja global.
     public bool HasError => Error.Length > 0;
 
-    /// <summary>Perfiles para entrar eligiendo de una lista: en el celular evita escribir el correo.</summary>
+    // Perfiles para entrar eligiendo de una lista: en el celular evita escribir el correo.
     public ObservableCollection<DemoProfileItem> Profiles { get; } = [];
     public bool HasProfiles => Profiles.Count > 0;
 
+    // HasError es derivada: se notifica a mano cuando cambia el error.
     partial void OnErrorChanged(string value) => OnPropertyChanged(nameof(HasError));
 
+    // Elegir un perfil rellena el correo y limpia el error previo.
     partial void OnSelectedProfileChanged(DemoProfileItem? value)
     {
         if (value is not null)
@@ -43,6 +48,7 @@ public partial class LoginViewModel : PageViewModel, IResettable
         }
     }
 
+    // Carga la lista de perfiles una sola vez; no cambia durante el uso.
     public override async Task OnNavigatedToAsync()
     {
         if (Profiles.Count > 0)
@@ -67,7 +73,7 @@ public partial class LoginViewModel : PageViewModel, IResettable
         OnPropertyChanged(nameof(HasProfiles));
     }
 
-    /// <summary>BPMN 17: al salir no queda a la vista el correo de quien entró.</summary>
+    // BPMN 17: al salir no queda a la vista el correo de quien entró.
     public void Reset()
     {
         SelectedProfile = null;
@@ -75,7 +81,7 @@ public partial class LoginViewModel : PageViewModel, IResettable
         Error = string.Empty;
     }
 
-    /// <summary>Valida el correo antes de ir al servidor. Devuelve el mensaje o null si está bien.</summary>
+    // Valida el correo antes de ir al servidor. Devuelve el mensaje o null si está bien.
     public static string? Validate(string email)
     {
         if (string.IsNullOrWhiteSpace(email)) return $"Escribe tu correo institucional {Domain}.";
@@ -83,6 +89,8 @@ public partial class LoginViewModel : PageViewModel, IResettable
         return null;
     }
 
+    // Valida, inicia sesión y regresa a la página pendiente. El error se copia
+    // al formulario para que quede junto al campo del correo.
     [RelayCommand]
     private async Task SignInAsync()
     {
