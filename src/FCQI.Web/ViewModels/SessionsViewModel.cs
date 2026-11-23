@@ -125,6 +125,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
     [RelayCommand]
     private void ShowScope(string history) => ShowHistory = history == "history";
 
+    // «Ver todas»: quita el día y el estado elegidos.
     [RelayCommand]
     private void ClearFilters() => (Day, StatusFilter) = (null, CatalogFilters.All);
 
@@ -167,6 +168,7 @@ public partial class SessionsViewModel : PageViewModel, IResettable
         }
     }
 
+    // Envía la reprogramación; la API cancela la cita vieja y crea la nueva como Pendiente.
     [RelayCommand]
     private async Task RescheduleAsync()
     {

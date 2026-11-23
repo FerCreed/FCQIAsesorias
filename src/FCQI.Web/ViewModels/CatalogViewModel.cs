@@ -147,6 +147,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
     // Sin sesión el botón anticipa que pedirá entrar antes de solicitar.
     public string RequestLabel => _session.IsLoggedIn ? "Solicitar asesoría" : "Entrar y solicitar";
 
+    // Recarga ciclo y materias en cada visita y, si se volvió del login, envía la solicitud pendiente.
     public override async Task OnNavigatedToAsync()
     {
         // Se recargan en cada visita: dirección pudo asignar asesores a una
@@ -231,6 +232,7 @@ public partial class CatalogViewModel : PageViewModel, IResettable
         ApplyFilters();
     }
 
+    // «Cambiar horario»: quita el bloque elegido y vuelve a mostrar la lista completa de horarios.
     [RelayCommand]
     private void ClearSlot() => SelectedSlot = null;
 

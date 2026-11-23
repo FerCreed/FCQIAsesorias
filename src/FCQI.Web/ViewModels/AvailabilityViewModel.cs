@@ -92,6 +92,7 @@ public partial class AvailabilityViewModel : PageViewModel, IResettable
         Location = Locations.FirstOrDefault(l => l.Name == block.Location) ?? Locations.FirstOrDefault();
     }
 
+    // Crea o actualiza según haya un bloque en edición; valida antes para no ir al servidor con datos incompletos.
     [RelayCommand]
     private async Task SaveAsync()
     {

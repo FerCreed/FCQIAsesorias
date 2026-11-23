@@ -114,8 +114,7 @@ dentro del menú ☰ de la cabecera, sin volver a entrar.
 ## 3. Requisitos funcionales
 
 Prioridad: **A** imprescindible, **M** importante. Estado: **✔** implementado,
-**◐** implementado con adaptador por omisión (ver §5.3), **⚠** implementado con
-un fallo conocido (ver la nota bajo su tabla).
+**◐** implementado con adaptador por omisión (ver §5.3).
 
 ### 3.1 Acceso
 
@@ -271,8 +270,8 @@ Códigos: 400 regla de negocio incumplida, 401 sin sesión, 403 sin permiso,
 | Fachada | `FcqiApiClient` (`IFcqiApi`, `ICatalogApi`) | Un único punto de acceso a la API REST para el cliente. |
 | Proxy | `AuthTokenHandler` | Añade el token a cada petición HTTP. |
 | Decorador | `CachedCatalogApi` | Cachea materias y sedes sin tocar la fachada. |
-| Método plantilla | `PageViewModel.RunAsync` | Esqueleto común ocupado → ejecutar → avisar/mostrar error. |
-| Fábrica | `AppServices` (fábrica de páginas por `AppPage`) | El shell crea páginas sin conocer clases concretas. |
+| Método plantilla | `PageViewModel.RunAsync`; `QuestPdfReportRenderer.Render` | Esqueleto común ocupado → ejecutar → avisar/mostrar error; página, encabezado y pie comunes a los tres PDF. |
+| Fábrica | `AppServices` (fábrica de páginas por `AppPage`); `SessionState.From`; `ReportMetrics.From`; `DayToggle.Weekdays` | El shell crea páginas sin conocer clases concretas; el estado se obtiene del Id guardado; las métricas se calculan en un solo punto. |
 | Singleton | `SessionContext`, `AppStatus`, `CampusClock`, `JwtTokenFactory` (DI) | Una instancia compartida por la app. |
 | Composición | `ShellViewModel` + menú de `NavItem` | El contenedor compone páginas y menú según rol. |
 | Iterador | LINQ / `IQueryable` en consultas | Recorrido y filtrado declarativo. |
@@ -300,13 +299,13 @@ aplicada al arrancar el contenedor): estado 5 *Realizada*, columna
 | RF-01 | `Client/ClientLogicTests` (validación de correo) |
 | RF-05 | `Client/PendingRequestTests` (la solicitud pendiente se envía al volver del login) |
 | RF-02, RF-03 | `Auth/ResolveProfileHandlerTests` |
-| RF-13 | `Sessions/PeerAdvisorTests`, `Client/ClientLogicTests` (próxima fecha) |
+| RF-13 | `Sessions/PeerAdvisorTests`, `Client/ClientLogicTests` (próxima fecha), `Processes/LogicEdgeTests` (día, hora, pasado y ciclo) |
 | RF-20, RF-23, RF-33 | `Auth/SessionAuthorizationTests`, `Sessions/StatusTransitionTests`, `Processes/SessionStateTests` |
 | RF-21, RF-22, RF-26–RF-28, RF-30, RF-31 | `Processes/SessionProcessTests` |
 | RF-40–RF-42 | `Processes/AvailabilityProcessTests` |
 | RF-50 | `Admin/AdvisorSubjectsTests` |
 | RF-15, RF-16 | `Client/FilterAndLogoutTests`, `Client/CatalogRaceTests` |
-| RF-51–RF-54 | `Processes/ReportTests` (permisos, horas, filtro "desde", 25 columnas, PDF) y `tools/probar-api.py` I15–I26 |
+| RF-51–RF-54 | `Processes/ReportTests` (permisos, horas, filtro "desde", 25 columnas, PDF), `Processes/LogicEdgeTests` (porcentajes, horas con asistencia, orden de días, sin datos) y `tools/probar-api.py` I15–I26 |
 | RF-04 (limpiar al salir) | `Client/FilterAndLogoutTests` |
 | RNF-06 | `Persistence/ModelMappingTests` + checklist §1 |
 | RNF-07 | `Time/CampusClockTests` |

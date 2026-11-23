@@ -286,8 +286,8 @@ El recorrido completo, paso a paso, está en
 **[docs/checklist-validacion.md](docs/checklist-validacion.md)**. En resumen:
 
 ```bash
-dotnet test tests/FCQI.UnitTests          # 121 pruebas de reglas, procesos, reportes y cliente, sin base ni red
-python3 tools/probar-api.py               # 58 pruebas contra la API en :5080
+dotnet test tests/FCQI.UnitTests          # 127 pruebas de reglas, procesos, reportes y cliente, sin base ni red
+python3 tools/probar-api.py               # 86 comprobaciones contra la API en :5080
 ```
 
 `tools/probar-api.py` ejerce la API completa —autenticación, autorización,

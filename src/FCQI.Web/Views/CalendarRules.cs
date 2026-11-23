@@ -50,6 +50,7 @@ public static class CalendarRules
         }
     }
 
+    // Rehace la colección de fechas bloqueadas: todo el rango mostrado salvo las fechas permitidas.
     private static void Rebuild(
         CalendarBlackoutDatesCollection? blackout, HashSet<DateTime>? enabled, DateTime? start, DateTime? end,
         Func<DateTime?> getSelected, Action<DateTime?> setSelected)

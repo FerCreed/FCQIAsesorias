@@ -69,10 +69,11 @@ FROM v_roles_persona GROUP BY PersonaId, Correo HAVING COUNT(*) > 1;"
 dotnet test tests/FCQI.UnitTests
 ```
 
-- [ ] 56 pruebas, 0 fallos.
+- [ ] 127 pruebas, 0 fallos.
 - [ ] Cubren, entre otras cosas: el asesor par con sus dos roles, los estados
-      finales de una asesoría, el mapeo de entidades a tablas y el horario de
-      verano de `America/Tijuana`.
+      finales de una asesoría, el mapeo de entidades a tablas, el horario de
+      verano de `America/Tijuana`, los reportes, los filtros del cliente y la
+      solicitud pendiente que se envía al volver del login (RF-05).
 
 ## 3. Pruebas de la API en ejecución
 
@@ -84,7 +85,7 @@ python3 tools/probar-api.py                             # contenedor
 API=http://localhost:5016 python3 tools/probar-api.py   # API nativa
 ```
 
-- [ ] 58 comprobaciones, 0 fallas. El script cancela al terminar todo lo que
+- [ ] 86 comprobaciones, 0 fallas. El script cancela al terminar todo lo que
       creó, así que puede repetirse.
 
 Lo que cubre, por si hay que revisarlo a mano:
