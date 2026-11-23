@@ -31,7 +31,8 @@
             <Setter Property="Grid.Column" Value="1" />
             <Setter Property="HorizontalAlignment" Value="Right" />
         </Style>
-        <Style Selector="Control.side">
+        <!-- :is(Control) y no Control: en Avalonia un selector de tipo solo coincide con ese tipo exacto, y .side se usa en Border y StackPanel. -->
+        <Style Selector=":is(Control).side">
             <Setter Property="Grid.Column" Value="1" />
             <Setter Property="Grid.Row" Value="0" />
             <Setter Property="Width" Value="360" />
@@ -58,7 +59,7 @@
         <Style Selector="Grid.compact Border.card">
             <Setter Property="Padding" Value="14" />
         </Style>
-        <Style Selector="Grid.compact Control.side">
+        <Style Selector="Grid.compact :is(Control).side">
             <Setter Property="Grid.Column" Value="0" />
             <Setter Property="Grid.Row" Value="1" />
             <Setter Property="Width" Value="NaN" />
