@@ -227,9 +227,8 @@ Tu cita aparece como **Pendiente**. Cuando el asesor la acepte, cambiará a
 cita cambia.
 
 > **Consejo:** si entraste a mitad de una búsqueda (con el botón «Entrar y
-> solicitar»), el sistema te regresa al buscador. Si ves el aviso *«Elige
-> materia, asesor, horario y fecha»*, vuelve a tocar el horario y después
-> **«Solicitar asesoría»**.
+> solicitar»), el sistema envía la solicitud en cuanto entras y te lleva a
+> **«Mis asesorías»**; no tienes que repetir los pasos.
 
 ### 6.2 Ver mis asesorías
 

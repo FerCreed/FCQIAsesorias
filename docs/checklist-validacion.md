@@ -136,9 +136,9 @@ debe verse cada pantalla.
       volcado de excepción.
 - [ ] Con una asesoría seleccionada, «Cancelar asesoría» la pasa a Cancelada.
 - [ ] Al alumno no le aparecen los botones Confirmar ni Rechazar.
-- [ ] Sin sesión, «Entrar y solicitar» lleva al acceso. **Fallo conocido
-      (RF-05):** al entrar regresa al buscador pero pierde el horario elegido;
-      se marca como pasado cuando la solicitud se envía sola.
+- [ ] Sin sesión, «Entrar y solicitar» lleva al acceso; al entrar como alumno
+      **la solicitud se envía sola** con el horario, la fecha y el tema elegidos
+      y la pantalla salta a Mis asesorías (RF-05).
 
 ### Asesor
 

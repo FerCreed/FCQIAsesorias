@@ -333,10 +333,20 @@ public partial class CatalogViewModel : PageViewModel, IResettable
                     CatalogFilters.Matches(days, a.Days)));
                 break;
             default:
+                // Al vaciarse la lista, el ListBox borra el horario elegido y con él la
+                // fecha. Se guardan antes y se restauran si el bloque sigue en la lista:
+                // así la solicitud pendiente sobrevive al regreso del login.
+                var (slot, date) = (SelectedSlot, SelectedDate);
                 Replace(Slots, _allSlots.Where(s =>
                     CatalogFilters.Matches(Modality, s.Modality) &&
                     CatalogFilters.Matches(TimeBand.Value, s.StartHour) &&
                     CatalogFilters.Matches(days, [s.DayOfWeek])));
+                if (slot is not null && Slots.Contains(slot))
+                {
+                    // El orden importa: asignar el horario propone una fecha y luego se repone la elegida.
+                    (SelectedSlot, SelectedDate) = (slot, date);
+                }
+
                 break;
         }
 

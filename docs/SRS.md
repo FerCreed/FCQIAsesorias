@@ -125,11 +125,10 @@ un fallo conocido (ver la nota bajo su tabla).
 | RF-02 | El sistema debe resolver todos los roles activos de la persona y emitir un token JWT con ellos; si no tiene ninguno, niega el acceso con un mensaje claro. | 1 | A | ✔ |
 | RF-03 | Si la persona tiene más de un rol, debe poder cambiar de rol sin volver a entrar. | 1 | A | ✔ |
 | RF-04 | Al salir, el cliente debe borrar el token, limpiar listas y selecciones y regresar al inicio. | 17 | A | ✔ |
-| RF-05 | Si una acción requiere sesión, el sistema lleva al acceso y, al entrar, regresa a la pantalla de origen y retoma la solicitud pendiente. | 1, 8 | M | ⚠ |
+| RF-05 | Si una acción requiere sesión, el sistema lleva al acceso y, al entrar, regresa a la pantalla de origen y retoma la solicitud pendiente. | 1, 8 | M | ✔ |
 
-**RF-05, fallo conocido:** tras entrar, la app regresa al buscador pero pierde el
-horario elegido y no envía la solicitud; el usuario debe volver a tocar el
-horario (el manual lo indica).
+**RF-05:** tras entrar, la app regresa al buscador con la materia, el asesor, el
+horario, la fecha y el tema intactos, envía la solicitud y salta a «Mis asesorías».
 
 ### 3.2 Catálogo y solicitud (alumno)
 
@@ -298,7 +297,8 @@ aplicada al arrancar el contenedor): estado 5 *Realizada*, columna
 
 | Requisito | Prueba automática (`tests/FCQI.UnitTests`) |
 |-----------|---------------------------------------------|
-| RF-01, RF-05 | `Client/ClientLogicTests` (validación de correo) |
+| RF-01 | `Client/ClientLogicTests` (validación de correo) |
+| RF-05 | `Client/PendingRequestTests` (la solicitud pendiente se envía al volver del login) |
 | RF-02, RF-03 | `Auth/ResolveProfileHandlerTests` |
 | RF-13 | `Sessions/PeerAdvisorTests`, `Client/ClientLogicTests` (próxima fecha) |
 | RF-20, RF-23, RF-33 | `Auth/SessionAuthorizationTests`, `Sessions/StatusTransitionTests`, `Processes/SessionStateTests` |

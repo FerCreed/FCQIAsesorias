@@ -62,16 +62,12 @@
                         <TextBlock Classes="h3" Text="{Binding FormTitle}" />
                         <Label Content="Día" Target="Day" />
                         <ComboBox x:Name="Day" ItemsSource="{Binding Days}" SelectedItem="{Binding Day}" />
-                        <Grid ColumnDefinitions="*,10,*">
-                            <StackPanel Spacing="6">
-                                <Label Content="Inicio" Target="Start" />
-                                <TimePicker x:Name="Start" SelectedTime="{Binding Start}" MinuteIncrement="30" ClockIdentifier="24HourClock" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" Spacing="6">
-                                <Label Content="Fin" Target="End" />
-                                <TimePicker x:Name="End" SelectedTime="{Binding End}" MinuteIncrement="30" ClockIdentifier="24HourClock" />
-                            </StackPanel>
-                        </Grid>
+                        <!-- Inicio y Fin van uno debajo del otro: cada TimePicker mide al menos
+                             242 px y dos en fila no caben en la columna de 360 px ni en un teléfono. -->
+                        <Label Content="Inicio" Target="Start" />
+                        <TimePicker x:Name="Start" SelectedTime="{Binding Start}" MinuteIncrement="30" ClockIdentifier="24HourClock" HorizontalAlignment="Stretch" />
+                        <Label Content="Fin" Target="End" />
+                        <TimePicker x:Name="End" SelectedTime="{Binding End}" MinuteIncrement="30" ClockIdentifier="24HourClock" HorizontalAlignment="Stretch" />
                         <Label Content="Cupo por sesión" Target="Capacity" />
                         <NumericUpDown x:Name="Capacity" Value="{Binding Capacity}" Minimum="1" Maximum="30" Increment="1" FormatString="0" />
                         <Label Content="Lugar" Target="Place" />

@@ -286,7 +286,7 @@ El recorrido completo, paso a paso, está en
 **[docs/checklist-validacion.md](docs/checklist-validacion.md)**. En resumen:
 
 ```bash
-dotnet test tests/FCQI.UnitTests          # 120 pruebas de reglas, procesos, reportes y cliente, sin base ni red
+dotnet test tests/FCQI.UnitTests          # 121 pruebas de reglas, procesos, reportes y cliente, sin base ni red
 python3 tools/probar-api.py               # 58 pruebas contra la API en :5080
 ```
 
@@ -310,10 +310,4 @@ no muestre una interfaz que ya no existe.
 
 ### Problemas conocidos
 
-- Al pulsar «Entrar y solicitar» sin sesión, después de entrar la app regresa
-  al buscador pero **pierde el horario elegido** y muestra «Elige materia,
-  asesor, horario y fecha.» en lugar de enviar la solicitud (RF-05). El
-  manual le indica al usuario que vuelva a tocar el horario.
-- En «Mis horarios», los selectores de hora «Inicio» y «Fin» del formulario
-  lateral se enciman y se salen del recuadro.
 - «Cancelar asesoría» actúa sin pedir confirmación.
